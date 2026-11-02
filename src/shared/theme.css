@@ -1,0 +1,42 @@
+@import "tailwindcss";
+@import "@fontsource/cinzel/600.css";
+@import "@fontsource/cinzel/800.css";
+@import "@fontsource/crimson-pro/400.css";
+@import "@fontsource/crimson-pro/400-italic.css";
+@import "@fontsource/crimson-pro/600.css";
+@import "@fontsource/pixelify-sans/400.css";
+@import "@fontsource/pixelify-sans/600.css";
+
+@theme {
+  --font-display: "Cinzel", serif;
+  --font-body: "Crimson Pro", Georgia, serif;
+  --font-pixel: "Pixelify Sans", monospace;
+  --color-void: #07060a;
+  --color-crypt: #0f0d14;
+  --color-stone-900: #15131a;
+  --color-stone-800: #1c1b22;
+  --color-stone-700: #2a2830;
+  --color-stone-600: #3a3741;
+  --color-stone-500: #4d4954;
+  --color-stone-400: #625d69;
+  --color-stone-300: #8c8693;
+  --color-bone: #d9d3c1;
+  --color-parchment: #e9e1cc;
+  --color-gold: #e8b33a;
+  --color-gold-dim: #9a6b1a;
+  --color-ember: #e8752b;
+  --color-blood: #c4283b;
+  --color-arcane: #a35ae0;
+  --color-moss: #5a7444;
+  --color-frost: #9fe3ff;
+  --color-heal: #5fd19a;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+.pixelated {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}

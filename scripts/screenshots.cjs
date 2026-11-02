@@ -1,0 +1,54 @@
+// Genera capturas reales del juego para la web: node scripts/screenshots.cjs http://localhost:5173/play/ public/screenshots
+const { chromium } = require('playwright');
+const BASE = process.argv[2] || 'http://localhost:5173/play/';
+const OUT = process.argv[3] || 'public/screenshots';
+(async () => {
+  const b = await chromium.launch();
+  const page = await b.newPage({ viewport: { width: 1440, height: 900 } });
+  const tp = (x, y) => page.evaluate(([x, y]) => window.__DREADBOUND__.scene().debugTeleport(x, y), [x, y]);
+  await page.goto(BASE + '?debug');
+  await page.click('[data-testid=btn-play]');
+  await page.fill('[data-testid=name-input]', 'Aldric');
+  await page.click('[data-testid=btn-create]');
+  await page.click('[data-testid=btn-tutorial-ok]');
+  // Algo de equipo para que el inventario luzca
+  await page.evaluate(() => {
+    const s = window.__DREADBOUND__.getState();
+    s.profile.gold = 600;
+  });
+  await page.click('[data-testid=tab-merchant]');
+  for (const id of ['iron_helm', 'gauntlets', 'chainmail', 'iron_sword', 'health_potion', 'copper_ring', 'antidote']) await page.click(`[data-testid=buy-${id}]`);
+  await page.click('[data-testid=tab-gear]');
+  for (const id of ['iron_helm', 'gauntlets', 'chainmail', 'iron_sword', 'copper_ring']) {
+    const el = await page.$(`[data-testid^=slot-backpack][data-item=${id}]`);
+    if (el) await el.dblclick();
+  }
+  await page.hover('[data-testid^=slot-backpack][data-item=rusty_sword]');
+  await page.waitForTimeout(300);
+  await page.screenshot({ path: `${OUT}/inventory.png` });
+  await page.click('[data-testid=tab-expedition]');
+  await page.click('[data-testid=btn-enter-dungeon]');
+  await page.click('[data-testid=btn-dungeon-tutorial-ok]');
+  const r = await page.evaluate(() => { const r = window.__DREADBOUND__.scene().rival; return [r.x, r.y]; });
+  await tp(Math.floor(r[0]) + 1, Math.floor(r[1]));
+  await page.waitForTimeout(500);
+  await page.keyboard.press('e');
+  await page.click('[data-testid=rival-talk]');
+  await page.waitForTimeout(200);
+  await page.screenshot({ path: `${OUT}/rival.png` });
+  await page.click('[data-testid=rival-ally]');
+  await page.keyboard.press('Escape');
+  await tp(4, 17);
+  await page.waitForTimeout(2500);
+  await page.screenshot({ path: `${OUT}/dungeon.png` });
+  // Jefe
+  await page.evaluate(() => window.__DREADBOUND__.actions.startCombat('pve', 'e_boss', 'ossuary_lord'));
+  for (let i = 0; i < 6; i++) {
+    await page.waitForTimeout(1100);
+    const btn = await page.$('[data-testid=act-skill-0]:not([disabled])');
+    if (btn) await btn.click();
+  }
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: `${OUT}/combat.png` });
+  await b.close();
+})();

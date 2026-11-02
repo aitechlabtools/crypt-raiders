@@ -1,0 +1,52 @@
+// Prueba de minería: comprar un pico a Brand, picar una veta y ver el mineral en la mochila.
+const { chromium, devices } = require('playwright');
+const BASE = process.argv[2] || 'http://localhost:5173/play/';
+const OUT = process.argv[3] || '/tmp/claude-0/mine';
+const DEVICE = process.argv[4];
+(async () => {
+  require('fs').mkdirSync(OUT, { recursive: true });
+  const b = await chromium.launch();
+  const ctx = DEVICE ? await b.newContext({ ...devices[DEVICE] }) : await b.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  const errors = [];
+  page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
+  page.on('pageerror', (e) => errors.push(e.message));
+  const tap = async (sel) => { await page.waitForSelector(sel, { timeout: 8000 }); await page.click(sel); };
+  const bp = () => page.evaluate(() => window.__DREADBOUND__.getState().expedition.backpack.filter(Boolean).map((s) => `${s.itemId}x${s.qty}${s.uses !== undefined ? `(${s.uses})` : ''}`).join(' '));
+  await page.goto(BASE + '?debug');
+  await page.evaluate(() => indexedDB.deleteDatabase('dreadbound'));
+  await page.reload();
+  await tap('[data-testid=btn-play]');
+  await page.fill('[data-testid=name-input]', 'Minera');
+  await tap('[data-testid=class-warrior]');
+  await tap('[data-testid=btn-create]');
+  await tap('[data-testid=btn-tutorial-ok]');
+  await page.evaluate(() => { const d = window.__DREADBOUND__; const p = d.getState().profile; d.setState({ profile: { ...p, gold: 500, stats: { ...p.stats, expeditions: 1 } } }); });
+  await tap('[data-testid=tab-merchant]');
+  await tap('[data-testid=vendor-brand]');
+  await tap('[data-testid=buy-miner_pick]');
+  await tap('[data-testid=tab-expedition]');
+  await tap('[data-testid=btn-enter-dungeon]');
+  await tap('[data-testid=btn-dungeon-tutorial-ok]');
+  await page.waitForTimeout(800);
+  console.log('mochila al entrar:', await bp());
+  await page.evaluate(() => window.__DREADBOUND__.scene().enemies.forEach((e) => { e.dead = true; e.sprite.setVisible(false); }));
+  const v = await page.evaluate(() => { const v = window.__DREADBOUND__.scene().veins[0]; return [v.x, v.y, v.vein]; });
+  console.log('veta:', v[2], 'vetas en el mapa:', await page.evaluate(() => window.__DREADBOUND__.scene().veins.length));
+  // De pie justo delante de la veta (hacia el interior de la sala)
+  await page.evaluate(([x, y]) => { const sc = window.__DREADBOUND__.scene(); const north = sc.dungeon.tiles[y - 1]?.[x] === 'wall'; sc.debugTeleport(north ? x : x + 1, north ? y + 1 : y); }, v);
+  await page.waitForTimeout(500);
+  console.log('aviso:', await page.$eval('[data-testid=hud-prompt]', (e) => e.textContent).catch(() => 'ninguno'));
+  await page.screenshot({ path: `${OUT}/vein.png` });
+  await page.keyboard.press('e');
+  await page.waitForTimeout(300);
+  if (await page.$('[data-testid=interact-menu]')) { const o = await page.$('text=/Picar/'); if (o) await o.click(); }
+  await page.waitForTimeout(900);
+  await page.screenshot({ path: `${OUT}/mining.png` });
+  await page.waitForFunction(() => Object.keys(window.__DREADBOUND__.getState().mined).length > 0, null, { timeout: 15000 }).catch(() => console.log('NO TERMINA DE PICAR'));
+  console.log('mochila tras picar:', await bp());
+  console.log('veta agotada:', await page.evaluate(() => window.__DREADBOUND__.getState().mined));
+  await page.screenshot({ path: `${OUT}/mined.png` });
+  console.log('errores:', errors.length ? errors : 'ninguno');
+  await b.close();
+})().catch((e) => { console.error('FALLO', e); process.exit(1); });

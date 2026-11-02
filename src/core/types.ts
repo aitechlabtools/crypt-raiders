@@ -6,7 +6,7 @@ export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
 export type ItemCategory =
   | 'weapon' | 'shield' | 'helmet' | 'armor' | 'gloves' | 'boots' | 'ring' | 'amulet'
-  | 'potion' | 'material' | 'relic' | 'jewel' | 'key' | 'quest' | 'coin';
+  | 'potion' | 'material' | 'relic' | 'jewel' | 'key' | 'quest' | 'coin' | 'tool';
 
 export type EquipSlot = 'mainHand' | 'offHand' | 'helmet' | 'armor' | 'gloves' | 'boots' | 'ring' | 'amulet';
 
@@ -45,6 +45,10 @@ export interface ItemDef {
   family?: 'sword' | 'axe' | 'dagger' | 'staff' | 'mace' | 'shield' | 'tome';
   /** Ataque básico que da el arma (solo mano principal). */
   attack?: AttackDef;
+  /** Herramientas: usos que tiene nueva. */
+  uses?: number;
+  /** Picos: segundos que se tarda en picar una veta. */
+  mineTime?: number;
   /** Habilidades que concede mientras está equipado. */
   grants?: string[];
 }
@@ -53,6 +57,12 @@ export interface ItemStack {
   uid: string;
   itemId: string;
   qty: number;
+  /** Calidad de forja (0 tosca, 1 buena, 2 magistral). Solo objetos forjados. */
+  quality?: number;
+  /** Quién lo forjó. */
+  forgedBy?: string;
+  /** Usos que le quedan a una herramienta (p. ej. un pico). Sin valor = nueva. */
+  uses?: number;
 }
 
 export type Grid = (ItemStack | null)[];
@@ -134,8 +144,19 @@ export interface Settings {
   music: boolean;
 }
 
+export type MercStance = 'aggressive' | 'cautious';
+
+/** Contrato en vigor con un mercenario de Garra Roja. */
+export interface Contract {
+  mercId: string;
+  /** Expediciones que quedan (incluida la próxima). */
+  left: number;
+  stance: MercStance;
+}
+
 export interface Profile {
-  version: 1;
+  /** 2 = escala de niveles 1–100. Los perfiles de la versión 1 se migran al cargarlos. */
+  version: 2;
   character: CharacterData;
   gold: number;
   backpack: Grid;
@@ -143,6 +164,24 @@ export interface Profile {
   equipment: Equipment;
   quests: QuestProgress[];
   stats: ProfileStats;
+  /** Reputación con cada vendedor (orvel, vesper, garra, brand). */
+  reputation: Record<string, number>;
+  /** Bestiario: criaturas vistas y derrotadas. */
+  bestiary: Record<string, { seen: number; kills: number }>;
+  /** Bolsillo seguro: lo que guardes aquí no se pierde al morir. */
+  pocket: Grid;
+  /** Jefes derrotados al menos una vez (abren el acceso a la zona siguiente). */
+  bossesDefeated: string[];
+  /** Aspectos desbloqueados (solo cambian cómo se ve el equipo). */
+  cosmetics: string[];
+  /** Aspecto elegido para cada ranura. */
+  wardrobe: Partial<Record<'mainHand' | 'offHand' | 'helmet' | 'armor' | 'gloves' | 'boots', string>>;
+  /** Contrato de mercenario en vigor (máximo uno). */
+  contract: Contract | null;
+  /** Mercenarios rescatados de la mazmorra: ya se pueden contratar con Garra Roja. */
+  mercsRescued: string[];
+  /** Rescatados que aún tienen el descuento del primer contrato. */
+  mercDiscounts: string[];
   /** Marca de expedición en curso, para detectar recargas a mitad de partida. */
   activeExpedition: { startedAt: number } | null;
   tutorialSeen: { lobby: boolean; dungeon: boolean };

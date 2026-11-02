@@ -12,13 +12,15 @@ export interface RoomDef extends Rect { id: string; name: string }
 export type EntityDef =
   | { kind: 'spawn'; x: number; y: number }
   | { kind: 'enemy'; id: string; enemyId: string; x: number; y: number }
-  | { kind: 'chest'; id: string; table: 'common' | 'rich' | 'boss'; x: number; y: number }
+  | { kind: 'chest'; id: string; table: string; x: number; y: number }
   | { kind: 'door'; id: string; x: number; y: number }
   | { kind: 'trap'; id: string; x: number; y: number }
   | { kind: 'torch'; x: number; y: number; face: 'south' | 'east' }
   | { kind: 'pillar'; x: number; y: number }
   | { kind: 'portal'; x: number; y: number }
   | { kind: 'rival'; x: number; y: number }
+  | { kind: 'captive'; mercId: string; x: number; y: number }
+  | { kind: 'vein'; id: string; vein: import('./mining').VeinId; x: number; y: number }
   | { kind: 'decor'; sprite: 'bones' | 'skull' | 'barrel' | 'rubble'; x: number; y: number };
 
 export interface DungeonDef {
@@ -31,6 +33,8 @@ export interface DungeonDef {
   entities: EntityDef[];
   /** Semilla con la que se generó (solo mazmorras procedurales). */
   seed?: number;
+  /** Zona a la que pertenece (por defecto, la Mazmorra). */
+  zone?: import('./data/zones/types').ZoneId;
 }
 
 export const CRYPTS_OF_UMBRAVEL: DungeonDef = {

@@ -1,3 +1,4 @@
+import { VEINS } from '../../core/mining';
 import Phaser from 'phaser';
 import * as Art from '../../shared/art';
 import { PAL } from '../../shared/palette';
@@ -48,10 +49,12 @@ export function registerTextures(scene: Phaser.Scene) {
   add('marker_neutral', Art.drawMarker(PAL.gold2));
   add('marker_hostile', Art.drawMarker(PAL.threat2));
   add('bag', Art.drawBag());
+  add('chains', Art.drawChains());
+  for (const v of Object.values(VEINS)) add(`vein_${v.id}`, Art.drawVein(v.color, v.glint, false));
+  add('vein_spent', Art.drawVein('#000', '#000', true));
   for (let f = 0; f < 4; f++) {
-    add(`skeleton${f}`, Art.drawHumanoid(Art.MONSTER_SPECS.skeleton, f));
-    add(`rival${f}`, Art.drawHumanoid(Art.MONSTER_SPECS.rival, f));
-    add(`boss${f}`, Art.drawHumanoid(Art.MONSTER_SPECS.boss, f));
+    for (const [name, spec] of Object.entries(Art.MONSTER_SPECS)) add(`${name}${f}`, Art.drawHumanoid(spec, f));
+    for (const name of Object.keys(Art.BEAST_SPECS)) add(`${name}${f}`, Art.drawBeast(name, f));
   }
   for (let f = 0; f < 3; f++) add(`bat${f}`, Art.drawBat(f));
 }

@@ -1,5 +1,8 @@
 import type { Stats } from '../types';
 import type { LootTable } from '../loot';
+import { MAZMORRA_ENEMIES } from './zones/mazmorra';
+import { CRIPTA_ENEMIES } from './zones/cripta';
+import { INFIERNO_ENEMIES } from './zones/infierno';
 
 export interface EnemyDef {
   id: string;
@@ -9,7 +12,11 @@ export interface EnemyDef {
   skills: string[];
   /** Probabilidad de usar una habilidad en vez del ataque básico. */
   skillChance: number;
-  basicAttack: { name: string; kind: 'physical' | 'magical'; power: number; fx: 'slash' | 'bite' | 'smash' | 'dark' };
+  basicAttack: { name: string; kind: 'physical' | 'magical'; power: number; fx: 'slash' | 'bite' | 'smash' | 'dark' | 'fire' | 'frost' };
+  /** Rol en combate (informativo, para fichas y la guía). */
+  role?: string;
+  /** Élite: más duro que los normales, uno por mapa. */
+  elite?: boolean;
   xp: number;
   loot: LootTable;
   undead: boolean;
@@ -27,7 +34,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
     xp: 45, undead: true,
     loot: { rolls: 1, gold: [3, 12], entries: [
       { itemId: 'bone_dust', weight: 40, min: 1, max: 3 }, { itemId: 'old_coin', weight: 20, min: 1, max: 2 },
-      { itemId: 'rusty_sword', weight: 10 }, { itemId: 'health_potion', weight: 15 }, { itemId: 'nothing', weight: 15 },
+      { itemId: 'rusty_sword', weight: 10 }, { itemId: 'health_potion', weight: 15 }, { itemId: 'iron_key', weight: 4 }, { itemId: 'nothing', weight: 11 },
     ] },
     wander: { speed: 1.3, aggroRange: 3.5 },
   },
@@ -47,14 +54,16 @@ export const ENEMIES: Record<string, EnemyDef> = {
     stats: { maxHp: 270, maxMp: 0, atk: 25, def: 14, mag: 22, res: 13, spd: 8, crit: 8, eva: 2 },
     skills: ['grave_slam', 'necrotic_wave', 'bone_shield'], skillChance: 0.5,
     basicAttack: { name: 'Mandoble de hueso', kind: 'physical', power: 1.05, fx: 'smash' },
-    xp: 250, undead: true,
-    loot: { rolls: 2, gold: [40, 80], entries: [
+    xp: 250, undead: true, role: 'Jefe',
+    loot: { rolls: 2, gold: [40, 80], always: [{ itemId: 'relic_key' }], entries: [
       { itemId: 'golden_chalice', weight: 30 }, { itemId: 'blood_gem', weight: 20 }, { itemId: 'executioner_axe', weight: 12 },
       { itemId: 'frost_staff', weight: 12 }, { itemId: 'knight_sword', weight: 12 }, { itemId: 'bone_amulet', weight: 14 },
     ] },
     wander: { speed: 0.8, aggroRange: 3 },
   },
 };
+
+Object.assign(ENEMIES, MAZMORRA_ENEMIES, CRIPTA_ENEMIES, INFIERNO_ENEMIES);
 
 export function getEnemy(id: string): EnemyDef {
   const e = ENEMIES[id];

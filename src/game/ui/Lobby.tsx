@@ -1,12 +1,20 @@
+import { getMerc } from '../../core/data/mercenaries';
+import { ShopTab, WardrobeTab } from './WardrobeTab';
+import { BestiaryTab } from './BestiaryTab';
+import { stashUpgrades } from '../../core/economy';
+import { STASH_ROW, STASH_UPGRADE_COSTS } from '../../config/stash';
+import { VendorsTab, VendorQuests } from './VendorsTab';
+import { VENDORS, VENDOR_ORDER } from '../../core/data/vendors';
+import { monsterUrl } from '../../shared/art';
+import { ZONES, ZONE_ORDER, zoneLock, type ZoneId } from '../../core/data/zones';
+import { getEnemy } from '../../core/data/enemies';
 import { useState, type ReactNode } from 'react';
 import { actions, useGame } from '../state/store';
 import { CLASSES } from '../../core/data/classes';
 import { getItem, RARITY_INFO } from '../../core/data/items';
-import { MERCHANT_STOCK } from '../../core/data/merchant';
 import { QUESTS } from '../../core/data/quests';
 import { computeStats, baseStats, xpForNextLevel } from '../../core/stats';
 import { countItem, equippedValue, gridValue, type Loc } from '../../core/inventory';
-import { buyPrice } from '../../core/economy';
 import { EXPEDITION_DURATION_MS } from '../../core/expedition';
 import { EquipmentView, GridView, ItemIcon, StatsList, Bar, type InvMode } from './inventory';
 import { PlayerSprite, GoldAmount, ItemActions, Modal, LoadoutPanel } from './common';
@@ -14,14 +22,17 @@ import { SettingsModal } from './TitleScreen';
 import { sfx, startMusic } from '../audio';
 import type { ItemStack } from '../../core/types';
 
-type Tab = 'hero' | 'gear' | 'stash' | 'merchant' | 'quests' | 'expedition';
+type Tab = 'hero' | 'gear' | 'stash' | 'merchant' | 'quests' | 'bestiary' | 'wardrobe' | 'shop' | 'expedition';
 
 const TABS: { id: Tab; label: string; icon: string }[] = [
   { id: 'hero', label: 'Aventurero', icon: '◆' },
   { id: 'gear', label: 'Equipo', icon: '⚔' },
   { id: 'stash', label: 'Almacén', icon: '▣' },
-  { id: 'merchant', label: 'Mercader', icon: '◎' },
+  { id: 'merchant', label: 'Vendedores', icon: '◎' },
   { id: 'quests', label: 'Misiones', icon: '✦' },
+  { id: 'bestiary', label: 'Bestiario', icon: '☠' },
+  { id: 'wardrobe', label: 'Vestuario', icon: '✧' },
+  { id: 'shop', label: 'Tienda', icon: '◈' },
   { id: 'expedition', label: 'Expedición', icon: '➤' },
 ];
 
@@ -76,6 +87,9 @@ export function Lobby() {
             {tab === 'stash' && <StashTab />}
             {tab === 'merchant' && <MerchantTab />}
             {tab === 'quests' && <QuestsTab />}
+            {tab === 'wardrobe' && <WardrobeTab />}
+            {tab === 'shop' && <ShopTab />}
+            {tab === 'bestiary' && <BestiaryTab />}
             {tab === 'expedition' && <ExpeditionTab />}
           </div>
         </main>
@@ -161,10 +175,28 @@ function GearTab() {
               onAlt={(l) => actions.quickMove(l, 'stash')} />
             <p className="text-xs text-stone-400 mt-2">Lo que llevas en la mochila y equipado <span className="text-ember">se arriesga</span> en cada expedición.</p>
           </Section>
+          <Section title={`Bolsillo seguro · ${profile.pocket.filter(Boolean).length}/${profile.pocket.length}`}>
+            <GridView grid={profile.pocket} container="pocket" cols={3} equipment={profile.equipment} mode={mode} selected={sel} onSelect={setSel} onQuick={(l) => actions.quickMove(l, 'backpack')} />
+            <p className="text-xs text-stone-400 mt-2">Lo que guardes aquí <span className="text-heal">no se pierde aunque mueras</span>. Solo caben llaves, joyas, monedas, pociones y materiales.</p>
+          </Section>
           <Section title="Acciones"><ItemActions loc={sel} mode={mode} onClear={clear} /></Section>
         </div>
       </div>
     </>
+  );
+}
+
+function StashUpgrade() {
+  const profile = useGame((s) => s.profile)!;
+  const n = stashUpgrades(profile);
+  const cost = STASH_UPGRADE_COSTS[n];
+  return (
+    <div className="flex items-center justify-between gap-3 mt-3 flex-wrap">
+      <span className="text-xs text-stone-400">{profile.stash.filter(Boolean).length}/{profile.stash.length} casillas · ampliaciones {n}/{STASH_UPGRADE_COSTS.length}</span>
+      {cost !== undefined
+        ? <button className="btn btn-gold text-sm py-2 px-4" disabled={profile.gold < cost} onClick={() => actions.upgradeStash()} data-testid="btn-stash-upgrade">Ampliar +{STASH_ROW} casillas · {cost} oro</button>
+        : <span className="text-xs text-heal">Tamaño máximo</span>}
+    </div>
   );
 }
 
@@ -180,6 +212,7 @@ function StashTab() {
         </Section>
         <Section title={`Almacén (seguro) · ${gridValue(profile.stash)} oro`} right={<button className="btn text-xs" onClick={() => actions.sortContainer('stash')} data-testid="sort-stash">Ordenar</button>}>
           <GridView grid={profile.stash} container="stash" cols={8} equipment={profile.equipment} mode={mode} selected={sel} onSelect={setSel} onQuick={(l) => actions.quickMove(l, 'backpack')} onAlt={(l) => actions.quickMove(l, 'backpack')} />
+          <StashUpgrade />
         </Section>
       </div>
       <Section title="Acciones"><ItemActions loc={sel} mode={mode} onClear={clear} /></Section>
@@ -191,70 +224,34 @@ function StashTab() {
 function MerchantTab() {
   const profile = useGame((s) => s.profile)!;
   const { sel, setSel, clear } = useSelection();
-  const ch = profile.character;
   const mode: InvMode = 'merchant';
   const sellQuick = (l: Loc) => l.kind === 'grid' && (l.container === 'backpack' || l.container === 'stash') && actions.sell(l.container, l.index);
-  return (
-    <div className="grid xl:grid-cols-[1fr_minmax(340px,420px)] gap-4">
-      <Section title="Mercader Orvel · Se compra, se vende, no se pregunta" right={<GoldAmount value={profile.gold} />}>
-        <div className="grid sm:grid-cols-2 gap-2" data-testid="merchant-stock">
-          {MERCHANT_STOCK.map((id) => {
-            const d = getItem(id);
-            const price = buyPrice(id);
-            const usable = !d.classes || d.classes.includes(ch.classId);
-            return (
-              <div key={id} className="flex items-center gap-2 bg-black/30 p-2 border border-stone-800">
-                <div className="slot" style={{ borderColor: RARITY_INFO[d.rarity].color + 'aa' }}><ItemIcon itemId={id} /></div>
-                <div className="flex-1 min-w-0">
-                  <div className="truncate" style={{ color: RARITY_INFO[d.rarity].color }}>{d.name}</div>
-                  <div className="text-xs text-stone-400 truncate">
-                    {d.slot && d.levelReq ? <span className={ch.level < d.levelReq ? 'text-blood' : 'text-heal'}>Nv {d.levelReq} · </span> : null}
-                    {d.stats ? Object.entries(d.stats).map(([k, v]) => `${v! > 0 ? '+' : ''}${v} ${k}`).join(' ') : d.description}
-                    {!usable && <span className="text-blood"> · otra clase</span>}
-                  </div>
-                </div>
-                <button className="btn btn-gold text-sm whitespace-nowrap" disabled={profile.gold < price} onClick={() => actions.buy(id)} data-testid={`buy-${id}`}>{price} oro</button>
-              </div>
-            );
-          })}
-        </div>
+  const sellPanel = (
+    <div className="grid lg:grid-cols-2 gap-4">
+      <Section title="Vender desde la mochila">
+        <GridView grid={profile.backpack} container="backpack" cols={6} equipment={profile.equipment} mode={mode} selected={sel} onSelect={setSel} onQuick={sellQuick} onAlt={sellQuick} />
       </Section>
-      <div className="space-y-4">
-        <Section title="Vender desde la mochila">
-          <GridView grid={profile.backpack} container="backpack" cols={6} equipment={profile.equipment} mode={mode} selected={sel} onSelect={setSel} onQuick={sellQuick} onAlt={sellQuick} />
-        </Section>
-        <Section title="Vender desde el almacén">
-          <GridView grid={profile.stash} container="stash" cols={6} equipment={profile.equipment} mode={mode} selected={sel} onSelect={setSel} onQuick={sellQuick} onAlt={sellQuick} />
-        </Section>
-        <Section title="Acciones"><ItemActions loc={sel} mode={mode} onClear={clear} /></Section>
-      </div>
+      <Section title="Vender desde el almacén">
+        <GridView grid={profile.stash} container="stash" cols={6} equipment={profile.equipment} mode={mode} selected={sel} onSelect={setSel} onQuick={sellQuick} onAlt={sellQuick} />
+      </Section>
+      <div className="lg:col-span-2"><Section title="Acciones"><ItemActions loc={sel} mode={mode} onClear={clear} /></Section></div>
     </div>
   );
+  return <VendorsTab sellPanel={sellPanel} />;
 }
 
 function QuestsTab() {
-  const profile = useGame((s) => s.profile)!;
   return (
-    <div className="space-y-3 max-w-3xl">
-      {QUESTS.map((q) => {
-        const p = profile.quests.find((x) => x.id === q.id)!;
-        const done = p.progress >= q.count;
-        return (
-          <div key={q.id} className={`panel p-4 flex items-center gap-4 ${p.claimed ? 'opacity-50' : ''}`} data-testid={`quest-${q.id}`}>
-            <div className="flex-1">
-              <div className="font-display text-lg text-gold">{q.name}</div>
-              <div className="font-body text-base text-stone-300">{q.description}</div>
-              <div className="mt-2 max-w-sm"><Bar value={p.progress} max={q.count} color={done ? '#5fd19a' : '#e8b33a'} label="Progreso" /></div>
-            </div>
-            <div className="text-right text-sm">
-              <div className="text-gold">+{q.reward.gold} oro</div>
-              <div className="text-arcane">+{q.reward.xp} XP</div>
-              {p.claimed ? <div className="text-heal mt-2">Cobrada</div> : <button className="btn btn-gold mt-2 text-sm" disabled={!done} onClick={() => actions.claimQuest(q.id)}>Cobrar</button>}
-            </div>
+    <div className="space-y-5 max-w-4xl">
+      {VENDOR_ORDER.map((id) => (
+        <section key={id} className="panel p-4">
+          <div className="flex items-center gap-3 mb-2">
+            <img src={monsterUrl(VENDORS[id].sprite, 2)} alt="" className="pixelated h-10" />
+            <h3 className="font-display text-xl text-parchment flex-1">{VENDORS[id].name}</h3>
           </div>
-        );
-      })}
-      <p className="font-body text-base text-stone-400 italic">Las misiones avanzan al terminar cada expedición.</p>
+          <VendorQuests vendor={id} />
+        </section>
+      ))}
     </div>
   );
 }
@@ -267,10 +264,14 @@ function ExpeditionTab() {
   const potions = countItem(profile.backpack, 'health_potion');
   const noWeapon = !profile.equipment.mainHand;
   const firstTime = profile.stats.expeditions === 0;
+  const [zoneId, setZoneId] = useState<ZoneId>('mazmorra');
+  const zone = ZONES[zoneId];
+  const lock = zoneLock(zone, ch.level, profile.bossesDefeated);
   const enter = () => {
+    if (lock) return;
     sfx('portal');
     if (profile.settings.music) startMusic('dungeon');
-    void actions.enterDungeon();
+    void actions.enterDungeon(firstTime ? 'mazmorra' : zoneId);
   };
   const carried = [...Object.values(profile.equipment), ...profile.backpack].filter((s): s is ItemStack => !!s);
   return (
@@ -280,19 +281,42 @@ function ExpeditionTab() {
           <div className="absolute inset-0 flex items-end justify-center pb-2"><PlayerSprite scale={6} /></div>
         </div>
         <div className="p-5">
-          <h2 className="font-display text-3xl text-parchment">{firstTime ? 'Las Criptas de Umbravel' : 'Las criptas cambiantes'}</h2>
-          <p className="font-body text-lg text-stone-300 mt-2 leading-snug">
-            {firstTime
-              ? 'Seis salas bajo el Bastión, selladas desde la caída de la orden. Murciélagos, esqueletos y un señor que no acepta que su reino terminó. Dicen que otro aventurero bajó esta mañana.'
-              : 'Bajo el Bastión los pasillos nunca están donde los dejaste. Cada expedición, un mapa distinto: salas nuevas, cofres nuevos y el Señor del Osario esperando en algún rincón. Y siempre hay otro aventurero ahí abajo.'}
-          </p>
+          {firstTime ? (
+            <>
+              <h2 className="font-display text-3xl text-parchment">Las Criptas de Umbravel</h2>
+              <p className="font-body text-lg text-stone-300 mt-2 leading-snug">Seis salas bajo el Bastión, selladas desde la caída de la orden. Murciélagos, esqueletos y un señor que no acepta que su reino terminó. Dicen que otro aventurero bajó esta mañana.</p>
+            </>
+          ) : (
+            <>
+              <h2 className="font-display text-3xl text-parchment">Elige hasta dónde bajas</h2>
+              <div className="grid sm:grid-cols-3 gap-2 mt-3" data-testid="zone-picker">
+                {ZONE_ORDER.map((id) => {
+                  const z = ZONES[id];
+                  const l = zoneLock(z, ch.level, profile.bossesDefeated);
+                  const on = id === zoneId;
+                  return (
+                    <button key={id} onClick={() => { setZoneId(id); sfx('click'); }} data-testid={`zone-${id}`}
+                      className={`panel p-3 text-left min-h-[5.5rem] transition ${on ? 'pulse-gold border-gold' : 'hover:brightness-125'} ${l ? 'opacity-60' : ''}`}>
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-display text-lg text-parchment">{z.name}</span>
+                        {l ? <span aria-label="Bloqueada" className="text-blood">🔒</span> : profile.bossesDefeated.includes(z.boss) ? <span className="text-heal text-xs">Jefe ✓</span> : null}
+                      </div>
+                      <div className="text-xs text-gold">Niveles {z.levels[0]}–{z.levels[1]}</div>
+                      {l && <div className="text-[11px] text-blood mt-1 leading-tight">{l}</div>}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="font-body text-lg text-stone-300 mt-3 leading-snug">{zone.tagline} Cada expedición, un mapa distinto. Al fondo espera <b className="text-parchment">{getEnemy(zone.boss).name}</b>.</p>
+            </>
+          )}
           <ul className="mt-4 space-y-1 font-body text-base">
             <li>⏳ Tienes <b className="text-gold">{EXPEDITION_DURATION_MS / 60000} minutos</b> para encontrar el portal de extracción.</li>
             <li>☠ Si mueres o se agota el tiempo, <b className="text-blood">pierdes todo lo que llevas encima</b>.</li>
             <li>✦ Si extraes, conservas todo lo que encuentres.</li>
             <li>▣ Tu almacén y tu oro del banco están a salvo.</li>
           </ul>
-          <button className="btn btn-gold text-xl py-3 px-8 mt-5" onClick={enter} data-testid="btn-enter-dungeon">Entrar en la mazmorra</button>
+          <button className="btn btn-gold text-xl py-3 px-8 mt-5" onClick={enter} disabled={!!lock && !firstTime} data-testid="btn-enter-dungeon">{firstTime ? 'Entrar en la mazmorra' : `Bajar a ${zone.name}`}</button>
           {noWeapon && <p className="text-ember text-sm mt-2">Vas a entrar sin arma. Revisa tu equipo.</p>}
         </div>
       </section>
@@ -303,6 +327,7 @@ function ExpeditionTab() {
             <Bar value={stats.maxMp} max={stats.maxMp} color="#3d7be0" label={CLASSES[ch.classId].resourceName} />
             <div className="flex justify-between pt-2"><span className="text-stone-300">Pociones de vida</span><span className={potions ? '' : 'text-blood'}>{potions}</span></div>
             <div className="flex justify-between"><span className="text-stone-300">Valor en riesgo</span><span className="text-ember">{risk} oro</span></div>
+            <div className="flex justify-between gap-2" data-testid="prep-merc"><span className="text-stone-300">Mercenario</span>{profile.contract ? <span className="text-heal text-right">{getMerc(profile.contract.mercId).name} · {profile.contract.left} exp.</span> : <span className="text-stone-500 text-right">Ninguno (Garra Roja)</span>}</div>
           </div>
         </Section>
         <Section title="Te llevas">

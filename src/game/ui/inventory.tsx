@@ -1,3 +1,5 @@
+import { qualityStats } from '../../core/forge';
+import { QUALITIES } from '../../core/data/forge';
 import { useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import type { EquipSlot, Equipment, Grid, ItemStack, Stats } from '../../core/types';
@@ -44,13 +46,18 @@ export function ItemTooltip({ stack, equipment, mode }: { stack: ItemStack; equi
         {r.name} · {def.slot ? SLOT_LABELS[def.slot] : categoryName(def.category)}
         {stack.qty > 1 ? ` · x${stack.qty}` : ''}
       </div>
-      {def.stats && (
-        <ul className="mb-2">
-          {STAT_KEYS.filter((k) => def.stats![k]).map((k) => (
-            <li key={k} className={def.stats![k]! > 0 ? 'text-heal' : 'text-blood'}>{statLine(k, def.stats![k]!)}</li>
-          ))}
-        </ul>
-      )}
+      {def.uses !== undefined && <div className="text-xs mb-1 text-stone-300" data-testid="tool-uses">Usos: {stack.uses ?? def.uses}/{def.uses}{def.mineTime ? ` · pica en ${def.mineTime} s` : ''}</div>}
+      {stack.quality !== undefined && <div className="text-xs mb-1" style={{ color: ['#9a9a9a', '#5fbf4a', '#e8b33a'][stack.quality] }}>Calidad {QUALITIES[stack.quality].name.toLowerCase()}{QUALITIES[stack.quality].bonus ? ` (+${Math.round(QUALITIES[stack.quality].bonus * 100)}%)` : ''}{stack.forgedBy ? ` · Forjada por ${stack.forgedBy}` : ''}</div>}
+      {def.stats && (() => {
+        const st = qualityStats(def.stats, stack.quality);
+        return (
+          <ul className="mb-2">
+            {STAT_KEYS.filter((k) => st[k]).map((k) => (
+              <li key={k} className={st[k]! > 0 ? 'text-heal' : 'text-blood'}>{statLine(k, st[k]!)}</li>
+            ))}
+          </ul>
+        );
+      })()}
       {def.use && <div className="text-frost mb-2">Uso: {def.description}</div>}
       <div className="font-body italic text-stone-300 leading-snug">{def.use ? '' : def.description}</div>
       {(def.attack || def.grants) && (
@@ -84,7 +91,7 @@ export function ItemTooltip({ stack, equipment, mode }: { stack: ItemStack; equi
 }
 
 function categoryName(c: string) {
-  return ({ potion: 'Consumible', material: 'Material', relic: 'Reliquia', jewel: 'Joya', key: 'Llave', quest: 'Objeto de misión', coin: 'Moneda', weapon: 'Arma', shield: 'Escudo' } as Record<string, string>)[c] ?? c;
+  return ({ potion: 'Consumible', material: 'Material', relic: 'Reliquia', jewel: 'Joya', key: 'Llave', quest: 'Objeto de misión', coin: 'Moneda', weapon: 'Arma', shield: 'Escudo', tool: 'Herramienta' } as Record<string, string>)[c] ?? c;
 }
 
 interface SlotProps {
@@ -170,7 +177,7 @@ export function ItemSlot({ stack, loc, lootId, equipment, mode, selected, placeh
 
 export function GridView(props: {
   grid: Grid;
-  container: 'backpack' | 'stash' | 'loot';
+  container: 'backpack' | 'stash' | 'loot' | 'pocket';
   cols: number;
   lootId?: string;
   equipment?: Equipment;

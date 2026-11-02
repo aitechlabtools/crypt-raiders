@@ -46,8 +46,8 @@ const OUT = process.argv[3] || 'public/screenshots';
   await page.evaluate(() => window.__DREADBOUND__.actions.startCombat('pve', 'e_boss', 'ossuary_lord'));
   for (let i = 0; i < 6; i++) {
     await page.waitForTimeout(1100);
-    if (await page.$('[data-testid=act-attack]')) {
-      
+    if (await page.$('[data-testid=act-attack]:not([disabled])')) {
+      await page.click('[data-testid=act-skills]');
       const btn = await page.$('[data-testid=skill-rending_slash]:not([disabled])');
       if (btn) await btn.click(); else await page.keyboard.press('Escape');
     }

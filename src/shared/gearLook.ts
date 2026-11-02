@@ -7,6 +7,7 @@ import { EQUIP_SLOTS } from '../core/types';
 import { CLASSES } from '../core/data/classes';
 import { getItem } from '../core/data/items';
 import { PAL } from './palette';
+import { COSMETICS } from '../core/data/cosmetics';
 
 export type GearLook =
   | { slot: 'mainHand'; shape: 'sword' | 'axe' | 'staff' | 'dagger' | 'mace'; color: string; orb?: string }
@@ -62,10 +63,55 @@ export const GEAR_LOOKS: Record<string, GearLook> = {
   ring_of_embers: { slot: 'ring' },
   bone_amulet: { slot: 'amulet', color: PAL.bone2 },
   heart_of_umbravel: { slot: 'amulet', color: PAL.threat2 },
+
+  // ── La Cripta ──
+  sepulchral_sword: { slot: 'mainHand', shape: 'sword', color: '#cfd8e3' },
+  gravewarden_blade: { slot: 'mainHand', shape: 'sword', color: '#8fb8e8' },
+  headsman_axe: { slot: 'mainHand', shape: 'axe', color: '#b9c7d6' },
+  requiem_axe: { slot: 'mainHand', shape: 'axe', color: PAL.bone3 },
+  ossuary_staff: { slot: 'mainHand', shape: 'staff', color: PAL.bone1, orb: '#7cff9a' },
+  requiem_staff: { slot: 'mainHand', shape: 'staff', color: '#5a7fa8', orb: PAL.ice },
+  shroud_staff: { slot: 'mainHand', shape: 'staff', color: PAL.bone2, orb: '#e8ecf2' },
+  headstone_shield: { slot: 'offHand', shape: 'shield', color: PAL.stone4, rim: PAL.bone2, emblem: PAL.bone3 },
+  funeral_grimoire: { slot: 'offHand', shape: 'tome', color: '#2f3542' },
+  silver_helm: { slot: 'helmet', shape: 'helmet', color: '#dfe5ec' },
+  mourner_hood: { slot: 'helmet', shape: 'hood', color: '#3d4a5c' },
+  silver_plate: { slot: 'armor', style: 'mail', color: '#cfd8e3', trim: PAL.ice },
+  shroud_robe: { slot: 'armor', style: 'robe', color: '#e8ecf2', trim: '#6f7f96' },
+  silver_gauntlets: { slot: 'gloves', color: '#cfd8e3' },
+  grave_boots: { slot: 'boots', color: '#2f3542' },
+  reliquary_amulet: { slot: 'amulet', color: PAL.gold2 },
+  veiled_ring: { slot: 'ring' },
+  // ── El Infierno ──
+  obsidian_sword: { slot: 'mainHand', shape: 'sword', color: '#3a2a3a' },
+  hellforged_blade: { slot: 'mainHand', shape: 'sword', color: PAL.fire1 },
+  chain_axe: { slot: 'mainHand', shape: 'axe', color: '#6a3a2a' },
+  sulfur_staff: { slot: 'mainHand', shape: 'staff', color: PAL.earth0, orb: '#e8d24a' },
+  abyss_scepter: { slot: 'mainHand', shape: 'staff', color: '#1a0a0a', orb: PAL.fire2 },
+  demonscale_shield: { slot: 'offHand', shape: 'shield', color: '#4a1414', rim: PAL.fire1, emblem: PAL.fire2 },
+  burning_tome: { slot: 'offHand', shape: 'tome', color: PAL.fire0 },
+  hellsteel_helm: { slot: 'helmet', shape: 'helmet', color: '#3a1a1a' },
+  ash_cowl: { slot: 'helmet', shape: 'hood', color: '#4a4448' },
+  hellsteel_plate: { slot: 'armor', style: 'mail', color: '#4a1a1a', trim: PAL.fire1 },
+  ash_robe: { slot: 'armor', style: 'robe', color: '#3a3438', trim: PAL.fire1 },
+  demon_gauntlets: { slot: 'gloves', color: '#2a1010' },
+  cinder_boots: { slot: 'boots', color: '#3a1a10' },
+  ember_ring: { slot: 'ring' },
+  heart_of_belzar: { slot: 'amulet', color: PAL.fire2 },
+  // ── La forja ──
+  tempered_sword: { slot: 'mainHand', shape: 'sword', color: '#c9d2dc' },
+  tempered_axe: { slot: 'mainHand', shape: 'axe', color: '#c9d2dc' },
+  cavern_staff: { slot: 'mainHand', shape: 'staff', color: PAL.earth2, orb: '#5fe0d0' },
+  silver_forged_sword: { slot: 'mainHand', shape: 'sword', color: '#f2f6fa' },
+  ecto_staff: { slot: 'mainHand', shape: 'staff', color: '#6f7f96', orb: '#9dffc4' },
+  bone_bulwark: { slot: 'offHand', shape: 'shield', color: PAL.bone1, rim: '#cfd8e3', emblem: PAL.ice },
+  obsidian_greatblade: { slot: 'mainHand', shape: 'sword', color: '#2a1a2a' },
+  brimstone_scepter: { slot: 'mainHand', shape: 'staff', color: PAL.earth0, orb: '#ffef6a' },
+  demonblood_plate: { slot: 'armor', style: 'mail', color: '#6a1414', trim: PAL.fire2 },
 };
 
 export function lookOf(itemId: string): GearLook | null {
-  return GEAR_LOOKS[itemId] ?? null;
+  return GEAR_LOOKS[itemId] ?? COSMETICS[itemId]?.look ?? null;
 }
 
 /** Equipo inicial de la clase como «equipo» (para la creación de personaje y la web). */
@@ -82,7 +128,8 @@ export function starterEquipment(classId: ClassId): Equipment {
 export function lookSignature(equipment: Equipment): string {
   return EQUIP_SLOTS.map((s: EquipSlot) => {
     const it = equipment[s];
-    return it && GEAR_LOOKS[it.itemId] && GEAR_LOOKS[it.itemId].slot !== 'ring' ? it.itemId : '-';
+    const look = it ? lookOf(it.itemId) : null;
+    return it && look && look.slot !== 'ring' ? it.itemId : '-';
   }).join('|');
 }
 

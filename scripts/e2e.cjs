@@ -98,11 +98,11 @@ fs.mkdirSync(OUT, { recursive: true });
     for (let i = 0; i < 60; i++) {
       const s = await st();
       if (s.outcome) break;
-      const myTurn = await page.$('[data-testid=act-attack]');
+      const myTurn = await page.$('[data-testid=act-attack]:not([disabled])');
       if (myTurn) {
-        if (s.hp < 40 && (await page.$('[data-testid^=use-]'))) { await page.click('[data-testid=use-health_potion]'); }
+        if (s.hp < 40 && (await page.$('[data-testid=act-bag]:not([disabled])'))) { await page.click('[data-testid=act-bag]'); await page.click('[data-testid=use-health_potion]'); }
         else if (i === 1) {
-          
+          await page.click('[data-testid=act-skills]');
           await page.waitForSelector('[data-testid=skills-menu]');
           await shot('08-skills-menu');
           await page.click('[data-testid=skill-rending_slash]');
@@ -164,10 +164,13 @@ fs.mkdirSync(OUT, { recursive: true });
     await page.waitForSelector('[data-testid=interact-menu]');
     await shot('13b-interact-menu');
     const labels = await page.$$eval('[data-testid^=interact-]:not([data-testid=interact-menu])', (els) => els.map((e) => e.textContent));
-    const idx = labels.findIndex((l) => /cofre/i.test(l));
+    const idx = labels.findIndex((l) => /cofre|baúl|arca|relicario/i.test(l));
     if (idx < 0) throw new Error('no aparece el cofre: ' + labels);
+    // Por si es un cofre con cerradura: una llave de hierro en la mochila
+    await page.evaluate(() => { const s = window.__DREADBOUND__.getState(); const i = s.expedition.backpack.findIndex((x) => !x); s.expedition.backpack[i] = { uid: 'k-test', itemId: 'iron_key', qty: 1 }; });
     await page.keyboard.press(String(idx + 1));
-    await page.waitForSelector('[data-testid=loot-modal]');
+    if (await page.waitForSelector('[data-testid=chest-lock]', { timeout: 3000 }).catch(() => null)) { await shot('13c-chest-lock'); await page.click('[data-testid=btn-unlock]'); }
+    if (!(await page.waitForSelector('[data-testid=loot-modal]', { timeout: 3000 }).catch(() => null))) { await shot('13d-debug'); throw new Error('sin botín: ' + JSON.stringify(await page.evaluate(() => { const s = window.__DREADBOUND__.getState(); return { modal: s.modal, err: s.invError, keys: s.expedition.backpack.filter((x) => x && /key/.test(x.itemId)) }; }))); }
     // Reparto justo: le damos a Kael un objeto del cofre
     const first = await page.$('[data-testid^=slot-loot-][data-item]:not([data-item=""])');
     if (first && (await page.$('text=Kael espera su parte'))) {

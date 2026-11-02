@@ -310,6 +310,90 @@ export function drawHumanoid(s: HumanoidSpec, frame = 0, pose: 'idle' | 'attack'
   return p.c;
 }
 
+/** El mismo personaje visto de espaldas (para el combate en primer plano): sin cara, con la capa y el pelo/casco por detrás. */
+export function drawHumanoidBack(s: HumanoidSpec, pose: 'idle' | 'attack' | 'hurt' = 'idle'): Canvas {
+  const p = new Pix(HUM_W, HUM_H);
+  const attackLift = pose === 'attack' ? -3 : 0;
+  // Arma (sujeta en la mano derecha, que de espaldas queda a la derecha de la pantalla)
+  const wy = 12 + attackLift;
+  const blade = s.weaponColor ?? PAL.steel2;
+  switch (s.weapon) {
+    case 'sword': p.rect(15, wy - 7, 1, 10, blade); p.px(15, wy - 8, shade(blade, 0.4)); p.rect(14, wy + 3, 3, 1, PAL.gold1); break;
+    case 'axe': p.rect(15, wy - 6, 1, 12, PAL.earth1); p.rect(16, wy - 6, 2, 4, shade(blade, -0.15)); break;
+    case 'greatsword': p.rect(15, wy - 10, 2, 13, PAL.bone2); p.rect(13, wy + 3, 6, 1, PAL.magic1); break;
+    case 'staff': p.rect(15, wy - 9, 1, 19, s.weaponColor ?? PAL.earth2); p.rect(14, wy - 12, 3, 3, s.orb ?? PAL.magic2); break;
+    case 'dagger': p.rect(15, wy - 2, 1, 4, blade); break;
+    case 'mace': p.rect(15, wy - 3, 1, 8, PAL.earth2); p.rect(14, wy - 6, 3, 3, PAL.gold2); break;
+  }
+  // Piernas y botas
+  const legCol = s.ribs ? s.skin : s.legs;
+  p.rect(7, 18, 2, 5, legCol); p.rect(11, 18, 2, 5, legCol);
+  p.rect(7, 22, 2, 2, shade(s.boots, -0.1)); p.rect(11, 22, 2, 2, shade(s.boots, -0.1));
+  // Espalda
+  p.rect(6, 11, 8, 8, shade(s.torso, -0.08));
+  p.rect(6, 11, 1, 8, shade(s.torso, 0.1)); p.rect(13, 11, 1, 8, shade(s.torso, -0.3));
+  if (s.torsoStyle === 'mail') for (let yy = 12; yy < 18; yy++) for (let xx = 7; xx < 13; xx++) if ((xx + yy) % 2 === 0) p.px(xx, yy, shade(s.torso, 0.22));
+  if (s.torsoStyle === 'robe') { p.rect(6, 17, 8, 5, shade(s.torso, -0.08)); p.rect(13, 17, 1, 5, shade(s.torso, -0.3)); }
+  p.rect(6, 17, 8, 1, s.trim);
+  // Brazos
+  const sleeve = shade(s.torso, -0.15);
+  p.rect(5, 12, 1, 5, sleeve); p.rect(14, 12 + attackLift, 1, 5, sleeve);
+  const hand = s.hands ?? s.skin;
+  p.px(5, 17, hand); p.px(14, 17 + attackLift, hand);
+  // Capa: de espaldas es lo que más se ve
+  if (s.cape) {
+    p.rect(7, 12, 6, 9, s.cape);
+    p.rect(6, 14, 1, 7, s.cape); p.rect(13, 14, 1, 7, s.cape);
+    p.rect(7, 12, 6, 1, shade(s.cape, 0.2));
+    p.rect(9, 12, 1, 8, shade(s.cape, -0.18)); p.rect(12, 12, 1, 8, shade(s.cape, -0.18));
+    p.rect(6, 20, 8, 1, shade(s.cape, -0.3));
+    p.rect(13, 14, 1, 7, shade(s.cape, -0.28));
+  }
+  // Cabeza por detrás: nuca, pelo, casco, capucha o sombrero
+  const hy = 5;
+  const hc = s.headColor ?? s.hair ?? PAL.earth1;
+  p.rect(7, hy, 6, 6, shade(s.skin, -0.2)); // nuca
+  switch (s.head) {
+    case 'helmet':
+      p.rect(6, hy - 2, 8, 8, hc); p.rect(13, hy - 2, 1, 8, shade(hc, -0.3)); p.rect(7, hy - 2, 2, 1, shade(hc, 0.4));
+      p.rect(9, hy - 1, 2, 6, shade(hc, -0.15)); p.px(10, hy - 3, PAL.threat2); p.px(10, hy - 4, PAL.threat2);
+      break;
+    case 'hood': case 'hoodskull':
+      p.rect(6, hy - 2, 8, 8, hc); p.rect(13, hy - 1, 1, 7, shade(hc, -0.3)); p.rect(8, hy + 5, 4, 2, hc); p.px(9, hy - 3, hc); p.px(10, hy - 3, hc);
+      break;
+    case 'wizard':
+      p.rect(7, hy + 1, 6, 4, s.hair ?? PAL.bone1);
+      p.rect(5, hy, 10, 1, hc); p.rect(7, hy - 2, 6, 2, hc); p.rect(8, hy - 4, 4, 2, hc); p.rect(9, hy - 5, 2, 1, hc); p.px(8, hy - 6, hc);
+      p.rect(7, hy - 1, 6, 1, s.hatTrim ?? s.trim); p.rect(12, hy - 2, 1, 2, shade(hc, -0.3));
+      break;
+    case 'crown':
+      p.rect(7, hy, 6, 5, s.skin); p.rect(7, hy - 2, 6, 2, PAL.gold2); p.px(7, hy - 3, PAL.gold2); p.px(12, hy - 3, PAL.gold2);
+      break;
+    default: // pelo
+      p.rect(6, hy - 1, 8, 6, hc); p.rect(7, hy - 1, 5, 1, shade(hc, 0.25)); p.rect(13, hy, 1, 5, shade(hc, -0.3)); p.rect(8, hy + 5, 4, 1, hc);
+  }
+  // Escudo o tomo por detrás (en la mano izquierda)
+  if (s.offhand === 'shield') {
+    const sc = shade(s.shieldColor ?? PAL.earth2, -0.25);
+    p.rect(2, 12, 4, 6, sc); p.rect(2, 12, 4, 1, s.shieldRim ?? PAL.steel1); p.rect(3, 17, 2, 1, sc);
+    p.rect(3, 13, 2, 1, PAL.earth0); p.rect(3, 15, 2, 1, PAL.earth0); // correas
+  } else if (s.offhand === 'tome') {
+    p.rect(2, 14, 4, 4, shade(s.tomeColor ?? PAL.magic1, -0.2)); p.rect(2, 14, 1, 4, PAL.gold1);
+  } else if (s.offhand === 'dagger') {
+    p.rect(4, 15, 1, 4, PAL.steel2);
+  }
+  if (pose === 'hurt') {
+    const img = p.ctx.getImageData(0, 0, p.w, p.h);
+    for (let i = 0; i < img.data.length; i += 4) {
+      if (img.data[i + 3] === 0) continue;
+      img.data[i] = Math.min(255, img.data[i] * 0.6 + 120); img.data[i + 1] *= 0.55; img.data[i + 2] *= 0.55;
+    }
+    p.ctx.putImageData(img, 0, 0);
+  }
+  p.outline();
+  return p.c;
+}
+
 const CLASS_HAIR: Record<ClassId, string> = { warrior: PAL.earth1, mage: PAL.bone1, rogue: PAL.earth0, cleric: PAL.gold1 };
 
 /**
@@ -368,7 +452,71 @@ export const MONSTER_SPECS: Record<string, HumanoidSpec> = {
   skeleton: { skin: PAL.bone2, torso: PAL.earth1, trim: PAL.earth1, legs: PAL.bone2, boots: PAL.bone1, head: 'skull', weapon: 'sword', offhand: 'shield', shieldColor: PAL.earth1, ribs: true, eye: PAL.threat3 },
   boss: { skin: PAL.bone2, torso: PAL.magic0, trim: PAL.magic1, legs: PAL.bone2, boots: PAL.bone1, cape: PAL.threat0, head: 'crown', weapon: 'greatsword', ribs: true, eye: PAL.magic3 },
   rival: { skin: SKIN_COLORS[1], torso: PAL.earth1, trim: PAL.earth3, legs: PAL.stone1, boots: PAL.earth0, cape: PAL.moss0, head: 'hood', headColor: PAL.moss1, weapon: 'dagger', offhand: 'dagger', eye: PAL.gold3 },
+  // ── Vendedores del refugio ──
+  vendor_orvel: { skin: SKIN_COLORS[0], torso: PAL.earth2, trim: PAL.gold1, legs: PAL.earth1, boots: PAL.earth0, cape: PAL.earth1, head: 'hair', headColor: PAL.bone1, weapon: 'none', torsoStyle: 'tunic', amulet: PAL.gold2 },
+  vendor_vesper: { skin: SKIN_COLORS[0], torso: PAL.night1, trim: PAL.bone2, legs: PAL.night1, boots: PAL.night0, cape: PAL.bone1, head: 'hood', headColor: PAL.bone2, weapon: 'staff', weaponColor: PAL.bone1, orb: PAL.ice, torsoStyle: 'robe', eye: PAL.ice },
+  vendor_garra: { skin: SKIN_COLORS[1], torso: PAL.steel1, trim: PAL.threat2, legs: PAL.stone2, boots: PAL.earth0, cape: PAL.threat1, head: 'hair', headColor: PAL.threat1, weapon: 'sword', weaponColor: PAL.steel3, offhand: 'shield', shieldColor: PAL.threat1, shieldRim: PAL.steel2, torsoStyle: 'mail' },
+  vendor_brand: { skin: SKIN_COLORS[2], torso: PAL.earth1, trim: PAL.fire1, legs: PAL.stone1, boots: PAL.earth0, head: 'hair', headColor: PAL.outline, weapon: 'mace', torsoStyle: 'tunic', hands: PAL.steel1 },
+  // ── Mercenarios de Garra Roja ──
+  merc_bram: { skin: SKIN_COLORS[1], torso: PAL.moss1, trim: PAL.earth1, legs: PAL.earth1, boots: PAL.earth0, head: 'hair', headColor: PAL.earth3, weapon: 'axe', weaponColor: PAL.steel2, torsoStyle: 'shirt', hands: PAL.earth2 },
+  merc_lysa: { skin: SKIN_COLORS[0], torso: PAL.earth2, trim: PAL.moss2, legs: PAL.stone2, boots: PAL.earth0, cape: PAL.moss0, head: 'hood', headColor: PAL.moss1, weapon: 'dagger', weaponColor: PAL.steel3, offhand: 'dagger', torsoStyle: 'tunic', eye: PAL.gold3 },
+  merc_tobias: { skin: SKIN_COLORS[0], torso: PAL.earth1, trim: PAL.fire1, legs: PAL.earth1, boots: PAL.earth0, head: 'wizard', headColor: PAL.earth2, hatTrim: PAL.fire1, weapon: 'staff', weaponColor: PAL.earth2, orb: PAL.fire2, torsoStyle: 'robe' },
+  merc_ysolde: { skin: SKIN_COLORS[0], torso: '#cfd8e3', trim: PAL.ice, legs: PAL.steel1, boots: PAL.steel0, cape: PAL.night1, head: 'helmet', headColor: '#dfe5ec', weapon: 'sword', weaponColor: '#e8ecf2', offhand: 'shield', shieldColor: '#cfd8e3', shieldRim: PAL.gold2, shieldEmblem: PAL.ice, torsoStyle: 'mail' },
+  merc_corvin: { skin: SKIN_COLORS[2], torso: '#2f3542', trim: PAL.bone2, legs: '#2a3240', boots: PAL.night0, cape: '#3d4a5c', head: 'hood', headColor: '#3d4a5c', weapon: 'axe', weaponColor: '#b9c7d6', torsoStyle: 'tunic', eye: PAL.ice },
+  merc_mirra: { skin: SKIN_COLORS[1], torso: '#e8ecf2', trim: PAL.gold2, legs: '#e8ecf2', boots: PAL.earth0, head: 'hood', headColor: '#e8ecf2', weapon: 'mace', weaponColor: PAL.gold2, offhand: 'tome', tomeColor: PAL.gold1, torsoStyle: 'robe', amulet: PAL.gold3 },
+  merc_draven: { skin: SKIN_COLORS[1], torso: '#4a1a1a', trim: PAL.fire1, legs: PAL.stone1, boots: '#2a1010', cape: '#3a0a0a', head: 'hair', headColor: PAL.outline, weapon: 'greatsword', weaponColor: '#3a2a3a', torsoStyle: 'mail', eye: PAL.fire2 },
+  merc_nyx: { skin: SKIN_COLORS[0], torso: '#3a1418', trim: PAL.fire2, legs: '#2a1010', boots: PAL.night0, cape: PAL.fire0, head: 'hair', headColor: PAL.fire1, weapon: 'staff', weaponColor: PAL.earth0, orb: PAL.fire2, offhand: 'tome', tomeColor: PAL.fire0, torsoStyle: 'robe', eye: PAL.fire2 },
+  merc_ulric: { skin: SKIN_COLORS[2], torso: PAL.stone2, trim: '#6b6672', legs: PAL.stone1, boots: PAL.earth0, head: 'hair', headColor: PAL.stone1, weapon: 'mace', weaponColor: '#6b6672', torsoStyle: 'shirt', hands: '#6b6672' },
+  // ── Mazmorra ──
+  bandit: { skin: SKIN_COLORS[0], torso: PAL.earth2, trim: PAL.earth0, legs: PAL.stone2, boots: PAL.earth0, head: 'hood', headColor: PAL.threat1, weapon: 'dagger', offhand: 'none', torsoStyle: 'tunic', eye: PAL.outline },
+  archer: { skin: SKIN_COLORS[1], torso: PAL.moss1, trim: PAL.earth1, legs: PAL.earth1, boots: PAL.earth0, cape: PAL.moss0, head: 'hood', headColor: PAL.moss2, weapon: 'staff', weaponColor: PAL.earth2, orb: PAL.earth1, torsoStyle: 'tunic' },
+  captain: { skin: SKIN_COLORS[0], torso: PAL.steel1, trim: PAL.threat1, legs: PAL.stone2, boots: PAL.earth0, cape: PAL.threat1, head: 'hair', headColor: PAL.earth0, weapon: 'sword', weaponColor: PAL.steel3, offhand: 'shield', shieldColor: PAL.threat1, shieldRim: PAL.gold1, torsoStyle: 'mail' },
+  // ── Cripta ──
+  wraith: { skin: '#b9c7d6', torso: '#5c6b80', trim: '#8fa8c8', legs: '#3d4a5c', boots: '#2a3240', cape: '#3d4a5c', head: 'hoodskull', headColor: '#6f7f96', weapon: 'none', torsoStyle: 'robe', eye: PAL.ice },
+  ghoul: { skin: '#7d8f6a', torso: PAL.stone2, trim: PAL.stone1, legs: '#7d8f6a', boots: PAL.stone1, head: 'skull', weapon: 'none', ribs: true, eye: PAL.threat3, hands: '#5a6b48' },
+  tomb_guardian: { skin: PAL.bone1, torso: PAL.steel0, trim: PAL.gold0, legs: PAL.steel0, boots: PAL.stone1, head: 'helmet', headColor: PAL.steel1, weapon: 'axe', weaponColor: PAL.steel2, offhand: 'shield', shieldColor: PAL.stone3, shieldRim: PAL.steel2, shieldEmblem: PAL.bone2, torsoStyle: 'mail', eye: PAL.ice },
+  necro_priest: { skin: PAL.bone2, torso: PAL.night1, trim: PAL.magic2, legs: PAL.night0, boots: PAL.night0, head: 'hoodskull', headColor: PAL.night0, weapon: 'staff', weaponColor: PAL.bone1, orb: PAL.moss2, torsoStyle: 'robe', eye: '#7cff9a' },
+  bone_archer: { skin: PAL.bone1, torso: PAL.earth0, trim: PAL.earth1, legs: PAL.bone1, boots: PAL.bone0, head: 'skull', weapon: 'staff', weaponColor: PAL.bone0, orb: PAL.bone1, ribs: true, eye: PAL.ice },
+  tomb_knight: { skin: PAL.bone2, torso: PAL.steel1, trim: PAL.ice, legs: PAL.bone2, boots: PAL.steel0, cape: PAL.night1, head: 'helmet', headColor: PAL.steel2, weapon: 'greatsword', ribs: true, eye: PAL.ice },
+  veiled_queen: { skin: '#cfd8e3', torso: '#e8ecf2', trim: PAL.ice, legs: '#cfd8e3', boots: '#9fb0c4', cape: '#6f7f96', head: 'crown', weapon: 'staff', weaponColor: '#9fb0c4', orb: PAL.ice, torsoStyle: 'robe', eye: PAL.ice },
+  // ── Infierno ──
+  imp: { skin: PAL.threat2, torso: PAL.threat1, trim: PAL.fire1, legs: PAL.threat1, boots: PAL.threat0, head: 'skull', weapon: 'dagger', weaponColor: PAL.fire2, eye: PAL.fire3, hands: PAL.threat0 },
+  temptress: { skin: '#c9786a', torso: PAL.threat0, trim: PAL.gold2, legs: '#c9786a', boots: PAL.threat0, cape: PAL.threat1, head: 'hair', headColor: '#1a0e14', weapon: 'dagger', weaponColor: PAL.threat2, torsoStyle: 'robe', eye: PAL.fire2 },
+  hell_knight: { skin: PAL.threat1, torso: '#2a1414', trim: PAL.fire1, legs: '#2a1414', boots: PAL.outline, cape: PAL.threat0, head: 'helmet', headColor: '#3a1a1a', weapon: 'sword', weaponColor: PAL.fire1, offhand: 'shield', shieldColor: '#3a1a1a', shieldRim: PAL.fire1, shieldEmblem: PAL.fire2, torsoStyle: 'mail', eye: PAL.fire2 },
+  sulfur_caller: { skin: '#d9c06a', torso: '#4a3a10', trim: '#e8d24a', legs: '#2a2008', boots: '#1a1404', head: 'hood', headColor: '#6b5a14', weapon: 'staff', weaponColor: PAL.earth0, orb: '#e8d24a', torsoStyle: 'robe', eye: '#ffef6a' },
+  chain_warden: { skin: PAL.stone3, torso: PAL.steel0, trim: PAL.fire1, legs: PAL.stone2, boots: PAL.outline, head: 'helmet', headColor: PAL.stone2, weapon: 'mace', offhand: 'shield', shieldColor: PAL.stone2, shieldRim: PAL.steel1, torsoStyle: 'mail', eye: PAL.fire2 },
+  belzar: { skin: PAL.threat1, torso: '#1a0a0a', trim: PAL.gold2, legs: '#2a1010', boots: PAL.outline, cape: PAL.threat0, head: 'crown', weapon: 'greatsword', torsoStyle: 'mail', eye: PAL.fire3, hands: PAL.outline },
 };
+
+/** Criaturas de cuatro patas (rata, can del abismo): 4 fotogramas de trote. */
+export const BEAST_SPECS: Record<string, { body: string; belly: string; eye: string; big: boolean }> = {
+  rat: { body: '#5a4a44', belly: '#8a7a6c', eye: PAL.threat3, big: false },
+  hound: { body: '#3a1414', belly: PAL.fire1, eye: PAL.fire3, big: true },
+};
+export function drawBeast(kind: string, frame: number, hurt = false): Canvas {
+  const b = BEAST_SPECS[kind] ?? BEAST_SPECS.rat;
+  const p = new Pix(24, 18);
+  const body = hurt ? PAL.threat2 : b.body, belly = hurt ? PAL.threat3 : b.belly;
+  const h = b.big ? 7 : 5, w = b.big ? 14 : 11, x0 = 5, y0 = 17 - 3 - h;
+  const step = frame % 2 === 0 ? 0 : 1;
+  // patas
+  for (const [lx, ph] of [[x0 + 1, step], [x0 + 3, 1 - step], [x0 + w - 4, 1 - step], [x0 + w - 2, step]] as const) p.rect(lx, 17 - 3 + ph, 1, 3 - ph, shade(body, -0.25));
+  // cuerpo y vientre
+  p.rect(x0, y0, w, h, body);
+  p.rect(x0 + 1, y0 + h - 1, w - 2, 1, belly);
+  p.rect(x0, y0, w, 1, shade(body, 0.2));
+  // cabeza
+  const hx = x0 + w - 1, hy = y0 - (b.big ? 3 : 1);
+  p.rect(hx, hy, b.big ? 5 : 4, b.big ? 5 : 4, body);
+  p.rect(hx + (b.big ? 4 : 3), hy + 2, 2, 2, shade(body, 0.1));
+  p.px(hx + (b.big ? 3 : 2), hy + 1, b.eye);
+  p.px(hx + 1, hy - 1, shade(body, -0.2));
+  if (b.big) { p.px(hx + 3, hy - 1, shade(body, -0.2)); p.px(hx + 5, hy + 4, PAL.bone3); }
+  // cola
+  p.rect(x0 - 3, y0 + 1 + step, 3, 1, b.big ? belly : '#c49a8a');
+  p.outline();
+  return p.c;
+}
 
 /** Murciélago: 3 fotogramas de aleteo. */
 export function drawBat(frame: number, hurt = false): Canvas {
@@ -542,6 +690,24 @@ export function drawTrap(armed: boolean): Canvas {
   return p.c;
 }
 
+/** Afloramiento de roca con vetas de mineral, apoyado en la pared. Agotada: solo roca. */
+export function drawVein(color: string, glint: string, depleted: boolean): Canvas {
+  const p = new Pix(18, 16);
+  const rock = [PAL.stone2, PAL.stone3, PAL.stone4];
+  // Silueta irregular de la roca
+  const rows: [number, number][] = [[7, 11], [5, 13], [4, 14], [3, 15], [2, 15], [2, 16], [1, 16], [1, 17], [1, 17], [1, 17], [2, 16], [2, 16]];
+  rows.forEach(([a, b], i) => { for (let x = a; x < b; x++) p.px(x, 3 + i, rock[(x * 3 + i * 5) % 3]); });
+  for (let x = 2; x < 16; x++) p.px(x, 14, PAL.stone1);
+  if (!depleted) {
+    for (const [x, y] of [[6, 6], [7, 7], [10, 5], [11, 6], [12, 9], [4, 10], [5, 11], [9, 11], [13, 12], [8, 9]] as const) p.px(x, y, color);
+    for (const [x, y] of [[7, 6], [11, 5], [5, 10], [13, 11]] as const) p.px(x, y, glint);
+  } else {
+    for (const [x, y] of [[6, 7], [10, 9], [5, 11]] as const) p.px(x, y, PAL.stone1);
+  }
+  p.outline();
+  return p.c;
+}
+
 export function drawChest(kind: 'common' | 'rich' | 'boss', open: boolean): Canvas {
   const p = new Pix(20, 18);
   const wood = kind === 'boss' ? PAL.magic1 : kind === 'rich' ? PAL.threat1 : PAL.earth2;
@@ -671,6 +837,19 @@ export function drawBag(): Canvas {
   return p.c;
 }
 
+/** Cadenas y grilletes en el suelo, para los prisioneros. */
+export function drawChains(): Canvas {
+  const p = new Pix(28, 10);
+  // Argolla clavada al suelo y dos tramos de cadena
+  p.rect(12, 6, 4, 3, PAL.stone2);
+  p.rect(13, 7, 2, 1, PAL.stone4);
+  for (let i = 0; i < 5; i++) { p.rect(2 + i * 2, 4 + (i % 2), 2, 1, i % 2 ? PAL.steel1 : PAL.steel2); p.rect(16 + i * 2, 4 + ((i + 1) % 2), 2, 1, i % 2 ? PAL.steel1 : PAL.steel2); }
+  p.rect(0, 2, 3, 3, PAL.steel2); p.px(1, 3, PAL.outline);
+  p.rect(25, 2, 3, 3, PAL.steel2); p.px(26, 3, PAL.outline);
+  p.outline();
+  return p.c;
+}
+
 export function drawMarker(color: string): Canvas {
   const p = new Pix(7, 6);
   p.rect(1, 0, 5, 2, color);
@@ -705,6 +884,8 @@ const ICON_SHAPES: Record<string, string[]> = {
   chalice: ['............', '..gggggggg..', '..gyrrrryG..', '..gyyyyyyG..', '...gyyyyG...', '....gyyG....', '.....gG.....', '.....gG.....', '....gyyG....', '...gggggG...', '............', '............'],
   gem: ['............', '............', '....aaaa....', '...ahhaaA...', '..ahaaaaAA..', '..aaaaaaAA..', '...aaaaAA...', '....aaAA....', '.....AA.....', '............', '............', '............'],
   mace: ['............', '.......aaa..', '......ahaaA.', '......aaaaA.', '.......aAA..', '......bB....', '.....bB.....', '.....bB.....', '....bB......', '....bB......', '...gg.......', '............'],
+  ore: ['............', '............', '............', '....AAA.....', '...AahAA....', '..AaaahaA...', '..AaghaaaA..', '.AaaaagaaA..', '.AaaaaaaaA..', '..AAAAAAA...', '............', '............'],
+  pick: ['............', '..aaaa......', '.a....aa....', '......bAa...', '.....bB..a..', '....bB....a.', '...bB......', '..bB........', '.bB.........', 'bB..........', '............', '............'],
   key: ['............', '............', '..ggg.......', '.g...g......', '.g...gggggg.', '.g...g..g.g.', '..ggg...g.g.', '............', '............', '............', '............', '............'],
 };
 
@@ -755,6 +936,11 @@ const ICONS: Record<string, IconVariant> = {
   chalice: { shape: 'chalice', a: PAL.gold2 },
   gem_red: { shape: 'gem', a: PAL.threat2, A: PAL.threat1, h: '#ff9aa8' },
   key: { shape: 'key', a: PAL.steel2, g: PAL.steel2 },
+  ore_copper: { shape: 'ore', a: PAL.stone3, A: PAL.stone1, h: '#e08a4a', g: '#5fbf8a' },
+  ore_iron: { shape: 'ore', a: PAL.stone2, A: PAL.stone0, h: '#a8b4c0', g: '#6a4a3a' },
+  ore_silver: { shape: 'ore', a: PAL.stone3, A: PAL.stone1, h: '#f2f6fa', g: '#cfd8e3' },
+  pick: { shape: 'pick', a: PAL.steel2, A: PAL.steel1 },
+  pick_steel: { shape: 'pick', a: PAL.steel3, A: PAL.ice },
 };
 
 export function drawIcon(key: string): Canvas {
@@ -801,8 +987,27 @@ export function heroUrl(classId: ClassId, ap: Appearance, scale = 4, frame = 0, 
   return cachedUrl(`hero:${classId}:${ap.cloak}:${ap.skin}:${lookSignature(eq)}:${frame}:${pose}`, () => drawHumanoid(heroSpec(classId, ap, eq), frame, pose), scale);
 }
 
+/** Héroe de espaldas (combate). */
+export function heroBackUrl(classId: ClassId, ap: Appearance, scale = 4, pose: 'idle' | 'attack' | 'hurt' = 'idle', equipment?: Equipment): string {
+  const eq = equipment ?? starterEquipment(classId);
+  return cachedUrl(`heroback:${classId}:${ap.cloak}:${ap.skin}:${lookSignature(eq)}:${pose}`, () => drawHumanoidBack(heroSpec(classId, ap, eq), pose), scale);
+}
+
+/** Kael de espaldas, cuando lucha a tu lado. */
+export function rivalBackUrl(scale = 4, pose: 'idle' | 'attack' | 'hurt' = 'idle'): string {
+  return cachedUrl(`rivalback:${pose}`, () => drawHumanoidBack(MONSTER_SPECS.rival, pose), scale);
+}
+
+/** Cualquier compañero humanoide (Kael, mercenarios) de espaldas. */
+export function allyBackUrl(sprite: string, scale = 4, pose: 'idle' | 'attack' | 'hurt' = 'idle'): string {
+  const spec = MONSTER_SPECS[sprite];
+  if (!spec) return monsterUrl(sprite, scale, pose);
+  return cachedUrl(`allyback:${sprite}:${pose}`, () => drawHumanoidBack(spec, pose), scale);
+}
+
 export function monsterUrl(sprite: string, scale = 4, pose: 'idle' | 'attack' | 'hurt' = 'idle'): string {
   if (sprite === 'bat') return cachedUrl(`bat:${pose}`, () => drawBat(pose === 'attack' ? 0 : 1, pose === 'hurt'), scale);
+  if (BEAST_SPECS[sprite]) return cachedUrl(`beast:${sprite}:${pose}`, () => drawBeast(sprite, pose === 'attack' ? 1 : 0, pose === 'hurt'), scale);
   const spec = MONSTER_SPECS[sprite] ?? MONSTER_SPECS.skeleton;
   return cachedUrl(`mon:${sprite}:${pose}`, () => drawHumanoid(spec, 0, pose), scale);
 }

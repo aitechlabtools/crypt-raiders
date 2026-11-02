@@ -11,6 +11,11 @@ import { CombatScreen } from './CombatScreen';
 import { Bar, EquipmentView, GridView, StatsList, ItemIcon } from './inventory';
 import { PlayerSprite, MonsterSprite, Modal, formatTime, ItemActions, GoldAmount } from './common';
 import { SettingsModal } from './TitleScreen';
+import { chestType } from '../../core/data/chests';
+import { TouchControls } from './TouchControls';
+import { isTouch } from '../../shared/device';
+import { getMerc } from '../../core/data/mercenaries';
+import { mercBaseStats, STANCE_DESC, STANCE_NAME } from '../../core/mercenaries';
 
 export function DungeonScreen() {
   const host = useRef<HTMLDivElement>(null);
@@ -79,12 +84,16 @@ export function DungeonScreen() {
       <div ref={host} className="absolute inset-0" data-testid="game-canvas" />
       <div className="vignette" />
       <Hud />
+      {isTouch() && <TouchControls />}
       {modal?.type === 'loot' && <LootModal />}
       {modal?.type === 'rival' && <RivalModal />}
       {modal?.type === 'confirmBetray' && <ConfirmBetray />}
       {modal?.type === 'inventory' && <DungeonInventory />}
       {modal?.type === 'pause' && <PauseModal />}
+      {modal?.type === 'chestLock' && <ChestLockModal chestId={modal.chestId} table={modal.table} />}
       {modal?.type === 'interact' && <InteractMenu options={modal.options} />}
+      {modal?.type === 'captive' && <CaptiveModal mercId={modal.mercId} />}
+      {modal?.type === 'merc' && <MercModal />}
       {combat && <CombatScreen />}
       {!profile.tutorialSeen.dungeon && !modal && !combat && <DungeonTutorial />}
     </div>
@@ -113,7 +122,8 @@ function Hud() {
         <Bar value={exp.hp} max={stats.maxHp} color="#c4283b" label="Vida" testId="hud-hp" />
         <div className="h-1" />
         <Bar value={exp.mp} max={stats.maxMp} color="#3d7be0" label={CLASSES[ch.classId].resourceName} />
-        <button className="btn w-full mt-2 text-sm flex items-center justify-center gap-2" onClick={() => actions.drinkPotion()} disabled={!potions}>
+        <div className="touch-only text-xs mt-1.5">Botín: <span className="text-gold">{gridValue(exp.backpack)}</span> · Oro: <GoldAmount value={exp.goldFound} /></div>
+        <button className="btn w-full mt-2 text-sm flex items-center justify-center gap-2 no-touch" onClick={() => actions.drinkPotion()} disabled={!potions}>
           <ItemIcon itemId="health_potion" size={20} /> Poción ({potions}) <kbd className="text-xs opacity-60">Q</kbd>
         </button>
       </div>
@@ -135,18 +145,27 @@ function Hud() {
             <Bar value={s.rival.hp} max={105} color="#5fd19a" />
           </div>
         )}
+        {s.merc?.alive && (() => {
+          const m = getMerc(s.merc.id);
+          return (
+            <button className="panel p-2 w-52 border-heal text-left" onClick={() => actions.interactMerc()} data-testid="hud-merc">
+              <div className="text-xs text-heal mb-1 flex justify-between gap-1"><span className="truncate">{s.merc.rescued ? 'Rescatado' : 'Mercenario'} · {m.name}</span><span className="text-stone-400 shrink-0">{STANCE_NAME[s.merc.stance]}</span></div>
+              <Bar value={s.merc.hp} max={mercBaseStats(m).maxHp} color="#5fd19a" />
+            </button>
+          );
+        })()}
         {s.rival.disposition === 'hostile' && <div className="panel px-3 py-1 text-sm text-blood border-blood">Kael es hostil</div>}
       </div>
 
-      <div className="absolute left-3 bottom-3 panel px-3 py-2 text-sm z-10 flex items-center gap-4">
+      <div className="absolute left-3 bottom-3 panel px-3 py-2 text-sm z-10 flex items-center gap-4 hud-loot">
         <span>Botín: <span className="text-gold" data-testid="hud-loot-value">{gridValue(exp.backpack)}</span></span>
         <span className="flex items-center gap-1">Oro: <GoldAmount value={exp.goldFound} /></span>
       </div>
 
       <div className="absolute left-1/2 -translate-x-1/2 bottom-6 z-10 flex flex-col items-center gap-2 pointer-events-none">
         {s.hud.channel > 0 && (
-          <div className="panel p-2 w-72 text-center border-arcane">
-            <div className="text-arcane text-sm mb-1">Canalizando el portal… no te muevas</div>
+          <div className="panel p-2 w-72 text-center border-arcane" data-testid="hud-channel">
+            <div className="text-arcane text-sm mb-1">{s.hud.channelLabel ?? 'Canalizando el portal… no te muevas'}</div>
             <div className="bar"><div style={{ width: `${s.hud.channel * 100}%`, background: '#a35ae0' }} /></div>
           </div>
         )}
@@ -155,6 +174,29 @@ function Hud() {
         )}
       </div>
     </>
+  );
+}
+
+function ChestLockModal({ chestId, table }: { chestId: string; table: string }) {
+  const exp = useGame((s) => s.expedition)!;
+  const type = chestType(table);
+  const key = type.key!;
+  const have = countItem(exp.backpack, key) + countItem(exp.pocket, key);
+  return (
+    <Modal onClose={() => actions.closeModal()} testId="chest-lock">
+      <h2 className="panel-title text-xl">{type.name}</h2>
+      <div className="flex items-center gap-4 mt-3">
+        <ItemIcon itemId={key} size={48} />
+        <div className="font-body text-lg leading-snug">
+          Está cerrado con llave. Necesitas <b className="text-parchment">{getItem(key).name}</b>.
+          <div className={`text-base mt-1 ${have ? 'text-heal' : 'text-blood'}`}>{have ? `Llevas ${have}. Se gastará una al abrirlo.` : 'No llevas ninguna. Las venden en el refugio o caen de las criaturas.'}</div>
+        </div>
+      </div>
+      <div className="flex gap-2 mt-5 flex-wrap">
+        {have > 0 && <button className="btn btn-gold py-2.5 px-5" onClick={() => actions.unlockChest(chestId, table)} data-testid="btn-unlock">Abrir con {getItem(key).name.toLowerCase()}</button>}
+        <button className="btn py-2.5 px-5" onClick={() => actions.closeModal()} data-testid="btn-lock-close">Dejarlo</button>
+      </div>
+    </Modal>
   );
 }
 
@@ -212,6 +254,60 @@ function trustLabel(t: number) {
   if (t >= 45) return { text: 'Cordial', cls: 'text-heal' };
   if (t >= 30) return { text: 'Cauto', cls: 'text-gold' };
   return { text: 'Desconfiado', cls: 'text-ember' };
+}
+
+function CaptiveModal({ mercId }: { mercId: string }) {
+  const m = getMerc(mercId);
+  const busy = useGame((s) => !!s.merc?.alive);
+  return (
+    <Modal onClose={() => actions.closeModal()} testId="captive-modal">
+      <div className="flex gap-4">
+        <div className="shrink-0 w-28 h-36 bg-black/40 border-2 border-stone-700 flex items-end justify-center"><MonsterSprite sprite={m.sprite} scale={5} /></div>
+        <div className="flex-1 min-w-0">
+          <h2 className="font-display text-2xl">{m.name}</h2>
+          <div className="text-sm text-gold">Prisionero · {m.title}</div>
+          <p className="font-body text-lg mt-2 leading-snug">{m.blurb}</p>
+          <p className="font-body text-lg mt-2 leading-snug text-parchment">{m.rescueLine}</p>
+        </div>
+      </div>
+      <p className="font-body text-base text-stone-300 mt-3">Si rompes sus cadenas, luchará a tu lado gratis en esta expedición. <b className="text-heal">Si extraéis con vida</b>, llegará al refugio y podrás contratar sus servicios con Garra Roja (el primer contrato, a mitad de precio). Si cae en combate o mueres tú, se pierde.</p>
+      <div className="flex flex-wrap gap-2 mt-4">
+        <button className="btn btn-gold" disabled={busy} onClick={() => actions.freeCaptive(mercId)} data-testid="captive-free">Romper las cadenas</button>
+        <button className="btn" onClick={() => actions.closeModal()}>Dejarlo para luego</button>
+      </div>
+      {busy && <p className="text-sm text-blood mt-2">Ya te acompaña un mercenario: solo puedes llevar uno.</p>}
+    </Modal>
+  );
+}
+
+function MercModal() {
+  const ms = useGame((s) => s.merc);
+  const contract = useGame((s) => s.profile?.contract);
+  if (!ms) return null;
+  const m = getMerc(ms.id);
+  return (
+    <Modal onClose={() => actions.closeModal()} testId="merc-modal">
+      <div className="flex gap-4">
+        <div className="shrink-0 w-28 h-36 bg-black/40 border-2 border-stone-700 flex items-end justify-center"><MonsterSprite sprite={m.sprite} scale={5} /></div>
+        <div className="flex-1 min-w-0">
+          <h2 className="font-display text-2xl">{m.name}</h2>
+          <div className="text-sm text-heal">{ms.rescued ? 'Rescatado · va gratis en esta expedición' : `Contratado · ${contract?.left ?? 0} ${(contract?.left ?? 0) === 1 ? 'expedición' : 'expediciones'} contando esta`}</div>
+          <div className="mt-2"><Bar value={ms.hp} max={mercBaseStats(m).maxHp} color="#5fd19a" label="Vida" /></div>
+          <div className="text-sm text-stone-400 mt-1">Pociones: {ms.potions}</div>
+        </div>
+      </div>
+      <h3 className="panel-title text-sm mt-4 mb-2">Actitud en combate</h3>
+      <div className="grid sm:grid-cols-2 gap-2">
+        {(['aggressive', 'cautious'] as const).map((st) => (
+          <button key={st} className={`btn text-left py-2 ${ms.stance === st ? 'btn-gold' : ''}`} onClick={() => actions.setMercStance(st)} data-testid={`merc-stance-${st}`}>
+            <div>{STANCE_NAME[st]}</div>
+            <div className="font-body text-sm opacity-80 normal-case">{STANCE_DESC[st]}</div>
+          </button>
+        ))}
+      </div>
+      <button className="btn mt-4 text-sm" onClick={() => actions.closeModal()}>Cerrar</button>
+    </Modal>
+  );
 }
 
 function RivalModal() {
@@ -280,6 +376,10 @@ function DungeonInventory() {
         <div>
           <GridView grid={s.expedition.backpack} container="backpack" cols={6} equipment={s.expedition.equipment} mode="dungeon" selected={sel} onSelect={setSel}
             onQuick={(l, st) => (getItem(st.itemId).slot ? actions.quickEquip(l) : getItem(st.itemId).use ? actions.useItem(l) : undefined)} />
+          <div className="mt-3">
+            <div className="text-xs text-gold mb-1">Bolsillo seguro · no se pierde al morir</div>
+            <GridView grid={s.expedition.pocket} container="pocket" cols={3} equipment={s.expedition.equipment} mode="dungeon" selected={sel} onSelect={setSel} onQuick={(l) => actions.quickMove(l, 'backpack')} />
+          </div>
           <div className="mt-4"><ItemActions loc={sel} mode="dungeon" onClear={clear} /></div>
         </div>
       </div>

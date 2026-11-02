@@ -1,3 +1,4 @@
+import { potionAmount } from '../config/progression';
 import type { DamageKind, ItemEffect, SkillDef, Stats, StatusId, StatusInstance } from './types';
 import { makeRng, type Rng } from './rng';
 import { getSkill } from './data/skills';
@@ -38,6 +39,8 @@ export interface Combatant {
   boss?: boolean;
   /** Referencia libre (id de enemigo, del rival...) para quien orquesta el combate. */
   ref?: string;
+  /** Actitud de un compañero controlado por la IA (mercenarios): agresivo o prudente. */
+  stance?: 'aggressive' | 'cautious';
 }
 
 export type CombatAction =
@@ -203,10 +206,10 @@ function applyStatus(s: CombatState, target: Combatant, id: StatusId, turns: num
 
 function applyItemEffect(s: CombatState, actor: Combatant, effect: ItemEffect) {
   if (effect.kind === 'heal') {
-    const h = heal(s, actor, effect.amount);
+    const h = heal(s, actor, potionAmount(effect.amount, actor.stats.maxHp));
     s.log.push(`${actor.name} recupera ${h} de vida.`);
   } else if (effect.kind === 'mana') {
-    const real = Math.min(actor.stats.maxMp - actor.mp, effect.amount);
+    const real = Math.min(actor.stats.maxMp - actor.mp, potionAmount(effect.amount, actor.stats.maxMp));
     actor.mp += real;
     s.events.push({ type: 'mana', targetId: actor.id, amount: real });
     s.log.push(`${actor.name} recupera ${real} de ${actor.resourceName.toLowerCase()}.`);
@@ -427,14 +430,20 @@ export function chooseAIAction(state: CombatState): CombatAction {
   const foes = opponents(state, actor);
   const hpPct = actor.hp / actor.stats.maxHp;
 
-  if (hpPct < 0.35 && actor.potions > 0) return { type: 'item', itemId: 'health_potion' };
+  // Prudente: se cura antes y se protege más; agresivo: aguanta hasta el límite y remata al más débil.
+  const cautious = actor.stance === 'cautious';
+  const aggressive = actor.stance === 'aggressive';
+  const potionAt = cautious ? 0.5 : aggressive ? 0.25 : 0.35;
+  if (hpPct < potionAt && actor.potions > 0) return { type: 'item', itemId: 'health_potion' };
 
   const usable = actor.skills.filter((id) => canUseSkill(actor, id)).map(getSkill);
   const selfSkills = usable.filter((sk) => sk.target === 'self' && !(sk.applies ?? []).every((a) => hasStatus(actor, a.status)));
-  if (selfSkills.length && hpPct < 0.55 && rng.chance(0.6)) return { type: 'skill', skillId: selfSkills[0].id };
+  const selfAt = cautious ? 0.75 : aggressive ? 0.35 : 0.55;
+  if (selfSkills.length && hpPct < selfAt && rng.chance(cautious ? 0.85 : 0.6)) return { type: 'skill', skillId: selfSkills[0].id };
+  if (cautious && hpPct < 0.3 && rng.chance(0.5)) return { type: 'defend' };
 
   const weakest = [...foes].sort((a, b) => a.hp / a.stats.maxHp - b.hp / b.stats.maxHp)[0];
-  const target = rng.chance(0.6) ? weakest : rng.pick(foes);
+  const target = rng.chance(aggressive ? 0.9 : 0.6) ? weakest : rng.pick(foes);
   const offensive = usable.filter((sk) => sk.target === 'enemy');
   if (offensive.length && rng.chance(actor.skillChance)) {
     return { type: 'skill', skillId: rng.pick(offensive).id, targetId: target.id };

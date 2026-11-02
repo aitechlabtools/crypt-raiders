@@ -1,3 +1,5 @@
+import { canPocket } from '../../core/inventory';
+import { isTouch } from '../../shared/device';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Loc } from '../../core/inventory';
 import { stackAt } from '../../core/inventory';
@@ -12,6 +14,7 @@ import { RARITY_INFO } from '../../core/data/items';
 import { combatLoadout } from '../../core/loadout';
 import { getSkill } from '../../core/data/skills';
 import { CLASSES } from '../../core/data/classes';
+import { dressed } from '../../core/cosmetics';
 
 export function HeroSprite({ classId, appearance, equipment, scale = 6, animate = true, pose = 'idle' as 'idle' | 'attack' | 'hurt', className = '' }: { classId: ClassId; appearance: Appearance; equipment?: Equipment; scale?: number; animate?: boolean; pose?: 'idle' | 'attack' | 'hurt'; className?: string }) {
   const [f, setF] = useState(0);
@@ -28,7 +31,7 @@ export function PlayerSprite(props: { scale?: number; animate?: boolean; pose?: 
   const profile = useGame((s) => s.profile);
   const expEquipment = useGame((s) => (s.screen === 'dungeon' ? s.expedition?.equipment : undefined));
   if (!profile) return null;
-  return <HeroSprite classId={profile.character.classId} appearance={profile.character.appearance} equipment={expEquipment ?? profile.equipment} {...props} />;
+  return <HeroSprite classId={profile.character.classId} appearance={profile.character.appearance} equipment={dressed(expEquipment ?? profile.equipment, profile.wardrobe)} {...props} />;
 }
 
 export function MonsterSprite({ sprite, scale = 6, pose = 'idle', className = '' }: { sprite: string; scale?: number; pose?: 'idle' | 'attack' | 'hurt'; className?: string }) {
@@ -54,9 +57,10 @@ export function Modal({ children, onClose, wide = false, testId }: { children: R
 
 export function Toasts() {
   const toasts = useGame((s) => s.toasts);
+  const inCombat = useGame((s) => !!s.combat);
   const color = { loot: 'border-gold text-gold', info: 'border-stone-500', danger: 'border-blood text-[#ff8a7a]', social: 'border-heal text-heal', good: 'border-heal' };
   return (
-    <div className="absolute right-4 bottom-4 z-[60] flex flex-col gap-2 w-80 pointer-events-none" aria-live="polite">
+    <div className={`absolute right-4 ${inCombat ? 'top-4' : 'bottom-4'} z-[60] flex flex-col gap-2 w-80 pointer-events-none`} aria-live="polite">
       {toasts.map((t) => (
         <div key={t.id} className={`panel px-3 py-2 text-sm fade-in border-l-4 ${color[t.kind]} flex items-center gap-2`}>
           {t.icon && <img src={iconUrl(t.icon, 2)} width={24} height={24} className="pixelated" alt="" />}
@@ -70,7 +74,7 @@ export function Toasts() {
 /** Panel con las acciones disponibles para el objeto seleccionado. */
 export function ItemActions({ loc, mode, onClear, lootId }: { loc: Loc | null; mode: InvMode; onClear: () => void; lootId?: string }) {
   const s = useGame((x) => x);
-  if (!loc) return <div className="text-stone-400 text-sm italic font-body">Selecciona un objeto para ver sus acciones. Doble clic: acción rápida · Clic derecho: mover · Arrastra para colocar.</div>;
+  if (!loc) return <div className="text-stone-400 text-sm italic font-body">{isTouch() ? 'Toca un objeto para ver sus acciones.' : 'Selecciona un objeto para ver sus acciones. Doble clic: acción rápida · Clic derecho: mover · Arrastra para colocar.'}</div>;
   const c = containersFor(s, lootId);
   const st = c ? stackAt(c, loc) : null;
   if (!st) return <div className="text-stone-400 text-sm italic font-body">Selecciona un objeto.</div>;
@@ -89,6 +93,8 @@ export function ItemActions({ loc, mode, onClear, lootId }: { loc: Loc | null; m
     btns.push(b(`Vender (${sellPrice(def.id)})`, () => { actions.sell(loc.container as 'backpack' | 'stash', loc.index); if (st.qty <= 1) onClear(); }, 'btn-gold', 'act-sell'));
     if (st.qty > 1) btns.push(b(`Vender todo (${sellPrice(def.id) * st.qty})`, () => { actions.sell(loc.container as 'backpack' | 'stash', loc.index, true); onClear(); }));
   }
+  if ((mode === 'lobby' || mode === 'dungeon') && inGrid && loc.container === 'backpack' && canPocket(st.itemId)) btns.push(b('Al bolsillo seguro', () => { actions.quickMove(loc, 'pocket'); onClear(); }, '', 'act-pocket'));
+  if (inGrid && loc.container === 'pocket') btns.push(b('A la mochila', () => { actions.quickMove(loc, 'backpack'); onClear(); }, '', 'act-unpocket'));
   if (mode === 'dungeon' && inGrid && loc.container === 'backpack') btns.push(b('Soltar', () => { actions.dropItem(loc); onClear(); }, 'btn-danger', 'act-drop'));
   return (
     <div className="flex items-center gap-3 flex-wrap">

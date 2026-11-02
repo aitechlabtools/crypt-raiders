@@ -1,6 +1,20 @@
 // Barra de acciones del combate: ataque, habilidades, objetos y acciones generales en una sola vista,
 // con iconos y una ficha al pasar el ratón (o al enfocar con el teclado).
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { isTouch } from '../../shared/device';
+
+// En pantallas táctiles no existe «pasar el ratón»: el primer toque enseña la ficha y el segundo ejecuta.
+const TOUCH = isTouch();
+function useOpenTip(id: string) {
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const h = (e: Event) => { if ((e as CustomEvent).detail !== id) setOpen(false); };
+    window.addEventListener('tip-open', h);
+    return () => window.removeEventListener('tip-open', h);
+  }, [id]);
+  const show = () => { window.dispatchEvent(new CustomEvent('tip-open', { detail: id })); setOpen(true); };
+  return { open, show, hide: () => setOpen(false) };
+}
 import type { Combatant } from '../../core/combat';
 import { canUseSkill } from '../../core/combat';
 import { getSkill } from '../../core/data/skills';
@@ -31,6 +45,7 @@ const PATHS: Record<string, ReactNode> = {
   poison: <path d="M12 3 C15 8 18 11 18 15 A6 6 0 0 1 6 15 C6 11 9 8 12 3 Z" />,
   shield: <path d="M12 3 L19 6 V11 C19 16 15.5 19.5 12 21 C8.5 19.5 5 16 5 11 V6 Z" />,
   bite: <><path d="M4 8 L7 14 L10 8 L12 14 L14 8 L17 14 L20 8" /><path d="M4 18 L20 18" /></>,
+  bag: <><path d="M6 8h12l-1 12H7z" /><path d="M9 8a3 3 0 0 1 6 0" /></>,
   flee: <><path d="M4 12 H17" /><path d="M13 7 L18 12 L13 17" /><path d="M20 5 V19" /></>,
 };
 export function ActionIcon({ fx, color, size = 30 }: { fx: string; color?: string; size?: number }) {
@@ -63,8 +78,10 @@ function skillLines(sk: SkillDef, res: string): string[] {
 
 export interface Slot {
   id: string; key: string; name: string; fx: string; source: Source; sourceLabel?: string;
-  cost: number; disabled: boolean; reason?: string; desc: string; lines: string[]; onUse: () => void; testId: string;
+  cost: number; disabled: boolean; reason?: string; desc: string; lines: string[]; onUse: () => void; testId: string; itemId?: string;
 }
+
+export { TOUCH };
 
 export function skillSlot(id: string, key: string, source: Source, sourceLabel: string, player: Combatant, onUse: () => void): Slot {
   const sk = getSkill(id);
@@ -82,7 +99,7 @@ export function attackSlot(a: AttackDef, onUse: () => void): Slot {
 function Tooltip({ s, res }: { s: Slot; res: string }) {
   const src = SOURCE[s.source];
   return (
-    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 z-50 panel p-3 text-left pointer-events-none fade-in shadow-2xl" role="tooltip" style={{ borderColor: src.color }} data-testid="action-tooltip">
+    <div className="absolute bottom-full left-0 mb-2 w-64 z-50 panel p-3 text-left pointer-events-none fade-in shadow-2xl" role="tooltip" style={{ borderColor: src.color }} data-testid="action-tooltip">
       <div className="flex items-center gap-2">
         <ActionIcon fx={s.fx} size={22} />
         <div className="font-display text-parchment leading-tight">{s.name}</div>
@@ -96,13 +113,15 @@ function Tooltip({ s, res }: { s: Slot; res: string }) {
 }
 
 export function SlotTile({ s, res }: { s: Slot; res: string }) {
-  const [hover, setHover] = useState(false);
+  const tip = useOpenTip(s.id); const hover = tip.open;
+  const setHover = (v: boolean) => (v ? tip.show() : tip.hide());
+  const onTap = () => { if (TOUCH && !hover) { setHover(true); return; } tip.hide(); if (!s.disabled) s.onUse(); };
   const src = SOURCE[s.source];
   return (
-    <div className="relative" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+    <div className="relative" onMouseEnter={() => !TOUCH && setHover(true)} onMouseLeave={() => !TOUCH && setHover(false)}>
       <button
-        className={`action-tile ${s.disabled ? 'is-off' : ''}`} style={{ ['--src' as string]: src.color }}
-        onClick={s.onUse} disabled={s.disabled} aria-disabled={s.disabled} onFocus={() => setHover(true)} onBlur={() => setHover(false)}
+        className={`action-tile ${s.disabled ? 'is-off' : ''} ${hover && TOUCH ? 'is-armed' : ''}`} style={{ ['--src' as string]: src.color }}
+        onClick={onTap} disabled={s.disabled && !TOUCH} aria-disabled={s.disabled} onFocus={() => !TOUCH && setHover(true)} onBlur={() => !TOUCH && setHover(false)}
         aria-label={`${s.name}. ${s.desc}`} data-testid={s.testId}
       >
         <kbd className="absolute top-1 left-1 text-[10px] bg-black/50 px-1 leading-4">{s.key}</kbd>
@@ -111,6 +130,7 @@ export function SlotTile({ s, res }: { s: Slot; res: string }) {
         <span className="text-[11px] leading-tight text-center mt-1 line-clamp-2">{s.name}</span>
       </button>
       {hover && <Tooltip s={s} res={res} />}
+      {hover && TOUCH && !s.disabled && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 translate-y-full text-[10px] text-gold whitespace-nowrap">Toca otra vez</div>}
     </div>
   );
 }
@@ -119,10 +139,12 @@ export function SlotTile({ s, res }: { s: Slot; res: string }) {
 export function UtilBtn({ k, label, sub, icon, onClick, disabled, danger, tip, testId, itemId }: {
   k: string; label: string; sub: string; icon?: string; itemId?: string; onClick: () => void; disabled?: boolean; danger?: boolean; tip: string; testId: string;
 }) {
-  const [hover, setHover] = useState(false);
+  const tipState = useOpenTip(testId); const hover = tipState.open;
+  const setHover = (v: boolean) => (v ? tipState.show() : tipState.hide());
+  const onTap = () => { if (TOUCH && !hover) { setHover(true); return; } tipState.hide(); onClick(); };
   return (
-    <div className="relative" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
-      <button className={`btn w-full flex items-center gap-2 text-left py-1.5 ${danger ? 'btn-danger' : ''}`} onClick={onClick} disabled={disabled} onFocus={() => setHover(true)} onBlur={() => setHover(false)} data-testid={testId}>
+    <div className="relative" onMouseEnter={() => !TOUCH && setHover(true)} onMouseLeave={() => !TOUCH && setHover(false)}>
+      <button className={`btn w-full flex items-center gap-2 text-left py-1.5 ${danger ? 'btn-danger' : ''} ${hover && TOUCH ? 'is-armed' : ''}`} onClick={onTap} disabled={disabled} onFocus={() => !TOUCH && setHover(true)} onBlur={() => !TOUCH && setHover(false)} data-testid={testId}>
         <kbd className="text-[10px] bg-black/40 px-1">{k}</kbd>
         {itemId ? <ItemIcon itemId={itemId} size={20} /> : <ActionIcon fx={icon ?? 'shield'} size={20} color={danger ? '#ffb3a8' : undefined} />}
         <span className="flex flex-col leading-tight"><span className="text-sm whitespace-nowrap">{label}</span><span className="text-[10px] opacity-70">{sub}</span></span>

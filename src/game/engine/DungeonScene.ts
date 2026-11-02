@@ -1,3 +1,10 @@
+import { getMerc } from '../../core/data/mercenaries';
+import { dressed } from '../../core/cosmetics';
+import { bestPick, VEINS, type VeinId } from '../../core/mining';
+import { getZone } from '../../core/data/zones';
+import { chestType } from '../../core/data/chests';
+import { getItem } from '../../core/data/items';
+import { touchStick } from './touchInput';
 import Phaser from 'phaser';
 import { buildDungeon, CRYPTS_OF_UMBRAVEL, findPath, roomAt, type BuiltDungeon, type DungeonDef, type EntityDef } from '../../core/dungeon';
 import { getEnemy } from '../../core/data/enemies';
@@ -71,10 +78,17 @@ export class DungeonScene extends Phaser.Scene {
   player!: Mob;
   enemies: EnemyEnt[] = [];
   rival: (Mob & { gone: boolean; leaving: boolean }) | null = null;
+  /** Mercenario que te sigue (contratado o rescatado). */
+  merc: (Mob & { gone: boolean }) | null = null;
+  /** Prisionero encadenado esperando a que lo liberes. */
+  captive: (Mob & { mercId: string; chains: Phaser.GameObjects.Image }) | null = null;
+  veins: { id: string; vein: VeinId; x: number; y: number; img: Phaser.GameObjects.Image; spent: boolean }[] = [];
+  /** Lo que se está canalizando ahora: null = el portal. */
+  job: { label: string; seconds: number; done: () => void } | null = null;
   tiles: TileVis[] = [];
   tileIndex = new Map<string, TileVis>();
   doors = new Map<string, { id: string; x: number; y: number; img: Phaser.GameObjects.Image; open: boolean }>();
-  chests: { id: string; x: number; y: number; table: 'common' | 'rich' | 'boss'; img: Phaser.GameObjects.Image; opened: boolean }[] = [];
+  chests: { id: string; x: number; y: number; table: string; img: Phaser.GameObjects.Image; opened: boolean }[] = [];
   traps: { id: string; x: number; y: number; img: Phaser.GameObjects.Image; cooldown: number }[] = [];
   torches: { x: number; y: number; lx: number; ly: number; img: Phaser.GameObjects.Image; glow: Phaser.GameObjects.Image; phase: number; light: Map<string, number> }[] = [];
   pillars = new Set<string>();
@@ -107,11 +121,16 @@ export class DungeonScene extends Phaser.Scene {
     const ch = st.profile!.character;
     registerTextures(this);
     this.heroVersion = 0;
-    this.heroLook = lookSignature(st.expedition!.equipment);
-    const heroTex = registerHeroTextures(this, 0, { classId: ch.classId, appearance: ch.appearance, equipment: st.expedition!.equipment });
+    this.heroLook = lookSignature(dressed(st.expedition!.equipment, st.profile!.wardrobe));
+    const heroTex = registerHeroTextures(this, 0, { classId: ch.classId, appearance: ch.appearance, equipment: dressed(st.expedition!.equipment, st.profile!.wardrobe) });
     this.def = st.dungeon ?? CRYPTS_OF_UMBRAVEL;
     this.dungeon = buildDungeon(this.def);
+    this.zoneTint = getZone(this.def.zone).tint;
     this.enemies = [];
+    this.merc = null;
+    this.captive = null;
+    this.veins = [];
+    this.job = null;
     this.tiles = [];
     this.tileIndex.clear();
     this.doors.clear();
@@ -128,6 +147,7 @@ export class DungeonScene extends Phaser.Scene {
 
     const spawn = this.def.entities.find((e) => e.kind === 'spawn')!;
     this.player = this.makeMob(heroTex, 4, spawn.x + 0.5, spawn.y + 0.5);
+    this.refreshMerc();
 
     // Partículas de polvo alrededor del jugador
     this.add.particles(0, 0, 'mote', {
@@ -171,6 +191,7 @@ export class DungeonScene extends Phaser.Scene {
     this.unsub.push(
       bus.on('combat-ended', (p) => this.onCombatEnded(p)),
       bus.on('rival-changed', () => this.refreshRival()),
+      bus.on('merc-changed', () => this.refreshMerc()),
       bus.on('bags-changed', () => this.refreshBags()),
       bus.on('cancel-channel', () => this.cancelChannel()),
     );
@@ -250,7 +271,7 @@ export class DungeonScene extends Phaser.Scene {
         break;
       }
       case 'chest': {
-        const img = this.add.image(c.x, c.y + 2, `chest_${e.table}`).setOrigin(0.5, 0.85).setDepth(depthAt(cx, cy) + 1);
+        const img = this.add.image(c.x, c.y + 2, `chest_${chestType(e.table).look}`).setOrigin(0.5, 0.85).setDepth(depthAt(cx, cy) + 1);
         this.chests.push({ id: e.id, x: e.x, y: e.y, table: e.table, img, opened: false });
         vis?.imgs.push(img);
         break;
@@ -282,9 +303,24 @@ export class DungeonScene extends Phaser.Scene {
       case 'enemy': {
         const def = getEnemy(e.enemyId);
         const isBat = def.sprite === 'bat';
-        const mob = this.makeMob(def.sprite, isBat ? 3 : 4, cx, cy, def.boss ? 1.6 : 1);
+        const mob = this.makeMob(def.sprite, isBat ? 3 : 4, cx, cy, def.boss ? 1.6 : def.elite ? 1.25 : def.sprite === 'imp' ? 0.85 : 1);
         if (isBat) mob.lift = 10;
         this.enemies.push({ ...mob, id: e.id, enemyId: e.enemyId, homeX: cx, homeY: cy, target: null, wait: Math.random() * 2, speed: def.wander.speed, aggro: def.wander.aggroRange, dead: false, boss: !!def.boss });
+        break;
+      }
+      case 'vein': {
+        // Pegada a la pared: un poco desplazada hacia ella
+        const off = this.dungeon.tiles[e.y - 1]?.[e.x] === 'wall' ? iso(cx, cy - 0.3) : iso(cx - 0.3, cy);
+        const img = this.add.image(off.x, off.y + 3, `vein_${e.vein}`).setOrigin(0.5, 0.9).setDepth(depthAt(cx, cy));
+        this.veins.push({ id: e.id, vein: e.vein, x: e.x, y: e.y, img, spent: false });
+        vis?.imgs.push(img);
+        break;
+      }
+      case 'captive': {
+        const m = this.makeMob(getMerc(e.mercId).sprite, 4, cx, cy);
+        m.marker = this.add.image(0, 0, 'marker_neutral').setDepth(99980);
+        const chains = this.add.image(c.x, c.y + 1, 'chains').setDepth(depthAt(cx, cy) + 1.5);
+        this.captive = { ...m, mercId: e.mercId, chains };
         break;
       }
       case 'rival': {
@@ -371,9 +407,10 @@ export class DungeonScene extends Phaser.Scene {
       const pdx = tv.x + 0.5 - this.player.x, pdy = tv.y + 0.5 - this.player.y;
       const violet = Math.max(0, 1 - Math.hypot(tv.x - this.portal.x, tv.y - this.portal.y) / 3.5) * 0.4;
       const warm = Math.min(1, Math.max(0, tv.bright - Math.max(0, 1 - Math.hypot(pdx, pdy) / LIGHT_PLAYER)));
-      const r = Math.min(255, Math.round(255 * v + 30 * violet));
-      const g = Math.min(255, Math.round((236 - warm * 30) * v));
-      const bl = Math.min(255, Math.round((215 - warm * 70) * v + 90 * violet));
+      const [zr, zg, zb] = this.zoneTint;
+      const r = Math.min(255, Math.round((255 * v + 30 * violet) * zr));
+      const g = Math.min(255, Math.round((236 - warm * 30) * v * zg));
+      const bl = Math.min(255, Math.round(((215 - warm * 70) * v + 90 * violet) * zb));
       const tint = (r << 16) | (g << 8) | bl;
       for (const img of tv.imgs) {
         img.setTint(tint);
@@ -405,6 +442,8 @@ export class DungeonScene extends Phaser.Scene {
     };
     this.enemies.filter((e) => !e.dead).forEach(mobVis);
     if (this.rival && !this.rival.gone) mobVis(this.rival);
+    if (this.merc && !this.merc.gone) mobVis(this.merc);
+    if (this.captive) { mobVis(this.captive); this.captive.chains.setVisible(this.captive.sprite.visible); }
     for (const [, img] of this.bagSprites) {
       const g = fromIso(img.x, img.y);
       const tv = this.tileIndex.get(`${Math.floor(g.x)},${Math.floor(g.y)}`);
@@ -464,6 +503,7 @@ export class DungeonScene extends Phaser.Scene {
       this.updatePlayer(dt);
       this.updateEnemies(dt);
       this.updateRival(dt);
+      this.updateMerc(dt);
       this.updateTraps(dt);
       this.updateChannel(dt);
       this.updateInteractionPrompt();
@@ -472,6 +512,8 @@ export class DungeonScene extends Phaser.Scene {
     this.placeMob(this.player, dt);
     this.enemies.filter((e) => !e.dead).forEach((e) => this.placeMob(e, dt));
     if (this.rival && !this.rival.gone) this.placeMob(this.rival, dt);
+    if (this.merc && !this.merc.gone) this.placeMob(this.merc, dt);
+    if (this.captive) this.placeMob(this.captive, dt);
 
     this.frameTimer += dt;
     if (this.frameTimer > 0.12) {
@@ -494,12 +536,17 @@ export class DungeonScene extends Phaser.Scene {
     if (k.S.isDown || k.DOWN.isDown) sy += 1;
     if (k.A.isDown || k.LEFT.isDown) sx -= 1;
     if (k.D.isDown || k.RIGHT.isDown) sx += 1;
+    // Joystick táctil: dirección analógica (empujar poco = andar más despacio)
+    let mag = 1;
+    if (!sx && !sy && touchStick.active && Math.hypot(touchStick.x, touchStick.y) > 0.18) {
+      sx = touchStick.x; sy = touchStick.y; mag = Math.min(1, Math.hypot(sx, sy));
+    }
     const p = this.player;
     if (sx || sy) {
       this.path = [];
       this.cancelChannel();
       const len = Math.hypot(sx, sy);
-      const vx = (sx / len) * PLAYER_SPEED * dt, vy = (sy / len) * PLAYER_SPEED * dt;
+      const vx = (sx / len) * mag * PLAYER_SPEED * dt, vy = (sy / len) * mag * PLAYER_SPEED * dt;
       const g = fromIso(vx, vy);
       this.moveMob(p, g.x, g.y);
       if (sx) p.sprite.setFlipX(sx < 0);
@@ -624,6 +671,47 @@ export class DungeonScene extends Phaser.Scene {
     }
   }
 
+  /** El mercenario te sigue un paso por detrás (sin pegarse a Kael). */
+  updateMerc(dt: number) {
+    const m = this.merc;
+    if (!m || m.gone) return;
+    const p = this.player;
+    const d = Math.hypot(p.x - m.x, p.y - m.y);
+    if (d > 12) { m.x = p.x; m.y = p.y; return; }
+    if (d <= 1.1) { m.moving = false; return; }
+    const path = findPath(this.dungeon.def.width, this.dungeon.def.height, (x, y) => !this.walkableTile(x, y), [Math.floor(m.x), Math.floor(m.y)], [Math.floor(p.x), Math.floor(p.y)], 1500);
+    let wx = p.x, wy = p.y;
+    if (path && path.length > 1) { wx = path[0][0] + 0.5; wy = path[0][1] + 0.5; }
+    const wdx = wx - m.x, wdy = wy - m.y;
+    const wd = Math.hypot(wdx, wdy) || 1;
+    const speed = d > 3 ? 4.2 : 3.4;
+    this.moveMob(m, (wdx / wd) * speed * dt, (wdy / wd) * speed * dt, 0.22);
+    if (Math.abs(wdx - wdy) > 0.05) m.sprite.setFlipX(wdx - wdy < 0);
+  }
+
+  /** Sincroniza el mercenario con el estado: aparece al liberarlo y desaparece si cae. */
+  refreshMerc() {
+    const st = getState().merc;
+    if (st?.alive && (!this.merc || this.merc.gone)) {
+      if (this.captive && this.captive.mercId === st.id) {
+        const c = this.captive;
+        this.captive = null;
+        this.tweens.add({ targets: c.chains, alpha: 0, duration: 500, onComplete: () => c.chains.destroy() });
+        c.marker?.setTexture('marker_ally');
+        this.merc = { ...c, gone: false };
+        this.cameras.main.flash(180, 255, 230, 160);
+      } else if (this.player) {
+        const m = this.makeMob(getMerc(st.id).sprite, 4, this.player.x, this.player.y);
+        m.marker = this.add.image(0, 0, 'marker_ally').setDepth(99980);
+        this.merc = { ...m, gone: false };
+      }
+    } else if (!st?.alive && this.merc && !this.merc.gone) {
+      const m = this.merc;
+      m.gone = true;
+      this.tweens.add({ targets: [m.sprite, m.shadow, m.marker], alpha: 0, angle: 90, duration: 600, onComplete: () => { m.sprite.destroy(); m.shadow.destroy(); m.marker?.destroy(); } });
+    }
+  }
+
   removeRival() {
     if (!this.rival) return;
     this.rival.gone = true;
@@ -685,16 +773,36 @@ export class DungeonScene extends Phaser.Scene {
       const dist = Math.hypot(this.rival.x - p.x, this.rival.y - p.y);
       if (dist < 1.6) out.push({ dist, label: st.rival.disposition === 'allied' ? 'Hablar con tu aliado Kael' : 'Interactuar con Kael el Errante', run: () => actions.interactRival() });
     }
+    if (this.captive && !st.merc?.alive) {
+      const dist = Math.hypot(this.captive.x - p.x, this.captive.y - p.y);
+      const id = this.captive.mercId;
+      if (dist < 1.6) out.push({ dist, label: `Liberar al prisionero: ${getMerc(id).name}`, run: () => actions.interactCaptive(id) });
+    }
+    for (const v of this.veins) {
+      if (st.mined[v.id] && !v.spent) { v.spent = true; v.img.setTexture('vein_spent'); }
+      if (v.spent || d(v.x, v.y) >= 1.35) continue;
+      const pick = st.expedition ? bestPick(st.expedition.backpack) : null;
+      const name = VEINS[v.vein].name;
+      out.push({
+        dist: d(v.x, v.y),
+        label: pick ? `Picar: ${name}` : `${name} (necesitas un pico)`,
+        run: () => {
+          if (!pick) return actions.mineVein(v.id, v.vein);
+          const secs = getItem(pick.stack.itemId).mineTime ?? 2.5;
+          this.startChannel({ label: `Picando la ${name.toLowerCase()}… no te muevas`, seconds: secs, done: () => { actions.mineVein(v.id, v.vein); this.cameras.main.shake(90, 0.003); } });
+        },
+      });
+    }
     for (const b of Object.values(st.bags)) if (d(b.x, b.y) < 1.1) out.push({ dist: d(b.x, b.y), label: `Registrar: ${b.label}`, run: () => actions.openBag(b.id) });
     for (const c of this.chests) {
+      const type = chestType(c.table);
+      if (st.chests[c.id] && !c.opened) { c.opened = true; c.img.setTexture(`chest_${type.look}_open`); }
       if (d(c.x, c.y) < 1.35) {
+        const keyName = type.key ? getItem(type.key).name.toLowerCase() : null;
         out.push({
           dist: d(c.x, c.y),
-          label: c.opened ? 'Revisar el cofre' : 'Abrir el cofre',
-          run: () => {
-            if (!c.opened) { c.opened = true; c.img.setTexture(`chest_${c.table}_open`); }
-            actions.openChest(c.id, c.table);
-          },
+          label: c.opened ? `Revisar: ${type.name}` : keyName ? `Abrir: ${type.name} (${keyName})` : `Abrir: ${type.name}`,
+          run: () => actions.openChest(c.id, c.table),
         });
       }
     }
@@ -741,15 +849,18 @@ export class DungeonScene extends Phaser.Scene {
     this.precomputeTorchLight();
   }
 
-  startChannel() {
+  startChannel(job: DungeonScene['job'] = null) {
     this.channel = 0;
+    this.job = job;
     this.path = [];
-    sfx('portal');
+    actions.setHud({ channelLabel: job?.label ?? 'Canalizando el portal… no te muevas' });
+    sfx(job ? 'click' : 'portal');
   }
 
   cancelChannel() {
     if (this.channel >= 0) {
       this.channel = -1;
+      this.job = null;
       actions.setHud({ channel: 0 });
     }
   }
@@ -757,8 +868,16 @@ export class DungeonScene extends Phaser.Scene {
   updateChannel(dt: number) {
     if (this.channel < 0) return;
     if (this.player.moving) return this.cancelChannel();
-    this.channel += dt / 3;
+    this.channel += dt / (this.job?.seconds ?? 3);
     actions.setHud({ channel: Math.min(1, this.channel) });
+    if (this.channel >= 1 && this.job) {
+      const job = this.job;
+      this.channel = -1;
+      this.job = null;
+      actions.setHud({ channel: 0 });
+      job.done();
+      return;
+    }
     if (this.channel >= 1) {
       this.channel = -1;
       this.cameras.main.flash(400, 180, 110, 255);
@@ -782,14 +901,17 @@ export class DungeonScene extends Phaser.Scene {
   refreshHeroLook() {
     const st = getState();
     if (!st.expedition || !st.profile || !this.player) return;
-    const sig = lookSignature(st.expedition.equipment);
+    const sig = lookSignature(dressed(st.expedition.equipment, st.profile?.wardrobe));
     if (sig === this.heroLook) return;
     this.heroLook = sig;
     this.heroVersion += 1;
     const ch = st.profile.character;
-    this.player.tex = registerHeroTextures(this, this.heroVersion, { classId: ch.classId, appearance: ch.appearance, equipment: st.expedition.equipment });
+    this.player.tex = registerHeroTextures(this, this.heroVersion, { classId: ch.classId, appearance: ch.appearance, equipment: dressed(st.expedition.equipment, st.profile?.wardrobe) });
     this.player.sprite.setTexture(`${this.player.tex}0`);
   }
+
+  /** Tinte de la luz según la zona (Mazmorra neutra, Cripta fría, Infierno rojiza). */
+  zoneTint: [number, number, number] = [1, 1, 1];
 
   /** Solo para el tráiler: revela e ilumina todo el mapa (0 = desactivado). */
   cineReveal = 0;

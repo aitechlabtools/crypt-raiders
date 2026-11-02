@@ -5,12 +5,18 @@
 // Es determinista: la misma semilla genera siempre el mismo mapa.
 // ════════════════════════════════════════════════════════════════════
 import { makeRng, type Rng } from './rng';
+import { getZone, type ZoneDef, type ZoneId } from './data/zones';
+import { pickVein } from './mining';
 import { buildDungeon, findPath, type DungeonDef, type EntityDef, type Rect, type RoomDef, type BuiltDungeon } from './dungeon';
 
 export interface GenOptions {
   width?: number;
   height?: number;
   rooms?: [number, number];
+  /** Zona: decide criaturas, élite, jefe, cofres y nombres. Por defecto, la Mazmorra. */
+  zone?: ZoneId;
+  /** Mercenario prisionero que aparece encadenado en una sala profunda (o ninguno). */
+  captive?: string | null;
 }
 
 const ROOM_NAMES = [
@@ -122,13 +128,13 @@ export function generateDungeon(seed: number, opts: GenOptions = {}): DungeonDef
     const rng = makeRng((seed + attempt * 7919) >>> 0);
     const d = draft(rng, W, H, rng.int(minR, maxR));
     if (!d) continue;
-    const def = populate(rng, seed, d, W, H);
+    const def = populate(rng, seed, d, W, H, getZone(opts.zone), opts.captive ?? null);
     if (def && validateDungeon(def).ok) return def;
   }
   throw new Error(`No se pudo generar una mazmorra válida con la semilla ${seed}`);
 }
 
-function populate(rng: Rng, seed: number, d: Draft, W: number, H: number): DungeonDef | null {
+function populate(rng: Rng, seed: number, d: Draft, W: number, H: number, zone: ZoneDef, captive: string | null): DungeonDef | null {
   const { rooms, corridors, edges } = d;
   const n = rooms.length;
   // Inicio: la sala más cercana a una esquina aleatoria
@@ -146,11 +152,11 @@ function populate(rng: Rng, seed: number, d: Draft, W: number, H: number): Dunge
   const rivalRoom = [...middle].sort((a, b) => Math.abs(depth[a] - 1.5) - Math.abs(depth[b] - 1.5))[0] ?? portal;
 
   // Nombres
-  const names = [...ROOM_NAMES];
+  const names = [...(zone.roomNames.length ? zone.roomNames : ROOM_NAMES)];
   for (let i = names.length - 1; i > 0; i--) { const j = rng.int(0, i); [names[i], names[j]] = [names[j], names[i]]; }
   rooms.forEach((r, i) => {
     r.id = i === start ? 'start' : i === boss ? 'boss' : i === portal ? 'portal' : `room${i}`;
-    r.name = i === start ? 'Sala del Umbral' : i === boss ? 'Trono del Osario' : i === portal ? 'Puerta de Ceniza' : names.pop()!;
+    r.name = i === start ? 'Sala del Umbral' : i === boss ? zone.bossRoom : i === portal ? 'Puerta de Ceniza' : names.pop()!;
   });
 
   const built = buildDungeon({ id: 'tmp', name: '', width: W, height: H, rooms, corridors, entities: [] });
@@ -200,10 +206,10 @@ function populate(rng: Rng, seed: number, d: Draft, W: number, H: number): Dunge
 
   // Jefe y su cofre
   const bc = spot(rooms[boss], 1) ?? [center(rooms[boss]).x, center(rooms[boss]).y];
-  entities.push({ kind: 'enemy', id: 'e_boss', enemyId: 'ossuary_lord', x: bc[0], y: bc[1] });
+  entities.push({ kind: 'enemy', id: 'e_boss', enemyId: zone.boss, x: bc[0], y: bc[1] });
   take(bc[0], bc[1]);
   const bchest = spot(rooms[boss], 1);
-  if (bchest) { entities.push({ kind: 'chest', id: 'chest_boss', table: 'boss', x: bchest[0], y: bchest[1] }); take(...bchest); }
+  if (bchest) { entities.push({ kind: 'chest', id: 'chest_boss', table: zone.chests.boss, x: bchest[0], y: bchest[1] }); take(...bchest); }
 
   // Rival
   const rv = spot(rooms[rivalRoom], 1);
@@ -219,10 +225,41 @@ function populate(rng: Rng, seed: number, d: Draft, W: number, H: number): Dunge
     for (let k = 0; k < count; k++) {
       const p = spot(rooms[i], 1);
       if (!p) continue;
-      const enemyId = dep <= 1 ? (rng.chance(0.7) ? 'bat' : 'skeleton') : rng.chance(0.65) ? 'skeleton' : 'bat';
+      const enemyId = pickEnemy(rng, zone, dep);
       entities.push({ kind: 'enemy', id: `e${enemyN++}`, enemyId, x: p[0], y: p[1] });
       take(p[0], p[1]);
     }
+  }
+
+  // Élite: uno por mapa, en una de las salas más profundas (no la del jefe)
+  const eliteRoom = [...others].filter((i) => i !== portal && i !== rivalRoom).sort((a, b) => depth[b] - depth[a])[0];
+  if (eliteRoom !== undefined) {
+    const p = spot(rooms[eliteRoom], 1);
+    if (p) { entities.push({ kind: 'enemy', id: 'e_elite', enemyId: zone.elite, x: p[0], y: p[1] }); take(p[0], p[1]); }
+  }
+
+  // Prisionero: encadenado en una sala profunda, distinta de la del élite y la de Kael
+  if (captive) {
+    const room = [...others].filter((i) => i !== portal && i !== rivalRoom && i !== eliteRoom).sort((a, b) => depth[b] - depth[a])[0] ?? eliteRoom;
+    const p = room !== undefined ? spot(rooms[room], 1) : null;
+    if (p) { entities.push({ kind: 'captive', mercId: captive, x: p[0], y: p[1] }); for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) take(p[0] + dx, p[1] + dy); }
+  }
+
+  // Vetas de mineral: pegadas a las paredes norte u oeste (las que se ven), en salas que no sean el inicio
+  let veinN = 0;
+  const veinSpots: [number, number][] = [];
+  rooms.forEach((r, i) => {
+    if (i === start) return;
+    for (let x = r.x + 1; x < r.x + r.w - 1; x++) if (isWall(x, r.y - 1) && free(x, r.y) && free(x, r.y + 1)) veinSpots.push([x, r.y]);
+    for (let y = r.y + 1; y < r.y + r.h - 1; y++) if (isWall(r.x - 1, y) && free(r.x, y) && free(r.x + 1, y)) veinSpots.push([r.x, y]);
+  });
+  for (let i = veinSpots.length - 1; i > 0; i--) { const j = rng.int(0, i); [veinSpots[i], veinSpots[j]] = [veinSpots[j], veinSpots[i]]; }
+  const wantVeins = rng.int(3, 5);
+  for (const [x, y] of veinSpots) {
+    if (veinN >= wantVeins) break;
+    if (!free(x, y) || entities.some((e) => e.kind === 'vein' && Math.abs(e.x - x) + Math.abs(e.y - y) < 4)) continue;
+    entities.push({ kind: 'vein', id: `vein${veinN++}`, vein: pickVein(rng, zone.id), x, y });
+    take(x, y);
   }
 
   // Cofres: uno rico en una sala profunda y 2-3 comunes
@@ -230,13 +267,13 @@ function populate(rng: Rng, seed: number, d: Draft, W: number, H: number): Dunge
   let chestN = 0;
   if (chestRooms[0] !== undefined) {
     const p = spot(rooms[chestRooms[0]], 1);
-    if (p) { entities.push({ kind: 'chest', id: `chest${chestN++}`, table: 'rich', x: p[0], y: p[1] }); take(...p); }
+    if (p) { entities.push({ kind: 'chest', id: `chest${chestN++}`, table: zone.chests.rich, x: p[0], y: p[1] }); take(...p); }
   }
   const commons = chestRooms.slice(1);
   for (let i = commons.length - 1; i > 0; i--) { const j = rng.int(0, i); [commons[i], commons[j]] = [commons[j], commons[i]]; }
   for (const i of commons.slice(0, rng.int(2, 3))) {
     const p = spot(rooms[i], 1);
-    if (p) { entities.push({ kind: 'chest', id: `chest${chestN++}`, table: 'common', x: p[0], y: p[1] }); take(...p); }
+    if (p) { entities.push({ kind: 'chest', id: `chest${chestN++}`, table: zone.chests.common, x: p[0], y: p[1] }); take(...p); }
   }
 
   // Puertas: en la entrada a la sala del jefe y en algún pasillo más
@@ -283,8 +320,18 @@ function populate(rng: Rng, seed: number, d: Draft, W: number, H: number): Dunge
     }
   });
 
-  const name = DUNGEON_NAMES[seed % DUNGEON_NAMES.length];
-  return { id: `gen-${seed}`, name, width: W, height: H, rooms, corridors, entities, seed };
+  const pool = zone.dungeonNames.length ? zone.dungeonNames : DUNGEON_NAMES;
+  const name = pool[seed % pool.length];
+  return { id: `gen-${seed}`, name, width: W, height: H, rooms, corridors, entities, seed, zone: zone.id };
+}
+
+/** Criatura normal de la zona según su peso; las más duras solo a partir de cierta profundidad. */
+function pickEnemy(rng: Rng, zone: ZoneDef, depth: number): string {
+  const pool = zone.enemies.filter((e) => (e.minDepth ?? 0) <= depth);
+  const total = pool.reduce((s, e) => s + e.weight, 0);
+  let r = rng.next() * total;
+  for (const e of pool) { r -= e.weight; if (r < 0) return e.id; }
+  return pool[0].id;
 }
 
 /** Comprueba que todo lo importante está en el suelo y es alcanzable desde el inicio. */
@@ -308,7 +355,7 @@ export function validateDungeon(def: DungeonDef): { ok: boolean; problems: strin
       if (seen.has(k) && e.kind !== 'trap') problems.push(`solapamiento en ${k}`);
       seen.add(k);
     }
-    if (spawn && ['portal', 'chest', 'enemy', 'rival', 'door'].includes(e.kind)) {
+    if (spawn && ['portal', 'chest', 'enemy', 'rival', 'door', 'captive', 'vein'].includes(e.kind)) {
       if (!findPath(def.width, def.height, blocked, [spawn.x, spawn.y], [e.x, e.y], 20000)) problems.push(`${e.kind} inalcanzable en ${e.x},${e.y}`);
     }
   }

@@ -46,6 +46,7 @@ export function SummaryScreen() {
           <div className="panel p-3"><div className="text-xs text-stone-400">Valor extraído</div><div className="text-xl text-gold">{summary.extractedValue}</div></div>
         </div>
         {summary.levelsGained > 0 && <div className="panel panel-gold p-3 mt-3 text-center text-gold text-lg">¡Subes al nivel {profile.character.level}!</div>}
+        {summary.mercNote && <div className="panel p-3 mt-3 text-center font-body text-lg text-parchment" data-testid="merc-note">{summary.mercNote}</div>}
         {summary.recruitKit && (
           <div className="panel p-3 mt-3 text-center border-heal" data-testid="recruit-kit">
             <span className="text-heal">El intendente del Bastión te ha dado un equipo de recluta</span>

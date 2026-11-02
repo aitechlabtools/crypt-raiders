@@ -64,14 +64,14 @@ describe('Requisitos de nivel', () => {
   it('todos los objetos equipables tienen nivel mínimo', () => {
     for (const it of Object.values(ITEMS)) if (it.slot) expect(it.levelReq, it.id).toBeGreaterThanOrEqual(1);
   });
-  it('un arma de nivel 8 se puede guardar pero no equipar a nivel 5', () => {
-    expect(canEquip('dread_blade', 'mainHand', { classId: 'warrior', level: 5 })).toMatch(/nivel 8/);
-    expect(canEquip('dread_blade', 'mainHand', { classId: 'warrior', level: 8 })).toBeNull();
+  it('un arma de nivel 24 se puede guardar pero no equipar a nivel 14', () => {
+    expect(canEquip('dread_blade', 'mainHand', { classId: 'warrior', level: 14 })).toMatch(/nivel 24/);
+    expect(canEquip('dread_blade', 'mainHand', { classId: 'warrior', level: 24 })).toBeNull();
     const g = addToGrid(emptyGrid(4), { uid: 'x', itemId: 'dread_blade', qty: 1 }).grid;
     expect(countItem(g, 'dread_blade')).toBe(1);
   });
-  it('el mercader solo vende objetos de nivel 3 o menos', () => {
-    for (const id of MERCHANT_STOCK) expect(ITEMS[id].levelReq ?? 1, id).toBeLessThanOrEqual(3);
+  it('el mercader solo vende objetos de nivel 7 o menos', () => {
+    for (const id of MERCHANT_STOCK) expect(ITEMS[id].levelReq ?? 1, id).toBeLessThanOrEqual(7);
   });
   it('los cofres del jefe dan objetos de nivel 5 a 8', () => {
     const gear = CHEST_TABLES.boss.entries.map((e) => ITEMS[e.itemId]).filter((d) => d?.slot);

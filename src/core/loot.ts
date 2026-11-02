@@ -1,9 +1,11 @@
 import type { ItemStack } from './types';
 import type { Rng } from './rng';
 import { makeUid } from './rng';
+import { CRIPTA_CHESTS } from './data/zones/cripta';
+import { INFIERNO_CHESTS } from './data/zones/infierno';
 
 export interface LootEntry { itemId: string | 'nothing'; weight: number; min?: number; max?: number }
-export interface LootTable { rolls: number; gold: [number, number]; entries: LootEntry[] }
+export interface LootTable { rolls: number; gold: [number, number]; entries: LootEntry[]; /** Objetos que siempre salen (por ejemplo, la llave de reliquia del jefe). */ always?: { itemId: string; qty?: number }[] }
 
 export interface LootResult { items: ItemStack[]; gold: number }
 
@@ -25,6 +27,7 @@ export function rollLoot(table: LootTable, rng: Rng): LootResult {
       }
     }
   }
+  for (const a of table.always ?? []) items.push({ uid: makeUid(), itemId: a.itemId, qty: a.qty ?? 1 });
   const gold = rng.int(table.gold[0], table.gold[1]);
   return { items, gold };
 }
@@ -33,7 +36,7 @@ export function rollLoot(table: LootTable, rng: Rng): LootResult {
 export const CHEST_TABLES: Record<string, LootTable> = {
   // Niveles 1-3
   common: { rolls: 2, gold: [8, 25], entries: [
-    { itemId: 'health_potion', weight: 25 }, { itemId: 'mana_potion', weight: 15 }, { itemId: 'old_coin', weight: 20, min: 1, max: 3 }, { itemId: 'antidote', weight: 8 },
+    { itemId: 'health_potion', weight: 25 }, { itemId: 'mana_potion', weight: 15 }, { itemId: 'old_coin', weight: 20, min: 1, max: 3 }, { itemId: 'antidote', weight: 8 }, { itemId: 'iron_key', weight: 6 },
     { itemId: 'leather_gloves', weight: 6 }, { itemId: 'worn_boots', weight: 6 }, { itemId: 'leather_hood', weight: 6 }, { itemId: 'copper_ring', weight: 6 },
     { itemId: 'iron_sword', weight: 4 }, { itemId: 'battle_axe', weight: 3 }, { itemId: 'ember_staff', weight: 4 }, { itemId: 'iron_shield', weight: 3 },
     { itemId: 'iron_helm', weight: 3 }, { itemId: 'wizard_hat', weight: 3 }, { itemId: 'chainmail', weight: 2 }, { itemId: 'gauntlets', weight: 3 }, { itemId: 'bone_amulet', weight: 2 },
@@ -55,3 +58,5 @@ export const CHEST_TABLES: Record<string, LootTable> = {
     { itemId: 'bastion_plate', weight: 3 }, { itemId: 'archmage_robe', weight: 3 }, { itemId: 'heart_of_umbravel', weight: 2 },
   ] },
 };
+
+Object.assign(CHEST_TABLES, CRIPTA_CHESTS, INFIERNO_CHESTS);

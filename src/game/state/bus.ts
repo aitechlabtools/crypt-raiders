@@ -4,6 +4,7 @@ type Handler = (payload: never) => void;
 export interface BusEvents {
   'combat-ended': { entityId: string | null; outcome: 'victory' | 'defeat' | 'fled'; kind: string };
   'rival-changed': undefined;
+  'merc-changed': undefined;
   'bags-changed': undefined;
   'cancel-channel': undefined;
 }

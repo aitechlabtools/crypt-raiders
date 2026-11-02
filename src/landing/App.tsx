@@ -1,7 +1,4 @@
-import { useState } from 'react';
 import { Diorama } from './Diorama';
-import { isMobileLike } from '../shared/device';
-import { MobileNotice } from '../shared/MobileNotice';
 import { heroUrl, iconUrl, monsterUrl } from '../shared/art';
 import { SHOWCASE_GEAR } from '../shared/gearLook';
 import { CLASSES } from '../core/data/classes';
@@ -20,12 +17,14 @@ const LOOP = [
 ];
 
 const FEATURES = [
-  { icon: 'key', title: 'Ninguna bajada es igual', text: 'Cada expedición cambia las salas, los cofres y los peligros. Y la luz de las antorchas nunca llega a todas partes.' },
+  { icon: 'key', title: 'Ninguna bajada es igual', text: 'Tres zonas cada vez más hondas —la Mazmorra, la Cripta y el Infierno— y cada expedición cambia las salas, los cofres y los peligros. La luz de las antorchas nunca llega a todas partes.' },
   { icon: 'staff_fire', title: 'Piensa antes de golpear', text: 'Atacar, protegerte, lanzar un hechizo o beber una poción: tú decides. El veneno, el fuego y el hielo pueden darle la vuelta a cualquier pelea.' },
   { icon: 'chalice', title: 'Botín que se nota', text: 'Armas y armaduras de común a legendario. Cada pieza mejora a tu personaje… y cambia su aspecto.' },
   { icon: 'dagger', title: 'Aliados de los que no fiarse', text: 'Repartir el botín o quedártelo todo tiene consecuencias. Las traiciones avisan, pero no siempre a tiempo.' },
   { icon: 'gem_red', title: 'Todo o nada', text: 'Doce minutos para llegar al portal. Si caes, pierdes lo que llevabas encima. Lo que guardas en el almacén, nunca.' },
-  { icon: 'amulet_heart', title: 'Cada bajada te hace más fuerte', text: 'Sube de nivel, cumple encargos y vende tus hallazgos para equiparte mejor la próxima vez.' },
+  { icon: 'amulet_heart', title: 'Cada bajada te hace más fuerte', text: 'Sube hasta el nivel 100, cumple encargos de cuatro vendedores y gana su confianza: mejores precios, mejor mercancía.' },
+  { icon: 'shield_iron', title: 'Espadas de alquiler', text: 'Contrata mercenarios a Garra Roja o rompe las cadenas de los prisioneros que encuentres abajo. Si caen, el contrato se rompe.' },
+  { icon: 'pick', title: 'Pica, forja y luce', text: 'Saca mineral de las vetas con tu pico, llévaselo a Maese Brand para forjar tus armas y gana aspectos que cambian cómo te ves, nunca lo fuerte que eres.' },
 ];
 
 const SHOTS = [
@@ -33,24 +32,19 @@ const SHOTS = [
   { src: './screenshots/combat.png', alt: 'Combate por turnos contra el Señor del Osario', caption: 'Combate por turnos contra el Señor del Osario.' },
   { src: './screenshots/inventory.png', alt: 'Inventario y equipamiento en el lobby', caption: 'Equipo, estadísticas y mochila en el Bastión.' },
   { src: './screenshots/rival.png', alt: 'Diálogo con Kael el Errante', caption: 'Hablar, aliarse, ignorar o atacar.' },
+  { src: './screenshots/mercenary.jpg', alt: 'Combate en el Infierno con una mercenaria aliada', caption: 'En el Infierno, con Nyx la Pirómana a sueldo.' },
+  { src: './screenshots/contracts.jpg', alt: 'Contratos de mercenarios con Garra Roja', caption: 'Contratos con Garra Roja: elige a quién llevas.' },
+  { src: './screenshots/mining.jpg', alt: 'Picando una veta de mineral en la Cripta', caption: 'Picando una veta en la Cripta.' },
+  { src: './screenshots/infierno.jpg', alt: 'Exploración del Infierno', caption: 'El Infierno: la zona más honda.' },
 ];
 
 function Sprite({ src, w, label, className = '' }: { src: string; w: number; label: string; className?: string }) {
   return <img src={src} width={w} alt={label} className={`pixelated ${className}`} />;
 }
 
-// Abre el aviso para móviles en lugar de lanzar directamente la demo
-let openMobileNotice: (() => void) | null = null;
-function guardPlay(e: React.MouseEvent) {
-  if (isMobileLike() && openMobileNotice) {
-    e.preventDefault();
-    openMobileNotice();
-  }
-}
-
 function PlayButton({ big = false }: { big?: boolean }) {
   return (
-    <a href={PLAY_URL} onClick={guardPlay} className={`btn-play ${big ? 'text-xl px-9 py-4' : 'px-6 py-3'}`} data-testid="cta-play">
+    <a href={PLAY_URL} className={`btn-play ${big ? 'text-xl px-9 py-4' : 'px-6 py-3'}`} data-testid="cta-play">
       Jugar la demo gratis
     </a>
   );
@@ -66,11 +60,8 @@ function DownloadButton() {
 }
 
 export function App() {
-  const [notice, setNotice] = useState(false);
-  openMobileNotice = () => setNotice(true);
   return (
     <div className="min-h-screen">
-      {notice && <MobileNotice onContinue={() => (window.location.href = PLAY_URL)} onClose={() => setNotice(false)} continueLabel="Abrir la demo igualmente" />}
       <header className="fixed top-0 inset-x-0 z-30 site-nav">
         <nav className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-6" aria-label="Principal">
           <a href="#top" className="font-display font-extrabold tracking-[0.14em] text-parchment">DREADBOUND</a>
@@ -81,7 +72,7 @@ export function App() {
             <a href="#capturas" className="hover:text-parchment">Capturas</a>
             <a href="#demo" className="hover:text-parchment">Demo</a>
           </div>
-          <a href={PLAY_URL} onClick={guardPlay} className="ml-auto btn-play px-4 py-1.5 text-sm">Jugar</a>
+          <a href={PLAY_URL} className="ml-auto btn-play px-4 py-1.5 text-sm">Jugar</a>
         </nav>
       </header>
 
@@ -97,7 +88,7 @@ export function App() {
             <PlayButton big />
             <DownloadButton />
           </div>
-          <p className="font-body text-stone-300 mt-4 text-base">Gratis en el navegador de tu ordenador. Sin registro ni descargas.</p>
+          <p className="font-body text-stone-300 mt-4 text-base">Gratis en el navegador, en ordenador o móvil. Sin registro ni descargas.</p>
         </div>
       </section>
 
@@ -208,7 +199,7 @@ export function App() {
         <div className="grid md:grid-cols-2 gap-6 mt-10">
           {SHOTS.map((s) => (
             <figure key={s.src} className="shot">
-              <img src={s.src} alt={s.alt} loading="lazy" width={1440} height={900} />
+              <img src={s.src} alt={s.alt} loading="lazy" width={1440} height={900} className="w-full aspect-[16/10] object-cover bg-black" />
               <figcaption className="font-body text-lg text-stone-300 mt-2">{s.caption}</figcaption>
             </figure>
           ))}
@@ -223,25 +214,35 @@ export function App() {
             <h2 className="font-display text-4xl md:text-5xl text-parchment leading-tight">Juega gratis ahora</h2>
             <p className="font-body text-xl text-stone-300 mt-4 max-w-xl leading-relaxed">Crea a tu aventurero, equípalo, baja a unas criptas que nunca son iguales y vuelve con algo. Tu progreso se guarda en este navegador.</p>
             <div className="mt-8"><PlayButton big /></div>
-            <p className="font-body text-stone-400 mt-4">Necesitas un ordenador con teclado y ratón.</p>
+            <p className="font-body text-stone-400 mt-4">En ordenador con teclado y ratón, o en el móvil en horizontal con controles táctiles.</p>
           </div>
           <div className="grid grid-cols-2 gap-8 font-body text-lg">
             <div>
               <h3 className="font-display text-xl text-heal mb-3">Ya disponible</h3>
               <ul className="space-y-1.5 text-stone-300">
                 <li>Guerrero y Mago</li>
-                <li>Mazmorras distintas en cada expedición</li>
-                <li>Esqueletos, murciélagos y un jefe</li>
-                <li>Combate por turnos completo</li>
-                <li>Inventario, almacén y mercader</li>
-                <li>Un rival que decide por sí mismo si ayudarte o traicionarte</li>
-                <li>Misiones y niveles</li>
+                <li>Tres zonas cada vez más hondas: la Mazmorra, la Cripta y el Infierno, con mapas distintos en cada expedición</li>
+                <li>15 criaturas, 3 élites y 3 jefes</li>
+                <li>Hasta el nivel 100</li>
+                <li>Combate por turnos con 22 habilidades: cada arma te da las suyas</li>
+                <li>23 armas y 66 piezas de equipo que cambian el aspecto de tu personaje</li>
+                <li>Inventario, almacén ampliable y un bolsillo seguro que no pierdes al morir</li>
+                <li>4 vendedores con sus misiones y su reputación: más rango, mejores precios y mercancía</li>
+                <li>Cofres con cerradura: cada zona tiene su llave</li>
+                <li>Bestiario que se completa a medida que luchas</li>
+                <li>Forja: fabrica tus propias armas con materiales de cada zona</li>
+                <li>Minería: pica vetas de cobre, hierro, plata, obsidiana y azufre con tu pico</li>
+                <li>Vestuario: aspectos que se ganan jugando (misiones, rango Leyenda, relicarios y élites) y no dan ventaja</li>
+                <li>9 mercenarios que contratar por expediciones, y prisioneros que puedes rescatar en la mazmorra</li>
+                <li>Un rival que decide por sí mismo si ayudarte o traicionarte, y si te traiciona, es a muerte</li>
+
               </ul>
             </div>
             <div>
               <h3 className="font-display text-xl text-stone-300 mb-3">En camino</h3>
               <ul className="space-y-1.5 text-stone-400">
                 <li>Multijugador con personas reales</li>
+                <li>Tienda de aspectos (solo estética, sin ventajas)</li>
                 <li>Pícaro y Clérigo</li>
                 <li>Arte y música definitivos</li>
                 <li>Versión para Windows</li>
@@ -266,7 +267,7 @@ export function App() {
         <span className="font-display tracking-[0.14em] text-stone-300">DREADBOUND</span>
         <span>Juego independiente en desarrollo. Demo 0.1. El arte y el sonido actuales son provisionales.</span>
         <div className="md:ml-auto flex gap-5">
-          <a href={PLAY_URL} onClick={guardPlay} className="hover:text-parchment">Jugar</a>
+          <a href={PLAY_URL} className="hover:text-parchment">Jugar</a>
           <a href="#juego" className="hover:text-parchment">El juego</a>
           <a href="#top" className="hover:text-parchment">Volver arriba</a>
         </div>

@@ -12,11 +12,11 @@ const BASE = process.argv[2] || 'http://localhost:5173/play/';
     for (let i = 0; i < 80; i++) {
       const s = await S();
       if (s.outcome || !s.combat) break;
-      if (prefer && i % 2 && (await page.$('[data-testid=act-attack]'))) {
-        
+      if (prefer && i % 2 && (await page.$('[data-testid=act-attack]:not([disabled])'))) {
+        await page.click('[data-testid=act-skills]');
         const sk = await page.$(`${prefer}:not([disabled])`);
-        if (sk) await sk.click(); else { await page.keyboard.press('Escape'); await page.click('[data-testid=act-attack]'); }
-      } else if (await page.$('[data-testid=act-attack]')) await page.click('[data-testid=act-attack]');
+        if (sk) await sk.click(); else { await page.keyboard.press('Escape'); await page.click('[data-testid=act-attack]:not([disabled])'); }
+      } else if (await page.$('[data-testid=act-attack]:not([disabled])')) await page.click('[data-testid=act-attack]:not([disabled])');
       await page.waitForTimeout(350);
     }
   };
@@ -63,12 +63,12 @@ const BASE = process.argv[2] || 'http://localhost:5173/play/';
     const s = await S();
     if (s.outcome) break;
     const hp = await page.evaluate(() => window.__DREADBOUND__.getState().expedition.hp);
-    if (await page.$('[data-testid=act-attack]')) {
-      if (hp < 30 && await page.$('[data-testid^=use-]')) { { const u = await page.$('[data-testid^=use-health]') ?? await page.$('[data-testid^=use-]'); if (u) await u.click(); else await page.keyboard.press('Escape'); } }
+    if (await page.$('[data-testid=act-attack]:not([disabled])')) {
+      if (hp < 30 && await page.$('[data-testid=act-bag]:not([disabled])')) { await page.click('[data-testid=act-bag]'); { const u = await page.$('[data-testid^=use-health]') ?? await page.$('[data-testid^=use-]'); if (u) await u.click(); else await page.keyboard.press('Escape'); } }
       else {
-        
+        await page.click('[data-testid=act-skills]');
         const f = await page.$('[data-testid=skill-frost_lance]:not([disabled])') ?? await page.$('[data-testid=skill-spark]:not([disabled])');
-        if (f) await f.click(); else { await page.keyboard.press('Escape'); await page.click('[data-testid=act-attack]'); }
+        if (f) await f.click(); else { await page.keyboard.press('Escape'); await page.click('[data-testid=act-attack]:not([disabled])'); }
       }
     }
     await page.waitForTimeout(350);
@@ -93,7 +93,7 @@ const BASE = process.argv[2] || 'http://localhost:5173/play/';
     for (let i = 0; i < 20; i++) {
       const s = await S();
       if (s.outcome) break;
-      if (await page.$('[data-testid=act-flee]')) await page.click('[data-testid=act-flee]');
+      if (await page.$('[data-testid=act-flee]:not([disabled])')) await page.click('[data-testid=act-flee]:not([disabled])');
       await page.waitForTimeout(400);
     }
     console.log('huida:', (await S()).outcome);

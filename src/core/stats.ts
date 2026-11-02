@@ -2,6 +2,10 @@ import type { ClassId, Equipment, Stats } from './types';
 import { STAT_KEYS } from './types';
 import { CLASSES } from './data/classes';
 import { getItem } from './data/items';
+import { qualityStats } from './forge';
+import { MAX_LEVEL, STAT_GROWTH_PER_LEVEL, XP_BASE, XP_EXPONENT } from '../config/progression';
+
+export { MAX_LEVEL };
 
 export function emptyStats(): Stats {
   return { maxHp: 0, maxMp: 0, atk: 0, def: 0, mag: 0, res: 0, spd: 0, crit: 0, eva: 0 };
@@ -10,7 +14,7 @@ export function emptyStats(): Stats {
 export function baseStats(classId: ClassId, level: number): Stats {
   const c = CLASSES[classId];
   const s = { ...c.base };
-  for (const k of STAT_KEYS) s[k] += (c.perLevel[k] ?? 0) * (level - 1);
+  for (const k of STAT_KEYS) s[k] += Math.round((c.perLevel[k] ?? 0) * STAT_GROWTH_PER_LEVEL * (level - 1));
   return s;
 }
 
@@ -19,7 +23,8 @@ export function equipmentBonus(equipment: Equipment): Stats {
   for (const stack of Object.values(equipment)) {
     if (!stack) continue;
     const def = getItem(stack.itemId);
-    for (const k of STAT_KEYS) s[k] += def.stats?.[k] ?? 0;
+    const st = qualityStats(def.stats, stack.quality);
+    for (const k of STAT_KEYS) s[k] += st[k] ?? 0;
   }
   return s;
 }
@@ -35,10 +40,9 @@ export function computeStats(classId: ClassId, level: number, equipment: Equipme
 
 // ── Experiencia ──
 export function xpForNextLevel(level: number): number {
-  return Math.round(100 * Math.pow(level, 1.4));
+  return Math.round(XP_BASE * Math.pow(level, XP_EXPONENT));
 }
 
-export const MAX_LEVEL = 10;
 
 export function applyXp(level: number, xp: number, gained: number): { level: number; xp: number; levelsGained: number } {
   let l = level;
@@ -49,5 +53,6 @@ export function applyXp(level: number, xp: number, gained: number): { level: num
     l += 1;
     gainedLevels += 1;
   }
+  if (l >= MAX_LEVEL) x = 0; // en el nivel máximo la experiencia ya no se acumula
   return { level: l, xp: x, levelsGained: gainedLevels };
 }

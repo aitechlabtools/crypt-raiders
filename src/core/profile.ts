@@ -1,9 +1,14 @@
+import { MERCENARIES } from './data/mercenaries';
+import { COSMETICS } from './data/cosmetics';
 import type { Appearance, ClassId, Profile } from './types';
 import { CLASSES } from './data/classes';
 import { addToGrid, BACKPACK_SIZE, emptyEquipment, emptyGrid, STASH_SIZE } from './inventory';
 import { getItem } from './data/items';
 import { initialQuests } from './quests';
 import { makeUid } from './rng';
+import { POCKET_SIZE } from './data/chests';
+import { legacyLevelToNew } from '../config/progression';
+import { xpForNextLevel } from './stats';
 
 export const STARTING_GOLD = 60;
 
@@ -19,7 +24,7 @@ export function createProfile(name: string, classId: ClassId, appearance: Appear
     else backpack = addToGrid(backpack, stack).grid;
   }
   return {
-    version: 1,
+    version: 2,
     character: { name: name.trim().slice(0, 18) || 'Sin nombre', classId, appearance, level: 1, xp: 0 },
     gold: STARTING_GOLD,
     backpack,
@@ -27,6 +32,15 @@ export function createProfile(name: string, classId: ClassId, appearance: Appear
     equipment,
     quests: initialQuests(),
     stats: { expeditions: 0, extractions: 0, deaths: 0, kills: 0 },
+    bossesDefeated: [],
+    contract: null,
+    cosmetics: [],
+    wardrobe: {},
+    mercsRescued: [],
+    mercDiscounts: [],
+    bestiary: {},
+    reputation: {},
+    pocket: emptyGrid(POCKET_SIZE),
     activeExpedition: null,
     tutorialSeen: { lobby: false, dungeon: false },
     settings: { volume: 0.6, music: true },
@@ -34,11 +48,26 @@ export function createProfile(name: string, classId: ClassId, appearance: Appear
   };
 }
 
+/** Lleva un perfil guardado con una versión antigua al formato actual sin que el jugador pierda nada. */
+export function migrateProfile(p: Profile): Profile {
+  const v = (p as { version?: number }).version;
+  if (v === 1 && p.character) {
+    // v1 → v2: niveles 1–10 pasan a la escala 1–100; se conserva la proporción de experiencia hacia el siguiente nivel
+    const oldLevel = p.character.level;
+    const oldNeed = Math.round(100 * Math.pow(oldLevel, 1.4));
+    const frac = oldNeed > 0 ? Math.min(0.99, Math.max(0, p.character.xp / oldNeed)) : 0;
+    const level = legacyLevelToNew(oldLevel);
+    p.character = { ...p.character, level, xp: Math.floor(frac * xpForNextLevel(level)) };
+    (p as { version: number }).version = 2;
+  }
+  return p;
+}
+
 /** Valida y repara un perfil cargado del almacenamiento (por si cambia el formato entre versiones). */
 export function sanitizeProfile(raw: unknown): Profile | null {
   if (!raw || typeof raw !== 'object') return null;
-  const p = raw as Profile;
-  if (p.version !== 1 || !p.character || !Array.isArray(p.backpack) || !Array.isArray(p.stash)) return null;
+  const p = migrateProfile(raw as Profile);
+  if (p.version !== 2 || !p.character || !Array.isArray(p.backpack) || !Array.isArray(p.stash)) return null;
   const known = (s: { itemId: string } | null) => {
     if (!s) return null;
     try { getItem(s.itemId); return s; } catch { return null; }
@@ -51,6 +80,20 @@ export function sanitizeProfile(raw: unknown): Profile | null {
   p.quests = initialQuests().map((q) => p.quests?.find((x) => x.id === q.id) ?? q);
   p.tutorialSeen = p.tutorialSeen ?? { lobby: true, dungeon: true };
   p.settings = Object.assign({ volume: 0.6, music: true }, p.settings ?? {});
+  // Partidas de antes de las zonas: si ya cobraste «El trono vacío», el Señor del Osario cuenta como derrotado
+  if (!Array.isArray(p.bossesDefeated)) p.bossesDefeated = p.quests.some((q) => q.id === 'q_lord' && q.progress >= 1) ? ['ossuary_lord'] : [];
+  if (!p.contract || typeof p.contract !== 'object' || !MERCENARIES[p.contract.mercId] || !(p.contract.left > 0)) p.contract = null;
+  if (!Array.isArray(p.cosmetics)) p.cosmetics = [];
+  p.cosmetics = p.cosmetics.filter((id) => COSMETICS[id] && COSMETICS[id].source !== 'shop');
+  if (!p.wardrobe || typeof p.wardrobe !== 'object') p.wardrobe = {};
+  for (const [k, v] of Object.entries(p.wardrobe)) if (!v || !p.cosmetics.includes(v)) delete (p.wardrobe as Record<string, string>)[k];
+  if (!Array.isArray(p.mercsRescued)) p.mercsRescued = [];
+  p.mercsRescued = p.mercsRescued.filter((id) => MERCENARIES[id]);
+  if (!Array.isArray(p.mercDiscounts)) p.mercDiscounts = [];
+  if (!p.reputation || typeof p.reputation !== 'object') p.reputation = {};
+  if (!p.bestiary || typeof p.bestiary !== 'object') p.bestiary = {};
+  if (!Array.isArray(p.pocket)) p.pocket = emptyGrid(POCKET_SIZE);
+  p.pocket = p.pocket.map(known) as Profile['pocket'];
   p.stats = Object.assign({ expeditions: 0, extractions: 0, deaths: 0, kills: 0 }, p.stats ?? {});
   return p;
 }

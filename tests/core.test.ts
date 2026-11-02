@@ -56,7 +56,7 @@ describe('Inventario', () => {
   });
   it('mover a ranura de equipo valida clase y ranura', () => {
     const p = warriorProfile();
-    const c: Containers = { backpack: addToGrid(p.backpack, { uid: 's', itemId: 'ember_staff', qty: 1 }).grid, stash: p.stash, loot: emptyGrid(0), equipment: p.equipment };
+    const c: Containers = { backpack: addToGrid(p.backpack, { uid: 's', itemId: 'ember_staff', qty: 1 }).grid, stash: p.stash, loot: emptyGrid(0), pocket: emptyGrid(3), equipment: p.equipment };
     const idx = c.backpack.findIndex((s) => s?.itemId === 'ember_staff');
     const r = transfer(c, { kind: 'grid', container: 'backpack', index: idx }, { kind: 'equip', slot: 'mainHand' }, { classId: 'warrior', level: 1 });
     expect(r.ok).toBe(false);
@@ -66,9 +66,9 @@ describe('Inventario', () => {
   it('intercambia arma equipada sin perder objetos', () => {
     const p = warriorProfile();
     const bp = addToGrid(p.backpack, { uid: 'n', itemId: 'iron_sword', qty: 1 }).grid;
-    const c: Containers = { backpack: bp, stash: p.stash, loot: emptyGrid(0), equipment: p.equipment };
+    const c: Containers = { backpack: bp, stash: p.stash, loot: emptyGrid(0), pocket: emptyGrid(3), equipment: p.equipment };
     const idx = bp.findIndex((s) => s?.itemId === 'iron_sword');
-    const r = transfer(c, { kind: 'grid', container: 'backpack', index: idx }, { kind: 'equip', slot: 'mainHand' }, { classId: 'warrior', level: 3 });
+    const r = transfer(c, { kind: 'grid', container: 'backpack', index: idx }, { kind: 'equip', slot: 'mainHand' }, { classId: 'warrior', level: 7 });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.containers.equipment.mainHand?.itemId).toBe('iron_sword');
@@ -76,7 +76,7 @@ describe('Inventario', () => {
   });
   it('mover al almacén y ordenar conserva todo', () => {
     const p = warriorProfile();
-    const c: Containers = { backpack: p.backpack, stash: p.stash, loot: emptyGrid(0), equipment: p.equipment };
+    const c: Containers = { backpack: p.backpack, stash: p.stash, loot: emptyGrid(0), pocket: emptyGrid(3), equipment: p.equipment };
     const r = quickMove(c, { kind: 'grid', container: 'backpack', index: 0 }, 'stash');
     expect(r.ok).toBe(true);
     if (!r.ok) return;

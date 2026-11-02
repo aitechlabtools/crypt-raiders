@@ -56,24 +56,58 @@ const kit = (items: Partial<Record<keyof Equipment, string>>): Equipment => {
   return e;
 };
 const GEAR: Record<number, Record<'warrior' | 'mage', Equipment>> = {
-  5: {
+  14: {
     warrior: kit({ mainHand: 'knight_sword', offHand: 'iron_shield', helmet: 'iron_helm', armor: 'chainmail', gloves: 'gauntlets', boots: 'worn_boots' }),
     mage: kit({ mainHand: 'frost_staff', offHand: 'arcane_tome', helmet: 'wizard_hat', armor: 'shadow_robe', boots: 'worn_boots' }),
   },
-  8: {
+  24: {
     warrior: kit({ mainHand: 'dread_blade', offHand: 'bastion_shield', helmet: 'knight_helm', armor: 'bastion_plate', gloves: 'gauntlets', boots: 'swift_boots', ring: 'ring_of_embers' }),
     mage: kit({ mainHand: 'runic_staff', offHand: 'eclipse_grimoire', helmet: 'wizard_hat', armor: 'archmage_robe', boots: 'swift_boots', ring: 'ring_of_embers' }),
   },
 };
 
 describe('Balance con progresión (equipo acorde al nivel, criaturas escaladas)', () => {
-  for (const level of [5, 8]) {
+  for (const level of [14, 24]) {
     for (const cls of ['warrior', 'mage'] as const) {
       it(`${cls} nivel ${level}`, () => {
         const sk = simulate(cls, 'skeleton', 150, 2, level, GEAR[level][cls]);
         const boss = simulate(cls, 'ossuary_lord', 150, 3, level, GEAR[level][cls]);
         console.log(`${cls} nv${level}: esqueleto ${(sk * 100).toFixed(0)}% · jefe ${(boss * 100).toFixed(0)}%`);
         expect(sk).toBeGreaterThanOrEqual(0.9);
+        expect(boss).toBeGreaterThanOrEqual(0.2);
+        expect(boss).toBeLessThanOrEqual(0.97);
+      });
+    }
+  }
+});
+
+// ── Zonas profundas: equipo de la zona contra sus criaturas y su jefe ──
+const ZONE_GEAR: Record<string, { level: number; warrior: Equipment; mage: Equipment; normals: string[]; boss: string }> = {
+  mazmorra: {
+    level: 18, normals: ['bandit', 'renegade_archer', 'ossuary_rat', 'skeleton'], boss: 'bandit_captain',
+    warrior: kit({ mainHand: 'knight_sword', offHand: 'iron_shield', helmet: 'iron_helm', armor: 'chainmail', gloves: 'gauntlets', boots: 'worn_boots' }),
+    mage: kit({ mainHand: 'frost_staff', offHand: 'arcane_tome', helmet: 'wizard_hat', armor: 'shadow_robe', boots: 'worn_boots' }),
+  },
+  cripta: {
+    level: 45, normals: ['ghoul', 'wraith', 'bone_archer', 'tomb_guardian', 'necro_priest'], boss: 'veiled_queen',
+    warrior: kit({ mainHand: 'gravewarden_blade', offHand: 'headstone_shield', helmet: 'silver_helm', armor: 'bastion_plate', gloves: 'silver_gauntlets', boots: 'grave_boots', amulet: 'reliquary_amulet' }),
+    mage: kit({ mainHand: 'requiem_staff', offHand: 'funeral_grimoire', helmet: 'mourner_hood', armor: 'shroud_robe', boots: 'grave_boots', amulet: 'reliquary_amulet' }),
+  },
+  infierno: {
+    level: 80, normals: ['ember_imp', 'abyss_hound', 'pit_temptress', 'hell_knight', 'sulfur_caller'], boss: 'belzar',
+    warrior: kit({ mainHand: 'hellforged_blade', offHand: 'demonscale_shield', helmet: 'hellsteel_helm', armor: 'hellsteel_plate', gloves: 'demon_gauntlets', boots: 'cinder_boots', ring: 'ember_ring', amulet: 'reliquary_amulet' }),
+    mage: kit({ mainHand: 'abyss_scepter', offHand: 'burning_tome', helmet: 'ash_cowl', armor: 'ash_robe', boots: 'cinder_boots', ring: 'ember_ring', amulet: 'reliquary_amulet' }),
+  },
+};
+
+describe('Balance por zona (nivel medio de la zona, su equipo)', () => {
+  for (const [zone, g] of Object.entries(ZONE_GEAR)) {
+    for (const cls of ['warrior', 'mage'] as const) {
+      it(`${zone} · ${cls} nivel ${g.level}`, () => {
+        const normals = g.normals.map((e) => simulate(cls, e, 100, 2, g.level, g[cls]));
+        const boss = simulate(cls, g.boss, 120, 3, g.level, g[cls]);
+        console.log(`${zone} ${cls} nv${g.level}: ${g.normals.map((e, i) => `${e} ${(normals[i] * 100).toFixed(0)}%`).join(' · ')} · ${g.boss} ${(boss * 100).toFixed(0)}%`);
+        for (const r of normals) expect(r).toBeGreaterThanOrEqual(0.8);
         expect(boss).toBeGreaterThanOrEqual(0.2);
         expect(boss).toBeLessThanOrEqual(0.97);
       });

@@ -60,6 +60,28 @@ export const SKILLS: Record<string, SkillDef> = {
   grave_slam: { id: 'grave_slam', name: 'Losa funeraria', description: 'Golpe devastador con 30% de aturdir.', cost: 0, target: 'enemy', kind: 'physical', power: 1.6, applies: [{ status: 'stun', chance: 0.3, turns: 1 }], fx: 'smash' },
   necrotic_wave: { id: 'necrotic_wave', name: 'Onda necrótica', description: 'Magia oscura con 60% de veneno.', cost: 0, target: 'enemy', kind: 'magical', power: 1.2, applies: [{ status: 'poison', chance: 0.6, turns: 3 }], fx: 'dark' },
   bone_shield: { id: 'bone_shield', name: 'Escudo de huesos', description: 'Se protege durante 2 turnos.', cost: 0, target: 'self', applies: [{ status: 'protect', chance: 1, turns: 2, self: true }], fx: 'shield' },
+  // ── Criaturas de la Mazmorra ──
+  dirty_cut: { id: 'dirty_cut', name: 'Corte sucio', description: 'Cuchillada traicionera con 50% de sangrado.', cost: 0, target: 'enemy', kind: 'physical', power: 1.0, applies: [{ status: 'bleed', chance: 0.5, turns: 2 }], fx: 'slash' },
+  aimed_shot: { id: 'aimed_shot', name: 'Disparo certero', description: 'Flecha (x1.3) que no se puede esquivar.', cost: 0, target: 'enemy', kind: 'physical', power: 1.3, ignoresEvasion: true, fx: 'slash' },
+  plague_bite: { id: 'plague_bite', name: 'Mordisco pestilente', description: 'Mordisco con 70% de veneno.', cost: 0, target: 'enemy', kind: 'physical', power: 0.8, applies: [{ status: 'poison', chance: 0.7, turns: 3 }], fx: 'bite' },
+  rally_cry: { id: 'rally_cry', name: 'Grito de mando', description: 'Se enfurece: +30% de daño durante 3 turnos.', cost: 0, target: 'self', applies: [{ status: 'empower', chance: 1, turns: 3, self: true }], fx: 'holy' },
+  // ── Criaturas de la Cripta ──
+  wail: { id: 'wail', name: 'Lamento helado', description: 'Grito espectral (mágico) con 35% de congelar.', cost: 0, target: 'enemy', kind: 'magical', power: 1.1, applies: [{ status: 'freeze', chance: 0.35, turns: 1 }], fx: 'frost' },
+  rotting_claw: { id: 'rotting_claw', name: 'Garra putrefacta', description: 'Zarpazo con 60% de veneno.', cost: 0, target: 'enemy', kind: 'physical', power: 1.1, applies: [{ status: 'poison', chance: 0.6, turns: 3 }], fx: 'bite' },
+  grave_bolt: { id: 'grave_bolt', name: 'Saeta sepulcral', description: 'Magia oscura (x1.3).', cost: 0, target: 'enemy', kind: 'magical', power: 1.3, fx: 'dark' },
+  dark_mend: { id: 'dark_mend', name: 'Remiendo oscuro', description: 'Se cura un 20% de la vida.', cost: 0, target: 'self', healPct: 0.2, fx: 'dark' },
+  piercing_shot: { id: 'piercing_shot', name: 'Flecha de hueso', description: 'Disparo (x1.2) que ignora la mitad de la defensa.', cost: 0, target: 'enemy', kind: 'physical', power: 1.2, armorPierce: 0.5, fx: 'slash' },
+  veil: { id: 'veil', name: 'Velo fúnebre', description: 'Se envuelve en su velo: -40% de daño 3 turnos.', cost: 0, target: 'self', applies: [{ status: 'protect', chance: 1, turns: 3, self: true }], fx: 'dark' },
+  lament: { id: 'lament', name: 'Lamento de la Reina', description: 'Magia (x1.4) con 50% de congelar.', cost: 0, target: 'enemy', kind: 'magical', power: 1.4, applies: [{ status: 'freeze', chance: 0.5, turns: 1 }], fx: 'frost' },
+  // ── Criaturas del Infierno ──
+  ember_spit: { id: 'ember_spit', name: 'Escupitajo de brasas', description: 'Fuego (mágico) con 70% de quemar.', cost: 0, target: 'enemy', kind: 'magical', power: 0.9, applies: [{ status: 'burn', chance: 0.7, turns: 3 }], fx: 'fire' },
+  savage_maul: { id: 'savage_maul', name: 'Dentellada doble', description: 'Muerde dos veces seguidas (x1.8) con 40% de sangrado.', cost: 0, target: 'enemy', kind: 'physical', power: 1.8, applies: [{ status: 'bleed', chance: 0.4, turns: 2 }], fx: 'bite' },
+  mesmerize: { id: 'mesmerize', name: 'Mirada del pozo', description: 'Magia (x0.8) con 50% de aturdir.', cost: 0, target: 'enemy', kind: 'magical', power: 0.8, applies: [{ status: 'stun', chance: 0.5, turns: 1 }], fx: 'dark' },
+  hell_cleave: { id: 'hell_cleave', name: 'Tajo infernal', description: 'Golpe (x1.5) que ignora parte de la defensa.', cost: 0, target: 'enemy', kind: 'physical', power: 1.5, armorPierce: 0.3, fx: 'smash' },
+  brimstone: { id: 'brimstone', name: 'Lluvia de azufre', description: 'Fuego (mágico, x1.3) con 60% de quemar.', cost: 0, target: 'enemy', kind: 'magical', power: 1.3, applies: [{ status: 'burn', chance: 0.6, turns: 3 }], fx: 'fire' },
+  chain_bind: { id: 'chain_bind', name: 'Cadenas del abismo', description: 'Golpe con 60% de aturdir.', cost: 0, target: 'enemy', kind: 'physical', power: 1.0, applies: [{ status: 'stun', chance: 0.6, turns: 1 }], fx: 'smash' },
+  hellfire: { id: 'hellfire', name: 'Fuego del abismo', description: 'Fuego (mágico, x1.7) con 80% de quemar.', cost: 0, target: 'enemy', kind: 'magical', power: 1.7, applies: [{ status: 'burn', chance: 0.8, turns: 3 }], fx: 'fire' },
+  abyssal_rage: { id: 'abyssal_rage', name: 'Furia abisal', description: 'Su ira crece: +30% de daño 3 turnos.', cost: 0, target: 'self', applies: [{ status: 'empower', chance: 1, turns: 3, self: true }], fx: 'dark' },
 };
 
 export function getSkill(id: string): SkillDef {

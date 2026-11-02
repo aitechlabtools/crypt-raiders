@@ -77,17 +77,18 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
   const clearEnemies = (keep = []) => ev((keep) => { for (const e of window.__DREADBOUND__.scene().enemies) if (!keep.includes(e.id) && !e.dead) { e.dead = true; e.sprite.destroy(); e.shadow.destroy(); e.marker?.destroy(); } }, keep);
   async function waitFor(sel, ms = 4000) { for (let k = 0; k < ms / 100; k++) { if (await page.$(sel)) return true; await wait(100); } return false; }
   async function useSkill(id) {
-    if (!(await waitFor('[data-testid=act-attack]'))) return;
-     await wait(120);
-    const btn = await page.$(`[data-testid=skill-${id}]:not([disabled])`);
-    if (btn) await btn.click(); else { await page.keyboard.press('Escape'); await page.click('[data-testid=act-attack]'); }
+    if (!(await waitFor('[data-testid=act-attack]:not([disabled])'))) return;
+    await page.click('[data-testid=act-skills]'); await wait(120);
+    let btn = await page.$(`[data-testid=skill-${id}]:not([disabled])`);
+    for (let k = 0; k < 3 && !btn && (await page.$('[data-testid=btn-page-next]:not([disabled])')); k++) { await page.click('[data-testid=btn-page-next]'); btn = await page.$(`[data-testid=skill-${id}]:not([disabled])`); }
+    if (btn) await btn.click(); else { await page.keyboard.press('Escape'); await page.click('[data-testid=act-attack]:not([disabled])'); }
   }
   async function finishCombat(id) {
     await ev((id) => { const s = window.__DREADBOUND__.getState(); const c = s.combat?.state.combatants.find((c) => c.id === id); if (c) c.hp = 1; }, id);
     for (let i = 0; i < 25; i++) {
       const s = await ev(() => { const s = window.__DREADBOUND__.getState(); return { c: !!s.combat, o: s.combat?.state.outcome }; });
       if (!s.c || s.o) break;
-      if (await page.$('[data-testid=act-attack]')) await page.click('[data-testid=act-attack]');
+      if (await page.$('[data-testid=act-attack]:not([disabled])')) await page.click('[data-testid=act-attack]:not([disabled])');
       await wait(400);
     }
     if (await waitFor('[data-testid=btn-combat-continue]', 3000)) await page.click('[data-testid=btn-combat-continue]');
@@ -200,7 +201,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
     await ev(() => window.__DREADBOUND__.actions.checkBetrayal(true));
     await wait(900);
     await useSkill('rending_slash'); await wait(1400);
-    if (await waitFor('[data-testid=act-attack]')) await page.click('[data-testid=act-attack]');
+    if (await waitFor('[data-testid=act-attack]:not([disabled])')) await page.click('[data-testid=act-attack]:not([disabled])');
     await wait(1200);
   });
   await finishCombat('rival');

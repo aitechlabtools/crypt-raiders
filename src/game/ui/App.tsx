@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react';
-import { isMobileLike } from '../../shared/device';
-import { MobileNotice } from '../../shared/MobileNotice';
+import { useEffect } from 'react';
+import { RotateNotice } from '../../shared/RotateNotice';
 import { actions, useGame } from '../state/store';
 import { TitleScreen, CreateScreen } from './TitleScreen';
 import { Lobby } from './Lobby';
@@ -12,7 +11,6 @@ import { stopMusic } from '../audio';
 
 export function App() {
   const screen = useGame((s) => s.screen);
-  const [mobileOk, setMobileOk] = useState(() => !isMobileLike());
   const music = useGame((s) => s.profile?.settings.music);
   useEffect(() => {
     exposeDebug();
@@ -39,7 +37,7 @@ export function App() {
       {screen === 'dungeon' && <DungeonScreen />}
       {screen === 'summary' && <SummaryScreen />}
       <Toasts />
-      {!mobileOk && <MobileNotice onContinue={() => setMobileOk(true)} onClose={() => (window.location.href = '../')} />}
+      <RotateNotice />
     </div>
   );
 }

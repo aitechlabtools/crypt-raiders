@@ -1,3 +1,4 @@
+import { POCKETABLE } from './data/chests';
 import type { ClassId, EquipSlot, Equipment, Grid, ItemStack } from './types';
 import { EQUIP_SLOTS } from './types';
 import { getItem, maxStack, RARITY_INFO } from './data/items';
@@ -36,7 +37,7 @@ export function addToGrid(grid: Grid, stack: ItemStack): { grid: Grid; leftover:
   for (let i = 0; i < g.length && qty > 0; i++) {
     if (!g[i]) {
       const add = Math.min(max, qty);
-      g[i] = { uid: qty === stack.qty ? stack.uid : makeUid(), itemId: stack.itemId, qty: add };
+      g[i] = { ...stack, uid: qty === stack.qty ? stack.uid : makeUid(), qty: add };
       qty -= add;
     }
   }
@@ -83,7 +84,7 @@ export function freeSlots(grid: Grid): number {
   return grid.filter((s) => !s).length;
 }
 
-const CATEGORY_ORDER = ['weapon', 'shield', 'helmet', 'armor', 'gloves', 'boots', 'ring', 'amulet', 'jewel', 'relic', 'potion', 'key', 'coin', 'material', 'quest'];
+const CATEGORY_ORDER = ['weapon', 'shield', 'helmet', 'armor', 'gloves', 'boots', 'ring', 'amulet', 'jewel', 'relic', 'potion', 'tool', 'key', 'coin', 'material', 'quest'];
 
 /** Ordena: fusiona pilas y ordena por categoría, rareza y nombre. */
 export function sortGrid(grid: Grid): Grid {
@@ -108,14 +109,21 @@ export function sortGrid(grid: Grid): Grid {
 
 // ── Transferencias entre contenedores (mochila, almacén, equipo) ──
 
-export type ContainerId = 'backpack' | 'stash' | 'loot';
+export type ContainerId = 'backpack' | 'stash' | 'loot' | 'pocket';
 export type Loc = { kind: 'grid'; container: ContainerId; index: number } | { kind: 'equip'; slot: EquipSlot };
 
 export interface Containers {
   backpack: Grid;
   stash: Grid;
   loot: Grid;
+  /** Bolsillo seguro: no se pierde al morir. Solo objetos pequeños. */
+  pocket: Grid;
   equipment: Equipment;
+}
+
+export const POCKET_ERROR = 'En el bolsillo seguro solo caben objetos pequeños: llaves, joyas, monedas, pociones y materiales.';
+export function canPocket(itemId: string): boolean {
+  return POCKETABLE.includes(getItem(itemId).category);
 }
 
 export interface EquipContext {
@@ -141,7 +149,7 @@ function setAt(c: Containers, loc: Loc, s: ItemStack | null) {
 }
 
 function cloneContainers(c: Containers): Containers {
-  return { backpack: cloneGrid(c.backpack), stash: cloneGrid(c.stash), loot: cloneGrid(c.loot), equipment: { ...c.equipment } };
+  return { backpack: cloneGrid(c.backpack), stash: cloneGrid(c.stash), loot: cloneGrid(c.loot), pocket: cloneGrid(c.pocket), equipment: { ...c.equipment } };
 }
 
 export type TransferResult = { ok: true; containers: Containers } | { ok: false; error: string };
@@ -156,6 +164,8 @@ export function transfer(c: Containers, from: Loc, to: Loc, ctx: EquipContext): 
   if (!src) return { ok: false, error: 'No hay nada que mover.' };
   const dst = getAt(c, to);
 
+  if (to.kind === 'grid' && to.container === 'pocket' && !canPocket(src.itemId)) return { ok: false, error: POCKET_ERROR };
+  if (from.kind === 'grid' && from.container === 'pocket' && dst && !canPocket(dst.itemId)) return { ok: false, error: POCKET_ERROR };
   if (to.kind === 'equip') {
     const err = canEquip(src.itemId, to.slot, ctx);
     if (err) return { ok: false, error: err };
@@ -196,6 +206,7 @@ export function quickEquip(c: Containers, from: Loc, ctx: EquipContext): Transfe
 export function quickMove(c: Containers, from: Loc, target: ContainerId): TransferResult {
   const src = getAt(c, from);
   if (!src) return { ok: false, error: 'No hay nada que mover.' };
+  if (target === 'pocket' && !canPocket(src.itemId)) return { ok: false, error: POCKET_ERROR };
   const r = addToGrid(c[target], src);
   if (r.leftover && r.leftover.qty === src.qty) return { ok: false, error: 'No hay espacio.' };
   const n = cloneContainers(c);

@@ -21,6 +21,8 @@ export interface ExpeditionState {
   startedAt: number;
   durationMs: number;
   backpack: Grid;
+  /** Bolsillo seguro durante la expedición (vuelve al perfil pase lo que pase). */
+  pocket: Grid;
   equipment: Equipment;
   hp: number;
   mp: number;
@@ -31,6 +33,12 @@ export interface ExpeditionState {
   found: ItemStack[];
   /** Valor de lo que el jugador llevaba al entrar (lo que arriesga). */
   riskedValue: number;
+  /** Zona de la expedición. */
+  zone?: string;
+  /** Cofres abiertos por tipo (para misiones). */
+  chestsOpened?: Record<string, number>;
+  /** Vetas picadas en esta expedición. */
+  veinsMined?: number;
 }
 
 export type EndReason = 'extracted' | 'died' | 'timeout';
@@ -49,6 +57,8 @@ export interface ExpeditionSummary {
   extractedValue: number;
   /** Se entregó automáticamente el equipo de recluta. */
   recruitKit?: boolean;
+  /** Qué ha pasado con tu mercenario (contrato gastado, roto, rescate…). */
+  mercNote?: string;
 }
 
 export function startExpedition(p: Profile, now: number): { profile: Profile; expedition: ExpeditionState } {
@@ -57,6 +67,7 @@ export function startExpedition(p: Profile, now: number): { profile: Profile; ex
     startedAt: now,
     durationMs: EXPEDITION_DURATION_MS,
     backpack: cloneGrid(p.backpack),
+    pocket: cloneGrid(p.pocket),
     equipment: { ...p.equipment },
     hp: stats.maxHp,
     mp: stats.maxMp,
@@ -86,7 +97,7 @@ export function endExpedition(p: Profile, e: ExpeditionState, reason: EndReason,
   const xp = applyXp(p.character.level, p.character.xp, xpGained);
   const totalKills = Object.values(e.kills).reduce((a, b) => a + b, 0);
   const extractedValue = extracted ? gridValue(e.backpack) + equippedValue(e.equipment) : 0;
-  const quests = updateQuests(p.quests, { extracted, kills: e.kills, extractedValue: extracted ? gridValue(e.backpack) : 0 });
+  const quests = updateQuests(p.quests, { extracted, kills: e.kills, extractedValue: extracted ? gridValue(e.backpack) : 0, zone: e.zone, chestsOpened: e.chestsOpened, veinsMined: e.veinsMined ?? 0 });
 
   const profile: Profile = {
     ...p,
@@ -94,6 +105,8 @@ export function endExpedition(p: Profile, e: ExpeditionState, reason: EndReason,
     gold: p.gold + (extracted ? e.goldFound : 0),
     backpack: extracted ? cloneGrid(e.backpack) : emptyGrid(p.backpack.length),
     equipment: extracted ? { ...e.equipment } : emptyEquipment(),
+    // El bolsillo seguro se conserva siempre, también al morir
+    pocket: cloneGrid(e.pocket ?? p.pocket),
     quests,
     activeExpedition: null,
     stats: {

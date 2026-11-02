@@ -9,12 +9,10 @@ export const RARITY_INFO: Record<Rarity, { name: string; color: string; order: n
   legendary: { name: 'Legendario', color: '#e8b33a', order: 4 },
 };
 
-// Ataques básicos de cada familia de armas
-const SLASH = { name: 'Tajo', kind: 'physical', power: 1, fx: 'slash' } as const;
-const CHOP = { name: 'Hachazo', kind: 'physical', power: 1.15, fx: 'smash' } as const;
-const STAB = { name: 'Cuchillada', kind: 'physical', power: 1, fx: 'slash' } as const;
-const BOLT = { name: 'Proyectil arcano', kind: 'magical', power: 0.8, fx: 'dark' } as const;
-const SMITE = { name: 'Mazazo', kind: 'physical', power: 1, fx: 'smash' } as const;
+import { SLASH, CHOP, STAB, BOLT, SMITE } from './attacks';
+import { CRIPTA_ITEMS } from './zones/cripta';
+import { INFIERNO_ITEMS } from './zones/infierno';
+import { FORGED_ITEMS } from './forge';
 
 // Clases que pueden usar cada familia: la clase define quién eres, el arma cómo luchas.
 const W = ['warrior'] as const;
@@ -23,71 +21,83 @@ const M = ['mage'] as const;
 const list: ItemDef[] = [
   // ── Espadas (Guerrero) ─────────────────────────────────
   { id: 'rusty_sword', name: 'Espada oxidada', description: 'Ha visto días mejores. Todavía corta.', icon: 'sword', category: 'weapon', slot: 'mainHand', family: 'sword', rarity: 'common', value: 12, levelReq: 1, stats: { atk: 4 }, classes: [...W], attack: SLASH, grants: ['rending_slash', 'thrust'] },
-  { id: 'iron_sword', name: 'Espada de hierro', description: 'Forjada en las fraguas del Bastión.', icon: 'sword', category: 'weapon', slot: 'mainHand', family: 'sword', rarity: 'uncommon', value: 45, levelReq: 3, stats: { atk: 7, crit: 2 }, classes: [...W], attack: SLASH, grants: ['rending_slash', 'thrust'] },
-  { id: 'knight_sword', name: 'Espada del caballero', description: 'Equilibrada, honesta y letal.', icon: 'sword_knight', category: 'weapon', slot: 'mainHand', family: 'sword', rarity: 'rare', value: 150, levelReq: 5, stats: { atk: 11, crit: 4, def: 2 }, classes: [...W], attack: SLASH, grants: ['rending_slash', 'thrust', 'pommel_strike'] },
-  { id: 'dread_blade', name: 'Hoja del Pavor', description: 'Quien la empuña deja de soñar.', icon: 'sword_dread', category: 'weapon', slot: 'mainHand', family: 'sword', rarity: 'epic', value: 420, levelReq: 8, stats: { atk: 15, crit: 6 }, classes: [...W], attack: SLASH, grants: ['rending_slash', 'pommel_strike', 'dread_cut'] },
+  { id: 'iron_sword', name: 'Espada de hierro', description: 'Forjada en las fraguas del Bastión.', icon: 'sword', category: 'weapon', slot: 'mainHand', family: 'sword', rarity: 'uncommon', value: 45, levelReq: 7, stats: { atk: 7, crit: 2 }, classes: [...W], attack: SLASH, grants: ['rending_slash', 'thrust'] },
+  { id: 'knight_sword', name: 'Espada del caballero', description: 'Equilibrada, honesta y letal.', icon: 'sword_knight', category: 'weapon', slot: 'mainHand', family: 'sword', rarity: 'rare', value: 150, levelReq: 14, stats: { atk: 11, crit: 4, def: 2 }, classes: [...W], attack: SLASH, grants: ['rending_slash', 'thrust', 'pommel_strike'] },
+  { id: 'dread_blade', name: 'Hoja del Pavor', description: 'Quien la empuña deja de soñar.', icon: 'sword_dread', category: 'weapon', slot: 'mainHand', family: 'sword', rarity: 'epic', value: 420, levelReq: 24, stats: { atk: 15, crit: 6 }, classes: [...W], attack: SLASH, grants: ['rending_slash', 'pommel_strike', 'dread_cut'] },
   // ── Hachas (Guerrero) ──────────────────────────────────
-  { id: 'battle_axe', name: 'Hacha de batalla', description: 'Pesada pero fiable.', icon: 'axe', category: 'weapon', slot: 'mainHand', family: 'axe', rarity: 'uncommon', value: 50, levelReq: 3, stats: { atk: 9, spd: -1 }, classes: [...W], attack: CHOP, grants: ['brutal_blow', 'skull_splitter'] },
-  { id: 'executioner_axe', name: 'Hacha del verdugo', description: 'Pesada, cruel, definitiva.', icon: 'axe_exec', category: 'weapon', slot: 'mainHand', family: 'axe', rarity: 'rare', value: 160, levelReq: 5, stats: { atk: 13, crit: 5, spd: -1 }, classes: [...W], attack: CHOP, grants: ['brutal_blow', 'skull_splitter'] },
-  { id: 'bonereaver', name: 'Segadora de huesos', description: 'Su filo está hecho de algo que gritaba.', icon: 'axe_bone', category: 'weapon', slot: 'mainHand', family: 'axe', rarity: 'epic', value: 440, levelReq: 8, stats: { atk: 20, crit: 6, spd: -2 }, classes: [...W], attack: CHOP, grants: ['brutal_blow', 'skull_splitter', 'reaping'] },
+  { id: 'battle_axe', name: 'Hacha de batalla', description: 'Pesada pero fiable.', icon: 'axe', category: 'weapon', slot: 'mainHand', family: 'axe', rarity: 'uncommon', value: 50, levelReq: 7, stats: { atk: 9, spd: -1 }, classes: [...W], attack: CHOP, grants: ['brutal_blow', 'skull_splitter'] },
+  { id: 'executioner_axe', name: 'Hacha del verdugo', description: 'Pesada, cruel, definitiva.', icon: 'axe_exec', category: 'weapon', slot: 'mainHand', family: 'axe', rarity: 'rare', value: 160, levelReq: 14, stats: { atk: 13, crit: 5, spd: -1 }, classes: [...W], attack: CHOP, grants: ['brutal_blow', 'skull_splitter'] },
+  { id: 'bonereaver', name: 'Segadora de huesos', description: 'Su filo está hecho de algo que gritaba.', icon: 'axe_bone', category: 'weapon', slot: 'mainHand', family: 'axe', rarity: 'epic', value: 440, levelReq: 24, stats: { atk: 20, crit: 6, spd: -2 }, classes: [...W], attack: CHOP, grants: ['brutal_blow', 'skull_splitter', 'reaping'] },
   // ── Báculos (Mago) ─────────────────────────────────────
   { id: 'apprentice_staff', name: 'Báculo de aprendiz', description: 'Madera de fresno con una runa tímida.', icon: 'staff', category: 'weapon', slot: 'mainHand', family: 'staff', rarity: 'common', value: 12, levelReq: 1, stats: { mag: 4, maxMp: 5 }, classes: [...M], attack: BOLT, grants: ['frost_lance', 'spark'] },
-  { id: 'ember_staff', name: 'Báculo de brasas', description: 'Su punta nunca termina de enfriarse.', icon: 'staff_fire', category: 'weapon', slot: 'mainHand', family: 'staff', rarity: 'uncommon', value: 50, levelReq: 3, stats: { mag: 8, maxMp: 8 }, classes: [...M], attack: BOLT, grants: ['fireball', 'ember_rain'] },
-  { id: 'frost_staff', name: 'Báculo del invierno eterno', description: 'Escarcha en la madera, aunque haga calor.', icon: 'staff_frost', category: 'weapon', slot: 'mainHand', family: 'staff', rarity: 'rare', value: 160, levelReq: 5, stats: { mag: 12, maxMp: 12, res: 3 }, classes: [...M], attack: BOLT, grants: ['frost_lance', 'blizzard', 'ice_prison'] },
-  { id: 'runic_staff', name: 'Bastón rúnico de Umbravel', description: 'Susurra nombres que nadie debería recordar.', icon: 'staff_rune', category: 'weapon', slot: 'mainHand', family: 'staff', rarity: 'epic', value: 440, levelReq: 8, stats: { mag: 18, maxMp: 18, crit: 4 }, classes: [...M], attack: BOLT, grants: ['fireball', 'blizzard', 'dark_nova'] },
+  { id: 'ember_staff', name: 'Báculo de brasas', description: 'Su punta nunca termina de enfriarse.', icon: 'staff_fire', category: 'weapon', slot: 'mainHand', family: 'staff', rarity: 'uncommon', value: 50, levelReq: 7, stats: { mag: 8, maxMp: 8 }, classes: [...M], attack: BOLT, grants: ['fireball', 'ember_rain'] },
+  { id: 'frost_staff', name: 'Báculo del invierno eterno', description: 'Escarcha en la madera, aunque haga calor.', icon: 'staff_frost', category: 'weapon', slot: 'mainHand', family: 'staff', rarity: 'rare', value: 160, levelReq: 14, stats: { mag: 12, maxMp: 12, res: 3 }, classes: [...M], attack: BOLT, grants: ['frost_lance', 'blizzard', 'ice_prison'] },
+  { id: 'runic_staff', name: 'Bastón rúnico de Umbravel', description: 'Susurra nombres que nadie debería recordar.', icon: 'staff_rune', category: 'weapon', slot: 'mainHand', family: 'staff', rarity: 'epic', value: 440, levelReq: 24, stats: { mag: 18, maxMp: 18, crit: 4 }, classes: [...M], attack: BOLT, grants: ['fireball', 'blizzard', 'dark_nova'] },
   // ── Dagas (Pícaro, preparado) y mazas (Clérigo, preparado) ──
   { id: 'bone_dagger', name: 'Daga de hueso', description: 'Tallada a partir de algo que antes caminaba.', icon: 'dagger', category: 'weapon', slot: 'mainHand', family: 'dagger', rarity: 'uncommon', value: 40, levelReq: 1, stats: { atk: 5, crit: 6, spd: 2 }, classes: ['rogue'], attack: STAB, grants: ['venom_strike', 'backstab'] },
   { id: 'blessed_mace', name: 'Maza bendita', description: 'Lleva grabada una oración a medio borrar.', icon: 'mace', category: 'weapon', slot: 'mainHand', family: 'mace', rarity: 'common', value: 14, levelReq: 1, stats: { atk: 3, mag: 3 }, classes: ['cleric'], attack: SMITE, grants: ['holy_light'] },
 
   // ── Escudos (Guerrero, Clérigo) ────────────────────────
   { id: 'wooden_shield', name: 'Escudo de madera', description: 'Mejor que nada. Por poco.', icon: 'shield', category: 'shield', slot: 'offHand', family: 'shield', rarity: 'common', value: 10, levelReq: 1, stats: { def: 3 }, classes: ['warrior', 'cleric'], grants: ['block'] },
-  { id: 'iron_shield', name: 'Escudo de hierro', description: 'Abollado por mil golpes que no llegaron.', icon: 'shield_steel', category: 'shield', slot: 'offHand', family: 'shield', rarity: 'uncommon', value: 45, levelReq: 3, stats: { def: 5, maxHp: 5 }, classes: ['warrior', 'cleric'], grants: ['block', 'shield_bash'] },
-  { id: 'bastion_shield', name: 'Escudo del Bastión', description: 'Hierro remachado con el emblema de una orden caída.', icon: 'shield_iron', category: 'shield', slot: 'offHand', family: 'shield', rarity: 'rare', value: 150, levelReq: 5, stats: { def: 8, res: 4, maxHp: 10 }, classes: ['warrior', 'cleric'], grants: ['block', 'shield_bash', 'iron_wall'] },
+  { id: 'iron_shield', name: 'Escudo de hierro', description: 'Abollado por mil golpes que no llegaron.', icon: 'shield_steel', category: 'shield', slot: 'offHand', family: 'shield', rarity: 'uncommon', value: 45, levelReq: 7, stats: { def: 5, maxHp: 5 }, classes: ['warrior', 'cleric'], grants: ['block', 'shield_bash'] },
+  { id: 'bastion_shield', name: 'Escudo del Bastión', description: 'Hierro remachado con el emblema de una orden caída.', icon: 'shield_iron', category: 'shield', slot: 'offHand', family: 'shield', rarity: 'rare', value: 150, levelReq: 14, stats: { def: 8, res: 4, maxHp: 10 }, classes: ['warrior', 'cleric'], grants: ['block', 'shield_bash', 'iron_wall'] },
   // ── Tomos (Mago, Clérigo) ──────────────────────────────
-  { id: 'arcane_tome', name: 'Tomo arcano', description: 'Páginas que se pasan solas.', icon: 'tome', category: 'relic', slot: 'offHand', family: 'tome', rarity: 'uncommon', value: 55, levelReq: 3, stats: { mag: 3, maxMp: 10 }, classes: ['mage', 'cleric'], grants: ['arcane_barrier'] },
-  { id: 'eclipse_grimoire', name: 'Grimorio del eclipse', description: 'Al abrirlo, la luz de la sala se apaga un poco.', icon: 'tome_dark', category: 'relic', slot: 'offHand', family: 'tome', rarity: 'epic', value: 400, levelReq: 8, stats: { mag: 7, maxMp: 20, res: 5 }, classes: ['mage'], grants: ['arcane_barrier', 'mana_siphon'] },
+  { id: 'arcane_tome', name: 'Tomo arcano', description: 'Páginas que se pasan solas.', icon: 'tome', category: 'relic', slot: 'offHand', family: 'tome', rarity: 'uncommon', value: 55, levelReq: 7, stats: { mag: 3, maxMp: 10 }, classes: ['mage', 'cleric'], grants: ['arcane_barrier'] },
+  { id: 'eclipse_grimoire', name: 'Grimorio del eclipse', description: 'Al abrirlo, la luz de la sala se apaga un poco.', icon: 'tome_dark', category: 'relic', slot: 'offHand', family: 'tome', rarity: 'epic', value: 400, levelReq: 24, stats: { mag: 7, maxMp: 20, res: 5 }, classes: ['mage'], grants: ['arcane_barrier', 'mana_siphon'] },
 
   // ── Cabeza ────────────────────────────────────────────
   { id: 'leather_hood', name: 'Capucha de cuero', description: 'Huele a lluvia y a humo.', icon: 'hood', category: 'helmet', slot: 'helmet', rarity: 'common', value: 8, levelReq: 1, stats: { def: 1, eva: 2 } },
-  { id: 'iron_helm', name: 'Yelmo de hierro', description: 'Abollado, pero entero.', icon: 'helm', category: 'helmet', slot: 'helmet', rarity: 'uncommon', value: 40, levelReq: 3, stats: { def: 4, maxHp: 10 }, classes: ['warrior', 'cleric'] },
-  { id: 'knight_helm', name: 'Yelmo del caballero', description: 'La cimera roja aún no ha perdido el color.', icon: 'helm_knight', category: 'helmet', slot: 'helmet', rarity: 'rare', value: 140, levelReq: 5, stats: { def: 6, maxHp: 18, res: 2 }, classes: ['warrior'] },
-  { id: 'wizard_hat', name: 'Sombrero del erudito', description: 'Bordado con constelaciones olvidadas.', icon: 'hat', category: 'helmet', slot: 'helmet', rarity: 'uncommon', value: 40, levelReq: 3, stats: { mag: 3, res: 3 }, classes: ['mage'] },
+  { id: 'iron_helm', name: 'Yelmo de hierro', description: 'Abollado, pero entero.', icon: 'helm', category: 'helmet', slot: 'helmet', rarity: 'uncommon', value: 40, levelReq: 7, stats: { def: 4, maxHp: 10 }, classes: ['warrior', 'cleric'] },
+  { id: 'knight_helm', name: 'Yelmo del caballero', description: 'La cimera roja aún no ha perdido el color.', icon: 'helm_knight', category: 'helmet', slot: 'helmet', rarity: 'rare', value: 140, levelReq: 14, stats: { def: 6, maxHp: 18, res: 2 }, classes: ['warrior'] },
+  { id: 'wizard_hat', name: 'Sombrero del erudito', description: 'Bordado con constelaciones olvidadas.', icon: 'hat', category: 'helmet', slot: 'helmet', rarity: 'uncommon', value: 40, levelReq: 7, stats: { mag: 3, res: 3 }, classes: ['mage'] },
 
   // ── Torso ─────────────────────────────────────────────
   { id: 'padded_tunic', name: 'Jubón acolchado', description: 'Ropa de recluta.', icon: 'tunic', category: 'armor', slot: 'armor', rarity: 'common', value: 10, levelReq: 1, stats: { def: 3, maxHp: 5 } },
-  { id: 'chainmail', name: 'Cota de malla', description: 'Cada anilla, una promesa.', icon: 'chainmail', category: 'armor', slot: 'armor', rarity: 'uncommon', value: 60, levelReq: 3, stats: { def: 7, maxHp: 15, spd: -1 }, classes: ['warrior', 'cleric'] },
-  { id: 'bastion_plate', name: 'Coraza del Bastión', description: 'La última armadura que salió de sus fraguas.', icon: 'plate', category: 'armor', slot: 'armor', rarity: 'epic', value: 420, levelReq: 8, stats: { def: 11, maxHp: 28, res: 4, spd: -1 }, classes: ['warrior'] },
+  { id: 'chainmail', name: 'Cota de malla', description: 'Cada anilla, una promesa.', icon: 'chainmail', category: 'armor', slot: 'armor', rarity: 'uncommon', value: 60, levelReq: 7, stats: { def: 7, maxHp: 15, spd: -1 }, classes: ['warrior', 'cleric'] },
+  { id: 'bastion_plate', name: 'Coraza del Bastión', description: 'La última armadura que salió de sus fraguas.', icon: 'plate', category: 'armor', slot: 'armor', rarity: 'epic', value: 420, levelReq: 24, stats: { def: 11, maxHp: 28, res: 4, spd: -1 }, classes: ['warrior'] },
   { id: 'linen_robe', name: 'Túnica de lino', description: 'Ligera y discreta.', icon: 'robe', category: 'armor', slot: 'armor', rarity: 'common', value: 10, levelReq: 1, stats: { def: 1, res: 4, maxMp: 5 }, classes: ['mage', 'cleric'] },
-  { id: 'shadow_robe', name: 'Túnica de las sombras', description: 'La oscuridad se pliega a su alrededor.', icon: 'robe_dark', category: 'armor', slot: 'armor', rarity: 'rare', value: 130, levelReq: 5, stats: { def: 3, res: 8, mag: 4, maxMp: 10 }, classes: ['mage', 'cleric'] },
-  { id: 'archmage_robe', name: 'Túnica del archimago', description: 'Hilo de oro y paciencia de siglos.', icon: 'robe_gold', category: 'armor', slot: 'armor', rarity: 'epic', value: 420, levelReq: 8, stats: { def: 5, res: 12, mag: 10, maxMp: 20 }, classes: ['mage'] },
+  { id: 'shadow_robe', name: 'Túnica de las sombras', description: 'La oscuridad se pliega a su alrededor.', icon: 'robe_dark', category: 'armor', slot: 'armor', rarity: 'rare', value: 130, levelReq: 14, stats: { def: 3, res: 8, mag: 4, maxMp: 10 }, classes: ['mage', 'cleric'] },
+  { id: 'archmage_robe', name: 'Túnica del archimago', description: 'Hilo de oro y paciencia de siglos.', icon: 'robe_gold', category: 'armor', slot: 'armor', rarity: 'epic', value: 420, levelReq: 24, stats: { def: 5, res: 12, mag: 10, maxMp: 20 }, classes: ['mage'] },
 
   // ── Manos y pies ──────────────────────────────────────
   { id: 'leather_gloves', name: 'Guantes de cuero', description: 'Agarre firme.', icon: 'gloves', category: 'gloves', slot: 'gloves', rarity: 'common', value: 8, levelReq: 1, stats: { atk: 1, crit: 1 } },
-  { id: 'gauntlets', name: 'Guanteletes de acero', description: 'Puños que no se rinden.', icon: 'gauntlets', category: 'gloves', slot: 'gloves', rarity: 'uncommon', value: 35, levelReq: 3, stats: { atk: 2, def: 2 }, classes: ['warrior', 'cleric'] },
+  { id: 'gauntlets', name: 'Guanteletes de acero', description: 'Puños que no se rinden.', icon: 'gauntlets', category: 'gloves', slot: 'gloves', rarity: 'uncommon', value: 35, levelReq: 7, stats: { atk: 2, def: 2 }, classes: ['warrior', 'cleric'] },
   { id: 'worn_boots', name: 'Botas gastadas', description: 'Conocen muchos caminos.', icon: 'boots', category: 'boots', slot: 'boots', rarity: 'common', value: 8, levelReq: 1, stats: { spd: 1, def: 1 } },
-  { id: 'swift_boots', name: 'Botas del correveidile', description: 'Para quien sabe cuándo huir.', icon: 'boots_swift', category: 'boots', slot: 'boots', rarity: 'rare', value: 110, levelReq: 5, stats: { spd: 4, eva: 4 } },
+  { id: 'swift_boots', name: 'Botas del correveidile', description: 'Para quien sabe cuándo huir.', icon: 'boots_swift', category: 'boots', slot: 'boots', rarity: 'rare', value: 110, levelReq: 14, stats: { spd: 4, eva: 4 } },
 
   // ── Joyería ───────────────────────────────────────────
   { id: 'copper_ring', name: 'Anillo de cobre', description: 'Deja la piel verde.', icon: 'ring', category: 'jewel', slot: 'ring', rarity: 'common', value: 15, levelReq: 1, stats: { maxHp: 6 } },
-  { id: 'ring_of_embers', name: 'Anillo de ascuas', description: 'Tibio al tacto, siempre.', icon: 'ring_red', category: 'jewel', slot: 'ring', rarity: 'rare', value: 150, levelReq: 5, stats: { mag: 4, atk: 4, crit: 3 } },
-  { id: 'bone_amulet', name: 'Amuleto de hueso', description: 'Protege de lo que viene de abajo.', icon: 'amulet', category: 'jewel', slot: 'amulet', rarity: 'uncommon', value: 45, levelReq: 3, stats: { res: 4, maxHp: 8 } },
-  { id: 'heart_of_umbravel', name: 'Corazón de Umbravel', description: 'Late. Despacio. Contigo.', icon: 'amulet_heart', category: 'jewel', slot: 'amulet', rarity: 'legendary', value: 900, levelReq: 8, stats: { maxHp: 30, mag: 6, atk: 6, res: 6, def: 4 } },
+  { id: 'ring_of_embers', name: 'Anillo de ascuas', description: 'Tibio al tacto, siempre.', icon: 'ring_red', category: 'jewel', slot: 'ring', rarity: 'rare', value: 150, levelReq: 14, stats: { mag: 4, atk: 4, crit: 3 } },
+  { id: 'bone_amulet', name: 'Amuleto de hueso', description: 'Protege de lo que viene de abajo.', icon: 'amulet', category: 'jewel', slot: 'amulet', rarity: 'uncommon', value: 45, levelReq: 7, stats: { res: 4, maxHp: 8 } },
+  { id: 'heart_of_umbravel', name: 'Corazón de Umbravel', description: 'Late. Despacio. Contigo.', icon: 'amulet_heart', category: 'jewel', slot: 'amulet', rarity: 'legendary', value: 900, levelReq: 24, stats: { maxHp: 30, mag: 6, atk: 6, res: 6, def: 4 } },
 
   // ── Consumibles ───────────────────────────────────────
-  { id: 'health_potion', name: 'Poción de vida', description: 'Restaura 45 puntos de vida.', icon: 'potion_red', category: 'potion', rarity: 'common', value: 20, stack: 5, use: { kind: 'heal', amount: 45 } },
-  { id: 'mana_potion', name: 'Poción de maná', description: 'Restaura 25 puntos de maná o aguante.', icon: 'potion_blue', category: 'potion', rarity: 'common', value: 20, stack: 5, use: { kind: 'mana', amount: 25 } },
+  { id: 'health_potion', name: 'Poción de vida', description: 'Restaura 45 puntos de vida (o el 18% de tu vida máxima, si es más).', icon: 'potion_red', category: 'potion', rarity: 'common', value: 20, stack: 5, use: { kind: 'heal', amount: 45 } },
+  { id: 'mana_potion', name: 'Poción de maná', description: 'Restaura 25 puntos de maná o aguante (o el 18% del máximo, si es más).', icon: 'potion_blue', category: 'potion', rarity: 'common', value: 20, stack: 5, use: { kind: 'mana', amount: 25 } },
   { id: 'antidote', name: 'Antídoto amargo', description: 'Elimina veneno, quemadura y sangrado.', icon: 'potion_green', category: 'potion', rarity: 'uncommon', value: 25, stack: 5, use: { kind: 'cleanse' } },
 
   // ── Tesoros y materiales ──────────────────────────────
+  // ── Minería ───────────────────────────────────────────
+  { id: 'miner_pick', name: 'Pico de minero', description: 'Para picar vetas de mineral en las paredes de la mazmorra. Se desgasta con el uso.', icon: 'pick', category: 'tool', rarity: 'common', value: 40, stack: 1, uses: 12, mineTime: 2.6 },
+  { id: 'steel_pick', name: 'Pico de acero', description: 'Más duro y más rápido. Brand lo templa para los que bajan hondo.', icon: 'pick_steel', category: 'tool', rarity: 'uncommon', value: 220, stack: 1, uses: 30, mineTime: 1.6 },
+  { id: 'copper_ore', name: 'Mena de cobre', description: 'Piedra verdosa con vetas rojizas. Se pica en la Mazmorra.', icon: 'ore_copper', category: 'material', rarity: 'common', value: 8, stack: 10 },
+  { id: 'iron_ore', name: 'Mena de hierro', description: 'Pesada y oscura. Brand la funde para templar hojas.', icon: 'ore_iron', category: 'material', rarity: 'uncommon', value: 14, stack: 10 },
+  { id: 'silver_ore', name: 'Mena de plata', description: 'Plata en bruto de las galerías de la Cripta.', icon: 'ore_silver', category: 'material', rarity: 'uncommon', value: 24, stack: 10 },
   { id: 'bone_dust', name: 'Polvo de hueso', description: 'Los alquimistas pagan por él.', icon: 'dust', category: 'material', rarity: 'common', value: 6, stack: 10 },
   { id: 'bat_wing', name: 'Ala de murciélago', description: 'Fina como el pergamino.', icon: 'wing', category: 'material', rarity: 'common', value: 5, stack: 10 },
   { id: 'old_coin', name: 'Moneda antigua', description: 'Acuñada por un reino que ya no existe.', icon: 'coin', category: 'coin', rarity: 'uncommon', value: 15, stack: 20 },
   { id: 'golden_chalice', name: 'Cáliz dorado', description: 'Aún conserva restos de vino oscuro.', icon: 'chalice', category: 'relic', rarity: 'rare', value: 180, stack: 1 },
   { id: 'blood_gem', name: 'Gema de sangre', description: 'Brilla más cuando alguien muere cerca.', icon: 'gem_red', category: 'jewel', rarity: 'epic', value: 260, stack: 1 },
   { id: 'crypt_key', name: 'Llave de la cripta', description: 'Fría y pesada. Abre algo, en algún lugar.', icon: 'key', category: 'key', rarity: 'uncommon', value: 30, stack: 1 },
+  // ── Llaves de cofres (ver data/chests.ts) ──
+  { id: 'iron_key', name: 'Llave de hierro', description: 'Abre los cofres de hierro de la Mazmorra.', icon: 'key', category: 'key', rarity: 'uncommon', value: 40, stack: 5 },
+  { id: 'bone_key', name: 'Llave de hueso', description: 'Abre las arcas sepulcrales de la Cripta.', icon: 'key', category: 'key', rarity: 'rare', value: 160, stack: 5 },
+  { id: 'sulfur_key', name: 'Llave de azufre', description: 'Abre los cofres infernales. Quema un poco al cogerla.', icon: 'key', category: 'key', rarity: 'epic', value: 420, stack: 5 },
+  { id: 'relic_key', name: 'Llave de reliquia', description: 'Abre el relicario sellado que guarda cada jefe.', icon: 'key', category: 'key', rarity: 'epic', value: 300, stack: 5 },
 ];
 
-export const ITEMS: Record<string, ItemDef> = Object.fromEntries(list.map((i) => [i.id, i]));
+// Objetos de la Mazmorra (arriba) + los de cada zona más profunda (archivos de zones/)
+export const ITEMS: Record<string, ItemDef> = Object.fromEntries([...list, ...CRIPTA_ITEMS, ...INFIERNO_ITEMS, ...FORGED_ITEMS].map((i) => [i.id, i]));
 
 export function getItem(id: string): ItemDef {
   const def = ITEMS[id];

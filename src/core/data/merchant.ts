@@ -1,6 +1,7 @@
-// Existencias del mercader del lobby. Precio de compra = valor; venta = 40% del valor.
+// Existencias básicas de Orvel (sin reputación). La mercancía completa de cada vendedor está en data/vendors.ts.
+// Precio de compra = valor (menos el descuento de reputación); venta = 40% del valor.
 export const MERCHANT_STOCK: string[] = [
-  'health_potion', 'mana_potion', 'antidote',
+  'health_potion', 'mana_potion', 'antidote', 'iron_key',
   // Guerrero
   'rusty_sword', 'iron_sword', 'battle_axe', 'wooden_shield', 'iron_shield', 'iron_helm', 'chainmail', 'gauntlets',
   // Mago

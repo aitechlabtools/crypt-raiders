@@ -9,6 +9,13 @@ export function isMobileLike(): boolean {
   return touchOnly || window.innerWidth < 760;
 }
 
+/** ¿Se juega con el dedo (pantalla táctil sin ratón)? */
+export function isTouch(): boolean {
+  if (typeof window === 'undefined') return false;
+  const mq = (q: string) => window.matchMedia?.(q).matches ?? false;
+  return mq('(pointer: coarse)') && !mq('(any-pointer: fine)');
+}
+
 export function playUrl(): string {
   return new URL('./play/', window.location.href.replace(/play\/?.*$/, '')).href;
 }

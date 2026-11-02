@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { actions, useGame } from '../state/store';
-import { currentActor, canUseSkill, fleeChance, opponents, type Combatant, type CombatEvent } from '../../core/combat';
+import { currentActor, fleeChance, opponents, type Combatant, type CombatEvent } from '../../core/combat';
 import { getSkill } from '../../core/data/skills';
 import { combatLoadout } from '../../core/loadout';
 import { getItem } from '../../core/data/items';
@@ -9,10 +9,10 @@ import { countItem } from '../../core/inventory';
 import { PlayerSprite, MonsterSprite } from './common';
 import { Bar, ItemIcon } from './inventory';
 import { sfx } from '../audio';
+import { SlotTile, UtilBtn, attackSlot, skillSlot, FX_COLOR as FX_COLORS } from './combatActions';
 
-const FX_COLOR: Record<string, string> = {
-  fire: '#ff8a3a', frost: '#9fe3ff', dark: '#b07aff', holy: '#f8dc7a', poison: '#8fd14a', slash: '#ffffff', bite: '#ff6a5a', smash: '#d9d3c1', shield: '#8fa8c8',
-};
+const FX_COLOR = FX_COLORS;
+const ITEM_KEYS = ['q', 'w', 'e'];
 const RANGED = new Set(['fire', 'frost', 'dark', 'holy']);
 
 interface Float { id: number; targetId: string; text: string; color: string }
@@ -24,7 +24,6 @@ export function CombatScreen() {
   const cs = combat.state;
   const actor = currentActor(cs);
   const playerTurn = actor?.control === 'player';
-  const [menu, setMenu] = useState<'main' | 'items' | 'skills'>('main');
   const [target, setTarget] = useState<string | null>(null);
   const [floats, setFloats] = useState<Float[]>([]);
   const [anim, setAnim] = useState<{ step: number; actorId: string | null; hit: Set<string>; fx: string | null; fromLeft: boolean }>({ step: 0, actorId: null, hit: new Set(), fx: null, fromLeft: true });
@@ -84,7 +83,6 @@ export function CombatScreen() {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
   }, [cs.log.length]);
 
-  useEffect(() => setMenu('main'), [cs.step]);
 
   // Teclas 1-6 y Esc
   useEffect(() => {
@@ -94,22 +92,15 @@ export function CombatScreen() {
         return;
       }
       if (!playerTurn) return;
-      if (menu !== 'main') {
-        if (e.key === 'Escape') { e.preventDefault(); setMenu('main'); return; }
-        if (menu === 'skills') {
-          const id = orderedSkills[Number(e.key) - 1];
-          if (id && canUseSkill(player, id)) { e.preventDefault(); doSkill(id); }
-        }
-        return;
-      }
+      const k = e.key.toLowerCase();
+      const slot = slots.find((x) => x.key === k);
       const map: Record<string, () => void> = {
-        '1': () => doAttack(),
-        '2': () => setMenu('skills'),
-        '3': () => actions.combatAct({ type: 'defend' }),
-        '4': () => usableItems.length > 0 && setMenu('items'),
-        '5': () => cs.canFlee && actions.combatAct({ type: 'flee' }),
+        d: () => actions.combatAct({ type: 'defend' }),
+        h: () => cs.canFlee && actions.combatAct({ type: 'flee' }),
       };
-      if (map[e.key]) { e.preventDefault(); map[e.key](); }
+      usableItems.forEach((id, i) => (map[ITEM_KEYS[i]] = () => actions.combatAct({ type: 'item', itemId: id })));
+      if (slot) { e.preventDefault(); if (!slot.disabled) slot.onUse(); return; }
+      if (map[k]) { e.preventDefault(); map[k](); }
     };
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
@@ -123,7 +114,10 @@ export function CombatScreen() {
   const kit = combatLoadout(profile.character.classId, expedition?.equipment ?? profile.equipment);
   const groups = kit.groups.map((g) => ({ ...g, skills: g.skills.filter((id) => player.skills.includes(id)) })).filter((g) => g.skills.length);
   const orderedSkills = groups.flatMap((g) => g.skills);
-  const affordable = orderedSkills.filter((id) => canUseSkill(player, id)).length;
+  const slots = [
+    attackSlot(player.basicAttack, doAttack),
+    ...groups.flatMap((g) => g.skills.map((id) => skillSlot(id, String(orderedSkills.indexOf(id) + 2), g.source, g.label, player, () => doSkill(id)))),
+  ];
 
   return (
     <div className="absolute inset-0 z-40 flex flex-col fade-in" data-testid="combat" style={{ background: 'radial-gradient(ellipse at 50% 75%, #2a1d26 0%, #120e16 45%, #050407 100%)' }}>
@@ -158,50 +152,24 @@ export function CombatScreen() {
         </div>
       </div>
 
-      <div className="relative grid md:grid-cols-[minmax(320px,460px)_1fr] gap-3 p-3">
+      <div className="relative grid md:grid-cols-[minmax(420px,680px)_1fr] gap-3 p-3">
         <div className="panel panel-gold p-3 min-h-[188px]" data-testid="combat-actions">
           {cs.outcome ? (
             <Result />
           ) : !playerTurn ? (
             <div className="h-full flex items-center justify-center text-stone-300 font-body italic text-lg">{actor ? `${actor.name} está actuando…` : '…'}</div>
-          ) : menu === 'main' ? (
-            <div className="grid grid-cols-2 gap-2">
-              <ActionBtn k="1" label={player.basicAttack.name} sub="Ataque básico · sin coste" onClick={doAttack} testId="act-attack" />
-              <ActionBtn k="2" label="Habilidades" sub={`${affordable} de ${orderedSkills.length} disponibles`} onClick={() => setMenu('skills')} cls="btn-arcane" testId="act-skills" />
-              <ActionBtn k="3" label="Defender" sub="-50% de daño este turno" onClick={() => actions.combatAct({ type: 'defend' })} testId="act-defend" />
-              <ActionBtn k="4" label="Objeto" sub={`${usableItems.length ? usableItems.map((id) => countItem(expedition!.backpack, id)).reduce((a, b) => a + b, 0) : 0} disponibles`} disabled={!usableItems.length} onClick={() => setMenu('items')} testId="act-item" />
-              <ActionBtn k="5" label="Huir" sub={cs.canFlee ? `${Math.round(fleeChance(player, foes) * 100)}% de éxito` : 'Imposible'} disabled={!cs.canFlee} onClick={() => actions.combatAct({ type: 'flee' })} cls="btn-danger" testId="act-flee" />
-            </div>
-          ) : menu === 'skills' ? (
-            <div className="space-y-2 max-h-[300px] overflow-y-auto scroll-thin pr-1" data-testid="skills-menu">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-stone-300">Habilidades</span>
-                <button className="btn text-xs py-1" onClick={() => setMenu('main')}>Volver <kbd className="opacity-60">Esc</kbd></button>
-              </div>
-              {groups.map((g) => (
-                <div key={g.source}>
-                  <div className="text-[11px] text-stone-400 mb-1">{g.source === 'class' ? 'Clase' : g.source === 'weapon' ? `Arma · ${g.label}` : `Defensa · ${g.label}`}</div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {g.skills.map((id) => {
-                      const sk = getSkill(id);
-                      const n = orderedSkills.indexOf(id) + 1;
-                      return (
-                        <ActionBtn key={id} k={String(n)} label={sk.name} sub={sk.cost ? `${sk.cost} ${player.resourceName.toLowerCase()}` : 'sin coste'} disabled={!canUseSkill(player, id)} onClick={() => doSkill(id)}
-                          cls={g.source === 'class' ? 'btn-gold' : g.source === 'offhand' ? '' : 'btn-arcane'} title={sk.description} testId={`skill-${id}`} />
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
           ) : (
-            <div className="space-y-2">
-              {usableItems.map((id) => (
-                <button key={id} className="btn w-full flex items-center gap-2 text-left" onClick={() => actions.combatAct({ type: 'item', itemId: id })} data-testid={`use-${id}`}>
-                  <ItemIcon itemId={id} size={24} /> <span className="flex-1">{getItem(id).name}</span><span className="text-stone-400">x{countItem(expedition!.backpack, id)}</span>
-                </button>
-              ))}
-              <button className="btn w-full text-sm" onClick={() => setMenu('main')}>Volver <kbd className="opacity-60">Esc</kbd></button>
+            <div className="flex flex-col gap-3 h-full">
+              <div className="flex flex-wrap gap-2" data-testid="hotbar">
+                {slots.map((sl) => <SlotTile key={sl.id} s={sl} res={player.resourceName} />)}
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mt-auto">
+                <UtilBtn k="D" label="Defender" sub="-50% de daño" icon="shield" onClick={() => actions.combatAct({ type: 'defend' })} tip="Te cubres: recibes la mitad de daño hasta tu próximo turno." testId="act-defend" />
+                {usableItems.map((id, i) => (
+                  <UtilBtn key={id} k={ITEM_KEYS[i].toUpperCase()} label={getItem(id).name} sub={`x${countItem(expedition!.backpack, id)}`} itemId={id} onClick={() => actions.combatAct({ type: 'item', itemId: id })} tip={getItem(id).description} testId={`use-${id}`} />
+                ))}
+                <UtilBtn k="H" label="Huir" sub={cs.canFlee ? `${Math.round(fleeChance(player, foes) * 100)}% de éxito` : 'Imposible'} icon="flee" danger disabled={!cs.canFlee} onClick={() => actions.combatAct({ type: 'flee' })} tip={cs.canFlee ? 'Intentas escapar. Si fallas, pierdes el turno.' : 'En una traición se lucha a muerte: no hay huida.'} testId="act-flee" />
+              </div>
             </div>
           )}
         </div>
@@ -210,15 +178,6 @@ export function CombatScreen() {
         </div>
       </div>
     </div>
-  );
-}
-
-function ActionBtn({ k, label, sub, onClick, disabled, cls = '', title, testId }: { k: string; label: string; sub: string; onClick: () => void; disabled?: boolean; cls?: string; title?: string; testId?: string }) {
-  return (
-    <button className={`btn text-left flex gap-2 items-start ${cls}`} onClick={onClick} disabled={disabled} title={title} data-testid={testId}>
-      <kbd className="text-xs bg-black/40 px-1.5 mt-0.5">{k}</kbd>
-      <span className="flex flex-col leading-tight"><span>{label}</span><span className="text-[11px] opacity-70">{sub}</span></span>
-    </button>
   );
 }
 

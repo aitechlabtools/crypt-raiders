@@ -357,8 +357,8 @@ export class DungeonScene extends Phaser.Scene {
     const margin = 80;
     for (const tv of this.tiles) {
       const dist = Math.hypot(tv.x - px, tv.y - py);
-      const seen = dist <= SIGHT && this.losClear(px, py, tv.x, tv.y);
-      const b = this.lightAt(tv.x, tv.y, flick);
+      const seen = this.cineReveal > 0 || (dist <= SIGHT && this.losClear(px, py, tv.x, tv.y));
+      const b = Math.max(this.cineReveal, this.lightAt(tv.x, tv.y, flick));
       if (seen && b > 0.08) tv.explored = true;
       tv.bright = seen ? b : 0;
       const c = iso(tv.x + 0.5, tv.y + 0.5);
@@ -790,6 +790,9 @@ export class DungeonScene extends Phaser.Scene {
     this.player.tex = registerHeroTextures(this, this.heroVersion, { classId: ch.classId, appearance: ch.appearance, equipment: st.expedition.equipment });
     this.player.sprite.setTexture(`${this.player.tex}0`);
   }
+
+  /** Solo para el tráiler: revela e ilumina todo el mapa (0 = desactivado). */
+  cineReveal = 0;
 
   /** Solo para pruebas automáticas. */
   debugTeleport(x: number, y: number) {

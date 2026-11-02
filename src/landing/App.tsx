@@ -75,6 +75,7 @@ export function App() {
         <nav className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-6" aria-label="Principal">
           <a href="#top" className="font-display font-extrabold tracking-[0.14em] text-parchment">DREADBOUND</a>
           <div className="hidden md:flex gap-5 text-stone-300 font-body text-lg">
+            <a href="#trailer" className="hover:text-parchment">Tráiler</a>
             <a href="#juego" className="hover:text-parchment">El juego</a>
             <a href="#clases" className="hover:text-parchment">Clases</a>
             <a href="#capturas" className="hover:text-parchment">Capturas</a>
@@ -98,6 +99,17 @@ export function App() {
           </div>
           <p className="font-body text-stone-300 mt-4 text-base">Gratis en el navegador de tu ordenador. Sin registro ni descargas.</p>
         </div>
+      </section>
+
+      {/* Tráiler */}
+      <section id="trailer" className="max-w-5xl mx-auto px-4 pt-24">
+        <h2 className="font-display text-3xl md:text-4xl text-parchment text-center mb-8">Tráiler</h2>
+        <div className="panel overflow-hidden border border-stone-800 shadow-2xl">
+          <video className="w-full aspect-video block bg-black" src="./trailer/dreadbound-trailer.mp4" poster="./trailer/poster.jpg" controls preload="none" playsInline data-testid="trailer-video">
+            Tu navegador no puede reproducir el vídeo.
+          </video>
+        </div>
+        <p className="font-body text-stone-400 text-center mt-3">Imágenes reales del juego tal como es hoy.</p>
       </section>
 
       {/* Concepto: el ciclo de una expedición */}

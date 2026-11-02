@@ -5,7 +5,7 @@ import { getSkill } from '../../core/data/skills';
 import { getItem } from '../../core/data/items';
 import { STATUSES } from '../../core/statuses';
 import { countItem } from '../../core/inventory';
-import { HeroSprite, MonsterSprite } from './common';
+import { PlayerSprite, MonsterSprite } from './common';
 import { Bar, ItemIcon } from './inventory';
 import { sfx } from '../audio';
 
@@ -124,7 +124,7 @@ export function CombatScreen() {
       <header className="relative flex items-center justify-between px-4 py-3 gap-3">
         <div>
           <div className="font-display text-2xl text-parchment" data-testid="combat-title">{combat.title}</div>
-          <div className="text-xs text-stone-400">Ronda {cs.round}{combat.kind === 'duel' ? ' · Duelo consensuado: nadie muere' : ''}</div>
+          <div className="text-xs text-stone-400">Ronda {cs.round}{combat.kind === 'duel' ? ' · Duelo consensuado: nadie muere' : combat.kind.startsWith('betrayal') ? ' · Traición: lucha a muerte, sin huida' : ''}</div>
         </div>
         <div className="flex items-center gap-1 flex-wrap justify-end" aria-label="Orden de turnos">
           <span className="text-xs text-stone-400 mr-1">Turnos:</span>
@@ -211,7 +211,7 @@ function Fighter({ c, anim, floats, active, flip, classId, appearance, selectabl
         <div className={`absolute bottom-1 w-32 h-6 rounded-[50%] ${active ? 'bg-gold/40 shadow-[0_0_30px_rgba(232,179,58,0.6)]' : 'bg-black/60'} ${selected ? 'ring-2 ring-blood' : ''}`} />
         <div key={`${anim.step}-${c.id}`} className={`relative ${dead ? 'death-fade' : motion || 'breathe'}`}>
           {classId && appearance ? (
-            <HeroSprite classId={classId} appearance={appearance} scale={scale} animate={false} pose={pose} />
+            <PlayerSprite scale={scale} animate={false} pose={pose} />
           ) : (
             <MonsterSprite sprite={c.sprite} scale={scale} pose={pose} className={flip ? '-scale-x-100' : ''} />
           )}

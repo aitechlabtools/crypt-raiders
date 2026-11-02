@@ -20,6 +20,8 @@ import { rollLoot, CHEST_TABLES } from '../../core/loot';
 import { makeRng, makeUid, randomSeed } from '../../core/rng';
 import { initialRival, talk, proposeAlliance, rejectRival, leaveAlliance, shareLoot, evaluateBetrayal, playerBetrays, playerAttacksNeutral, type RivalState } from '../../core/social';
 import { bus } from './bus';
+import { CRYPTS_OF_UMBRAVEL, type DungeonDef } from '../../core/dungeon';
+import { generateDungeon } from '../../core/dungeonGen';
 import { sfx, setVolume } from '../audio';
 
 export type Screen = 'boot' | 'title' | 'create' | 'lobby' | 'dungeon' | 'summary';
@@ -51,6 +53,7 @@ export type Modal =
   | { type: 'confirmBetray' }
   | { type: 'inventory' }
   | { type: 'pause' }
+  | { type: 'interact'; options: string[] }
   | null;
 
 export interface Bag { id: string; x: number; y: number; grid: Grid; label: string }
@@ -66,6 +69,8 @@ export interface GameState {
   screen: Screen;
   profile: Profile | null;
   expedition: ExpeditionState | null;
+  /** Mazmorra de la expedición en curso. */
+  dungeon: DungeonDef | null;
   summary: ExpeditionSummary | null;
   combat: CombatSession | null;
   modal: Modal;
@@ -85,6 +90,7 @@ const initial: GameState = {
   screen: 'boot',
   profile: null,
   expedition: null,
+  dungeon: null,
   summary: null,
   combat: null,
   modal: null,
@@ -409,9 +415,11 @@ export const actions = {
   async enterDungeon() {
     const p = state.profile;
     if (!p) return;
+    // La primera expedición usa la cripta diseñada a mano (sirve de tutorial); después, mapas procedurales.
+    const dungeon = p.stats.expeditions === 0 ? CRYPTS_OF_UMBRAVEL : generateDungeon(randomSeed());
     const { profile, expedition } = startExpedition(p, Date.now());
     set({
-      profile, expedition, screen: 'dungeon', summary: null, combat: null, modal: null,
+      profile, expedition, dungeon, screen: 'dungeon', summary: null, combat: null, modal: null,
       rival: initialRival(), rivalLine: null, chests: {}, bags: {},
       hud: { room: '', prompt: null, channel: 0, playerTile: [0, 0] },
     });
@@ -630,7 +638,8 @@ export const actions = {
       if (kind === 'betrayal-by-rival') player.statuses.push({ id: 'bleed', turns: 2 });
       list.push(rc);
       title = kind === 'duel' ? 'Duelo consensuado con Kael' : kind === 'hostile' ? 'Combate hostil: Kael' : kind === 'betrayal-by-player' ? 'Traición: atacas a Kael por sorpresa' : '¡Kael te traiciona!';
-      canFlee = kind !== 'duel';
+      // Duelo y traiciones: no hay huida posible. Solo el ataque hostil a un Kael neutral permite escapar.
+      canFlee = kind === 'hostile';
     }
     const combat = createCombat(list, randomSeed(), { canFlee });
     combat.log.unshift(kind === 'pve' ? `¡${title.replace(/[¡!]/g, '')} te cierra el paso!` : kind === 'duel' ? 'Kael desenvaina con una sonrisa. Duelo hasta la rendición.' : 'Las dagas salen de sus vainas.');
@@ -701,6 +710,7 @@ export const actions = {
             rival = { ...rival, hp: Math.max(30, rival.hp), trust: Math.min(100, rival.trust + 10) };
           } else {
             xp += 60;
+            gold += rival.gold;
             rival = { ...rival, disposition: 'dead' };
             // El cuerpo de Kael deja una bolsa con sus pertenencias
             const bagGrid = addManyToGrid(emptyGrid(12), rival.bagItemIds.map((id) => ({ uid: makeUid(), itemId: id, qty: 1 }))).grid;

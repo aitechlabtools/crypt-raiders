@@ -122,3 +122,7 @@ html, body, #root {
 .death-fade { animation: deathFade 0.9s ease-in forwards; }
 @keyframes deathFade { to { opacity: 0.15; filter: grayscale(1) brightness(0.4); transform: translateY(10px) rotate(-8deg); } }
 .title-glow { text-shadow: 0 0 24px rgba(196, 40, 59, 0.45), 0 2px 0 #000; }
+
+/* Botones del aviso para móviles (compartido con la web) */
+.btn-play { display: inline-block; font-family: var(--font-display); font-weight: 800; color: #1a1206; background: linear-gradient(180deg, #f2c75a 0%, #c48f22 55%, #8a5d14 100%); border: 2px solid #07060a; box-shadow: inset 0 1px 0 #fbe7a6, inset 0 -3px 0 #5a3c0a, 0 0 0 1px #6b4a12; }
+.btn-ghost { display: inline-block; font-family: var(--font-display); color: var(--color-bone); border: 2px solid #3a3741; background: rgba(7, 6, 10, 0.6); }

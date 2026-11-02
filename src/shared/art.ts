@@ -5,7 +5,9 @@
 // Son placeholders coherentes: ver docs/ASSETS.md para su sustitución.
 // ════════════════════════════════════════════════════════════════════
 import { PAL, shade, CLOAK_COLORS, SKIN_COLORS } from './palette';
-import type { Appearance, ClassId } from '../core/types';
+import type { Appearance, ClassId, Equipment } from '../core/types';
+import { EQUIP_SLOTS } from '../core/types';
+import { lookOf, lookSignature, starterEquipment } from './gearLook';
 
 export type Canvas = HTMLCanvasElement;
 
@@ -72,10 +74,23 @@ export interface HumanoidSpec {
   cape?: string;
   head: 'helmet' | 'hood' | 'wizard' | 'hair' | 'skull' | 'crown' | 'hoodskull';
   headColor?: string;
-  weapon: 'sword' | 'staff' | 'dagger' | 'mace' | 'greatsword' | 'none';
+  /** Cinta del sombrero. */
+  hatTrim?: string;
+  weapon: 'sword' | 'axe' | 'staff' | 'dagger' | 'mace' | 'greatsword' | 'none';
+  /** Color de la hoja (espadas, hachas, dagas) o del asta (báculos). */
+  weaponColor?: string;
   orb?: string;
-  offhand?: 'shield' | 'dagger' | 'none';
+  offhand?: 'shield' | 'dagger' | 'tome' | 'none';
   shieldColor?: string;
+  shieldRim?: string;
+  shieldEmblem?: string;
+  tomeColor?: string;
+  /** Estilo del torso: túnica/jubón, cota de malla o túnica larga que tapa las piernas. */
+  torsoStyle?: 'tunic' | 'mail' | 'robe' | 'shirt';
+  /** Color de las manos si lleva guantes. */
+  hands?: string;
+  /** Colgante visible en el pecho. */
+  amulet?: string;
   ribs?: boolean;
   eye?: string;
 }
@@ -107,6 +122,12 @@ export function drawHumanoid(s: HumanoidSpec, frame = 0, pose: 'idle' | 'attack'
   p.rect(7, 22 + lLeg, 2, 2, s.boots);
   p.rect(11, 22 + rLeg, 2, 2, s.boots);
   // Torso
+  if (s.torsoStyle === 'robe' && !s.ribs) {
+    p.rect(6, 17 + y0, 8, 5 - y0, s.torso);
+    p.rect(13, 17 + y0, 1, 5 - y0, shade(s.torso, -0.3));
+    p.rect(6, 21, 8, 1, shade(s.torso, -0.2));
+    p.rect(9, 17 + y0, 1, 5 - y0, s.trim);
+  }
   if (s.ribs) {
     p.rect(9, 11 + y0, 2, 8, s.skin); // columna
     for (let r = 0; r < 3; r++) p.rect(7, 12 + r * 2 + y0, 6, 1, s.skin);
@@ -122,14 +143,33 @@ export function drawHumanoid(s: HumanoidSpec, frame = 0, pose: 'idle' | 'attack'
     p.rect(7, 11 + y0, 6, 1, s.trim);
     p.rect(6, 17 + y0, 8, 1, s.trim);
     p.px(10, 17 + y0, PAL.gold2);
+    if (s.torsoStyle === 'mail') {
+      // Anillas: punteado claro sobre el metal
+      for (let yy = 12; yy < 17; yy++) for (let xx = 7; xx < 13; xx++) if ((xx + yy) % 2 === 0) p.px(xx, yy + y0, shade(s.torso, 0.3));
+    } else if (s.torsoStyle === 'robe') {
+      p.rect(9, 12 + y0, 1, 5, s.trim);
+    } else if (s.torsoStyle === 'shirt') {
+      p.rect(9, 11 + y0, 2, 2, shade(s.torso, -0.25)); // cuello abierto
+    }
+    if (s.amulet) {
+      p.px(8, 12 + y0, PAL.gold1);
+      p.px(11, 12 + y0, PAL.gold1);
+      p.rect(9, 13 + y0, 2, 2, s.amulet);
+      p.px(9, 13 + y0, shade(s.amulet, 0.45));
+    }
   }
   // Brazos
   const sleeve = s.ribs ? s.skin : shade(s.torso, -0.1);
   const attackLift = pose === 'attack' ? -3 : 0;
   p.rect(5, 12 + y0 - armSwing, 1, 5, sleeve);
   p.rect(14, 12 + y0 + armSwing + attackLift, 1, 5, sleeve);
-  p.px(5, 17 + y0 - armSwing, s.skin);
-  p.px(14, 17 + y0 + armSwing + attackLift, s.skin);
+  const hand = s.hands ?? s.skin;
+  p.px(5, 17 + y0 - armSwing, hand);
+  p.px(14, 17 + y0 + armSwing + attackLift, hand);
+  if (s.hands) {
+    p.px(5, 16 + y0 - armSwing, shade(s.hands, -0.2));
+    p.px(14, 16 + y0 + armSwing + attackLift, shade(s.hands, -0.2));
+  }
   // Cabeza
   const hy = 5 + y0;
   p.rect(7, hy, 6, 6, s.skin);
@@ -181,7 +221,7 @@ export function drawHumanoid(s: HumanoidSpec, frame = 0, pose: 'idle' | 'attack'
       p.rect(8, hy - 4, 4, 2, hc);
       p.rect(9, hy - 5, 2, 1, hc);
       p.px(11, hy - 6, hc);
-      p.rect(7, hy - 1, 6, 1, s.trim);
+      p.rect(7, hy - 1, 6, 1, s.hatTrim ?? s.trim);
       p.px(9, hy - 3, PAL.gold3);
       p.rect(12, hy - 2, 1, 2, shade(hc, -0.3));
       break;
@@ -199,12 +239,23 @@ export function drawHumanoid(s: HumanoidSpec, frame = 0, pose: 'idle' | 'attack'
   // Arma (mano derecha, x≈15)
   const wy = 12 + y0 + armSwing + attackLift;
   switch (s.weapon) {
-    case 'sword':
-      p.rect(15, wy - 7, 1, 10, PAL.steel2);
-      p.px(15, wy - 8, PAL.steel3);
+    case 'sword': {
+      const blade = s.weaponColor ?? PAL.steel2;
+      p.rect(15, wy - 7, 1, 10, blade);
+      p.px(15, wy - 8, shade(blade, 0.4));
       p.rect(14, wy + 3, 3, 1, PAL.gold1);
       p.rect(15, wy + 4, 1, 2, PAL.earth1);
       break;
+    }
+    case 'axe': {
+      const head = s.weaponColor ?? PAL.steel2;
+      p.rect(15, wy - 6, 1, 12, PAL.earth1);
+      p.rect(16, wy - 6, 2, 4, head);
+      p.rect(16, wy - 7, 1, 1, head);
+      p.rect(16, wy - 2, 1, 1, head);
+      p.px(17, wy - 5, shade(head, 0.4));
+      break;
+    }
     case 'greatsword':
       p.rect(15, wy - 10, 2, 13, PAL.bone1);
       p.rect(15, wy - 10, 1, 13, PAL.bone2);
@@ -212,13 +263,13 @@ export function drawHumanoid(s: HumanoidSpec, frame = 0, pose: 'idle' | 'attack'
       p.rect(15, wy + 4, 2, 2, PAL.earth0);
       break;
     case 'staff':
-      p.rect(15, wy - 9, 1, 19, PAL.earth2);
+      p.rect(15, wy - 9, 1, 19, s.weaponColor ?? PAL.earth2);
       p.rect(14, wy - 12, 3, 3, s.orb ?? PAL.magic2);
       p.px(14, wy - 12, PAL.bone3);
       break;
     case 'dagger':
-      p.rect(15, wy - 2, 1, 4, PAL.steel2);
-      p.px(15, wy - 3, PAL.steel3);
+      p.rect(15, wy - 2, 1, 4, s.weaponColor ?? PAL.steel2);
+      p.px(15, wy - 3, shade(s.weaponColor ?? PAL.steel2, 0.4));
       p.rect(14, wy + 2, 3, 1, PAL.earth1);
       break;
     case 'mace':
@@ -231,10 +282,17 @@ export function drawHumanoid(s: HumanoidSpec, frame = 0, pose: 'idle' | 'attack'
   if (s.offhand === 'shield') {
     const sc = s.shieldColor ?? PAL.earth2;
     p.rect(2, 12 + y0 - armSwing, 4, 6, sc);
-    p.rect(2, 12 + y0 - armSwing, 4, 1, PAL.steel1);
+    p.rect(2, 12 + y0 - armSwing, 4, 1, s.shieldRim ?? PAL.steel1);
     p.rect(3, 17 + y0 - armSwing, 2, 1, sc);
-    p.px(3, 14 + y0 - armSwing, PAL.gold2);
+    p.px(3, 14 + y0 - armSwing, s.shieldEmblem ?? PAL.gold2);
+    p.px(4, 14 + y0 - armSwing, s.shieldEmblem ?? PAL.gold2);
     p.rect(2, 13 + y0 - armSwing, 1, 4, shade(sc, 0.2));
+    if (s.shieldRim) p.rect(5, 13 + y0 - armSwing, 1, 4, s.shieldRim);
+  } else if (s.offhand === 'tome') {
+    const tc = s.tomeColor ?? PAL.magic1;
+    p.rect(2, 14 + y0 - armSwing, 4, 4, tc);
+    p.rect(3, 14 + y0 - armSwing, 3, 1, PAL.bone3);
+    p.px(3, 16 + y0 - armSwing, PAL.gold2);
   } else if (s.offhand === 'dagger') {
     p.rect(4, 15 + y0 - armSwing, 1, 4, PAL.steel2);
   }
@@ -252,19 +310,58 @@ export function drawHumanoid(s: HumanoidSpec, frame = 0, pose: 'idle' | 'attack'
   return p.c;
 }
 
-export function heroSpec(classId: ClassId, ap: Appearance): HumanoidSpec {
+const CLASS_HAIR: Record<ClassId, string> = { warrior: PAL.earth1, mage: PAL.bone1, rogue: PAL.earth0, cleric: PAL.gold1 };
+
+/**
+ * Aspecto del héroe a partir de lo que lleva equipado.
+ * Sin equipo: camisa, pantalón, pelo al aire, manos vacías y sandalias.
+ * Si no se indica equipo, se usa el equipo inicial de la clase.
+ */
+export function heroSpec(classId: ClassId, ap: Appearance, equipment?: Equipment): HumanoidSpec {
+  const eq = equipment ?? starterEquipment(classId);
   const cloak = CLOAK_COLORS[ap.cloak % CLOAK_COLORS.length];
   const skin = SKIN_COLORS[ap.skin % SKIN_COLORS.length];
-  switch (classId) {
-    case 'warrior':
-      return { skin, hair: PAL.earth1, torso: PAL.steel1, trim: PAL.steel2, legs: PAL.earth1, boots: PAL.earth0, cape: cloak, head: 'helmet', headColor: PAL.steel2, weapon: 'sword', offhand: 'shield' };
-    case 'mage':
-      return { skin, hair: PAL.bone1, torso: cloak, trim: PAL.gold2, legs: shade(cloak, -0.3), boots: PAL.earth0, cape: shade(cloak, -0.35), head: 'wizard', headColor: shade(cloak, -0.1), weapon: 'staff', orb: PAL.magic2 };
-    case 'rogue':
-      return { skin, torso: PAL.earth1, trim: PAL.earth3, legs: PAL.stone2, boots: PAL.earth0, cape: cloak, head: 'hood', headColor: PAL.moss1, weapon: 'dagger', offhand: 'dagger' };
-    case 'cleric':
-      return { skin, hair: PAL.gold1, torso: PAL.bone2, trim: PAL.gold2, legs: PAL.bone1, boots: PAL.earth1, cape: cloak, head: 'hair', headColor: PAL.gold1, weapon: 'mace', offhand: 'shield', shieldColor: PAL.bone2 };
+  const spec: HumanoidSpec = {
+    skin, hair: CLASS_HAIR[classId], torso: '#8a7d68', trim: '#5c5244', legs: PAL.earth1, boots: '#3a2a1e',
+    cape: cloak, head: 'hair', headColor: CLASS_HAIR[classId], weapon: 'none', offhand: 'none', torsoStyle: 'shirt',
+  };
+  for (const slot of EQUIP_SLOTS) {
+    const it = eq[slot];
+    const look = it ? lookOf(it.itemId) : null;
+    if (!look) continue;
+    switch (look.slot) {
+      case 'mainHand':
+        spec.weapon = look.shape;
+        spec.weaponColor = look.color;
+        spec.orb = look.orb;
+        break;
+      case 'offHand':
+        if (look.shape === 'shield') Object.assign(spec, { offhand: 'shield', shieldColor: look.color, shieldRim: look.rim, shieldEmblem: look.emblem });
+        else Object.assign(spec, { offhand: 'tome', tomeColor: look.color });
+        break;
+      case 'helmet':
+        spec.head = look.shape;
+        spec.headColor = look.color;
+        spec.hatTrim = look.trim;
+        break;
+      case 'armor':
+        spec.torsoStyle = look.style;
+        spec.torso = look.color;
+        spec.trim = look.trim;
+        if (look.style === 'robe') spec.legs = shade(look.color, -0.3);
+        break;
+      case 'gloves':
+        spec.hands = look.color;
+        break;
+      case 'boots':
+        spec.boots = look.color;
+        break;
+      case 'amulet':
+        spec.amulet = look.color;
+        break;
+    }
   }
+  return spec;
 }
 
 export const MONSTER_SPECS: Record<string, HumanoidSpec> = {
@@ -687,8 +784,9 @@ export function iconUrl(icon: string, scale = 3): string {
   return cachedUrl(`icon:${icon}`, () => drawIcon(icon), scale);
 }
 
-export function heroUrl(classId: ClassId, ap: Appearance, scale = 4, frame = 0, pose: 'idle' | 'attack' | 'hurt' = 'idle'): string {
-  return cachedUrl(`hero:${classId}:${ap.cloak}:${ap.skin}:${frame}:${pose}`, () => drawHumanoid(heroSpec(classId, ap), frame, pose), scale);
+export function heroUrl(classId: ClassId, ap: Appearance, scale = 4, frame = 0, pose: 'idle' | 'attack' | 'hurt' = 'idle', equipment?: Equipment): string {
+  const eq = equipment ?? starterEquipment(classId);
+  return cachedUrl(`hero:${classId}:${ap.cloak}:${ap.skin}:${lookSignature(eq)}:${frame}:${pose}`, () => drawHumanoid(heroSpec(classId, ap, eq), frame, pose), scale);
 }
 
 export function monsterUrl(sprite: string, scale = 4, pose: 'idle' | 'attack' | 'hurt' = 'idle'): string {

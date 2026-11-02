@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import * as Art from '../shared/art';
+import { SHOWCASE_GEAR } from '../shared/gearLook';
 
 // Diorama isométrico animado para la cabecera de la web, dibujado con el mismo
 // generador de pixel art que usa el juego.
@@ -20,9 +21,9 @@ export function Diorama({ className = '' }: { className?: string }) {
     const pillar = Art.drawPillar();
     const torches = [0, 1, 2].map(Art.drawTorch);
     const portal = [0, 1, 2, 3, 4, 5].map(Art.drawPortal);
-    const heroF = [0, 1, 2, 3].map((f) => Art.drawHumanoid(Art.heroSpec('warrior', { cloak: 0, skin: 0 }), f));
+    const heroF = [0, 1, 2, 3].map((f) => Art.drawHumanoid(Art.heroSpec('warrior', { cloak: 0, skin: 0 }, SHOWCASE_GEAR.warrior), f));
     const rival = Art.drawHumanoid(Art.MONSTER_SPECS.rival, 0);
-    const mage = Art.drawHumanoid(Art.heroSpec('mage', { cloak: 3, skin: 1 }), 0);
+    const mage = Art.drawHumanoid(Art.heroSpec('mage', { cloak: 3, skin: 1 }, SHOWCASE_GEAR.mage), 0);
     const skel = Art.drawHumanoid(Art.MONSTER_SPECS.skeleton, 0);
     const chest = Art.drawChest('boss', true);
     const shadow = Art.drawShadow();

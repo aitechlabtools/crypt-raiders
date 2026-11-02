@@ -1,8 +1,9 @@
 import Phaser from 'phaser';
-import { buildDungeon, CRYPTS_OF_UMBRAVEL, findPath, roomAt, type BuiltDungeon, type EntityDef } from '../../core/dungeon';
+import { buildDungeon, CRYPTS_OF_UMBRAVEL, findPath, roomAt, type BuiltDungeon, type DungeonDef, type EntityDef } from '../../core/dungeon';
 import { getEnemy } from '../../core/data/enemies';
-import { registerTextures } from './textures';
-import { actions, getState } from '../state/store';
+import { registerTextures, registerHeroTextures } from './textures';
+import { lookSignature } from '../../shared/gearLook';
+import { actions, getState, subscribe } from '../state/store';
 import { bus } from '../state/bus';
 import { sfx } from '../audio';
 
@@ -61,6 +62,8 @@ interface TileVis {
   tall: Set<Phaser.GameObjects.Image>;
 }
 
+export interface Interactable { label: string; run: () => void }
+
 export let activeScene: DungeonScene | null = null;
 
 export class DungeonScene extends Phaser.Scene {
@@ -89,6 +92,10 @@ export class DungeonScene extends Phaser.Scene {
   portalFrame = 0;
   lastTile = '';
   unsub: (() => void)[] = [];
+  pendingChoices: Interactable[] = [];
+  heroVersion = 0;
+  heroLook = '';
+  def!: DungeonDef;
 
   constructor() {
     super('dungeon');
@@ -98,8 +105,12 @@ export class DungeonScene extends Phaser.Scene {
     activeScene = this;
     const st = getState();
     const ch = st.profile!.character;
-    registerTextures(this, { classId: ch.classId, appearance: ch.appearance });
-    this.dungeon = buildDungeon(CRYPTS_OF_UMBRAVEL);
+    registerTextures(this);
+    this.heroVersion = 0;
+    this.heroLook = lookSignature(st.expedition!.equipment);
+    const heroTex = registerHeroTextures(this, 0, { classId: ch.classId, appearance: ch.appearance, equipment: st.expedition!.equipment });
+    this.def = st.dungeon ?? CRYPTS_OF_UMBRAVEL;
+    this.dungeon = buildDungeon(this.def);
     this.enemies = [];
     this.tiles = [];
     this.tileIndex.clear();
@@ -112,11 +123,11 @@ export class DungeonScene extends Phaser.Scene {
     this.decor = [];
 
     this.buildTiles();
-    for (const e of CRYPTS_OF_UMBRAVEL.entities) this.spawnEntity(e);
+    for (const e of this.def.entities) this.spawnEntity(e);
     this.precomputeTorchLight();
 
-    const spawn = CRYPTS_OF_UMBRAVEL.entities.find((e) => e.kind === 'spawn')!;
-    this.player = this.makeMob('hero', 4, spawn.x + 0.5, spawn.y + 0.5);
+    const spawn = this.def.entities.find((e) => e.kind === 'spawn')!;
+    this.player = this.makeMob(heroTex, 4, spawn.x + 0.5, spawn.y + 0.5);
 
     // Partículas de polvo alrededor del jugador
     this.add.particles(0, 0, 'mote', {
@@ -155,6 +166,8 @@ export class DungeonScene extends Phaser.Scene {
       }
     });
 
+    // Si cambia el equipo durante la expedición, el personaje cambia de aspecto al momento
+    this.unsub.push(subscribe(() => this.refreshHeroLook()));
     this.unsub.push(
       bus.on('combat-ended', (p) => this.onCombatEnded(p)),
       bus.on('rival-changed', () => this.refreshRival()),
@@ -339,13 +352,21 @@ export class DungeonScene extends Phaser.Scene {
   updateLighting(time: number) {
     const flick = this.torches.map((t) => 0.86 + Math.sin(time / 130 + t.phase) * 0.07 + Math.sin(time / 47 + t.phase * 3) * 0.05);
     const px = Math.floor(this.player.x), py = Math.floor(this.player.y);
+    // Solo se dibuja lo que cae dentro de la cámara (con margen): menos trabajo para la tarjeta gráfica
+    const view = this.cameras.main.worldView;
+    const margin = 80;
     for (const tv of this.tiles) {
       const dist = Math.hypot(tv.x - px, tv.y - py);
       const seen = dist <= SIGHT && this.losClear(px, py, tv.x, tv.y);
       const b = this.lightAt(tv.x, tv.y, flick);
       if (seen && b > 0.08) tv.explored = true;
       tv.bright = seen ? b : 0;
-      if (!tv.explored) continue;
+      const c = iso(tv.x + 0.5, tv.y + 0.5);
+      const onScreen = c.x > view.x - margin && c.x < view.right + margin && c.y > view.y - margin && c.y < view.bottom + margin + 40;
+      if (!tv.explored || !onScreen) {
+        for (const img of tv.imgs) img.setVisible(false);
+        continue;
+      }
       const v = Math.max(0.13, tv.bright);
       const pdx = tv.x + 0.5 - this.player.x, pdy = tv.y + 0.5 - this.player.y;
       const violet = Math.max(0, 1 - Math.hypot(tv.x - this.portal.x, tv.y - this.portal.y) / 3.5) * 0.4;
@@ -362,7 +383,7 @@ export class DungeonScene extends Phaser.Scene {
           const sx = img.x - this.player.sprite.x, sy = img.y - this.player.sprite.y;
           if (Math.abs(sx) < 30 && sy > 0 && sy < 44) a = 0.35;
         }
-        img.setAlpha(a);
+        img.setAlpha(a).setVisible(true);
       }
     }
     this.torches.forEach((t, i) => {
@@ -436,7 +457,7 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   update(time: number, deltaMs: number) {
-    const dt = Math.min(0.05, deltaMs / 1000);
+    const dt = Math.min(0.1, deltaMs / 1000);
     const paused = this.paused();
 
     if (!paused) {
@@ -654,43 +675,56 @@ export class DungeonScene extends Phaser.Scene {
 
   // ── Interacción ──
 
-  nearestInteractable(): { label: string; run: () => void } | null {
+  /** Todo lo que se puede usar desde la posición actual, ordenado de más cerca a más lejos. */
+  interactables(): Interactable[] {
     const p = this.player;
     const d = (x: number, y: number) => Math.hypot(x + 0.5 - p.x, y + 0.5 - p.y);
     const st = getState();
-    if (this.rival && !this.rival.gone && ['neutral', 'allied'].includes(st.rival.disposition) && Math.hypot(this.rival.x - p.x, this.rival.y - p.y) < 1.6) {
-      return { label: st.rival.disposition === 'allied' ? 'Hablar con tu aliado Kael' : 'Interactuar con Kael el Errante', run: () => actions.interactRival() };
+    const out: (Interactable & { dist: number })[] = [];
+    if (this.rival && !this.rival.gone && ['neutral', 'allied'].includes(st.rival.disposition)) {
+      const dist = Math.hypot(this.rival.x - p.x, this.rival.y - p.y);
+      if (dist < 1.6) out.push({ dist, label: st.rival.disposition === 'allied' ? 'Hablar con tu aliado Kael' : 'Interactuar con Kael el Errante', run: () => actions.interactRival() });
     }
-    for (const b of Object.values(st.bags)) if (d(b.x, b.y) < 1.1) return { label: `Registrar: ${b.label}`, run: () => actions.openBag(b.id) };
+    for (const b of Object.values(st.bags)) if (d(b.x, b.y) < 1.1) out.push({ dist: d(b.x, b.y), label: `Registrar: ${b.label}`, run: () => actions.openBag(b.id) });
     for (const c of this.chests) {
       if (d(c.x, c.y) < 1.35) {
-        return {
+        out.push({
+          dist: d(c.x, c.y),
           label: c.opened ? 'Revisar el cofre' : 'Abrir el cofre',
           run: () => {
             if (!c.opened) { c.opened = true; c.img.setTexture(`chest_${c.table}_open`); }
             actions.openChest(c.id, c.table);
           },
-        };
+        });
       }
     }
-    for (const door of this.doors.values()) if (!door.open && d(door.x, door.y) < 1.45) return { label: 'Abrir la puerta', run: () => this.openDoor(door) };
-    if (d(this.portal.x, this.portal.y) < 1.3) {
-      if (this.channel >= 0) return null;
-      return { label: 'Activar el portal y extraer', run: () => this.startChannel() };
-    }
-    return null;
+    for (const door of this.doors.values()) if (!door.open && d(door.x, door.y) < 1.45) out.push({ dist: d(door.x, door.y), label: 'Abrir la puerta', run: () => this.openDoor(door) });
+    if (this.channel < 0 && d(this.portal.x, this.portal.y) < 1.3) out.push({ dist: d(this.portal.x, this.portal.y), label: 'Activar el portal y extraer', run: () => this.startChannel() });
+    return out.sort((a, b) => a.dist - b.dist).map(({ label, run }) => ({ label, run }));
   }
 
   updateInteractionPrompt() {
-    const n = this.nearestInteractable();
-    actions.setHud({ prompt: this.channel >= 0 ? null : n?.label ?? null });
+    const list = this.channel >= 0 ? [] : this.interactables();
+    actions.setHud({ prompt: list.length === 0 ? null : list.length === 1 ? list[0].label : `Elegir acción (${list.length} opciones)` });
   }
 
-  /** Llamado desde la interfaz al pulsar E. */
+  /** Llamado desde la interfaz al pulsar E: si hay varias opciones, abre un menú para elegir. */
   interact() {
     if (this.paused()) return;
-    const n = this.nearestInteractable();
-    n?.run();
+    const list = this.interactables();
+    if (list.length === 1) list[0].run();
+    else if (list.length > 1) {
+      this.pendingChoices = list;
+      actions.openModal({ type: 'interact', options: list.map((i) => i.label) });
+    }
+  }
+
+  /** El jugador ha elegido una opción del menú de interacción. */
+  chooseInteraction(index: number) {
+    const choice = this.pendingChoices[index];
+    this.pendingChoices = [];
+    actions.closeModal();
+    choice?.run();
   }
 
   openDoor(door: { x: number; y: number; img: Phaser.GameObjects.Image; open: boolean }) {
@@ -743,6 +777,18 @@ export class DungeonScene extends Phaser.Scene {
     }
     this.refreshRival();
     this.refreshBags();
+  }
+
+  refreshHeroLook() {
+    const st = getState();
+    if (!st.expedition || !st.profile || !this.player) return;
+    const sig = lookSignature(st.expedition.equipment);
+    if (sig === this.heroLook) return;
+    this.heroLook = sig;
+    this.heroVersion += 1;
+    const ch = st.profile.character;
+    this.player.tex = registerHeroTextures(this, this.heroVersion, { classId: ch.classId, appearance: ch.appearance, equipment: st.expedition.equipment });
+    this.player.sprite.setTexture(`${this.player.tex}0`);
   }
 
   /** Solo para pruebas automáticas. */

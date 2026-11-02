@@ -15,16 +15,21 @@ export interface RivalState {
   talkedTimes: number;
   /** Objetos que Kael ha recibido (o lleva). Se pueden saquear si cae. */
   bagItemIds: string[];
+  /** Oro que lleva encima. */
+  gold: number;
   warned: boolean;
   betrayed: boolean;
   /** Quién rompió la alianza, si alguien lo hizo. */
   betrayedBy: 'player' | 'rival' | null;
 }
 
+/** Equipo que lleva Kael y que deja al morir (más lo que haya recibido en los repartos). */
+export const RIVAL_GEAR = ['bone_dagger', 'leather_hood', 'swift_boots', 'old_coin', 'health_potion'];
+
 export function initialRival(): RivalState {
   return {
     disposition: 'neutral', trust: 35, greed: 30, hp: 105, potions: 1, talkedTimes: 0,
-    bagItemIds: ['old_coin', 'health_potion'], warned: false, betrayed: false, betrayedBy: null,
+    bagItemIds: [...RIVAL_GEAR], gold: 45, warned: false, betrayed: false, betrayedBy: null,
   };
 }
 

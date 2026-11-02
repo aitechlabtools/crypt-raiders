@@ -29,6 +29,8 @@ export interface DungeonDef {
   rooms: RoomDef[];
   corridors: Rect[];
   entities: EntityDef[];
+  /** Semilla con la que se generó (solo mazmorras procedurales). */
+  seed?: number;
 }
 
 export const CRYPTS_OF_UMBRAVEL: DungeonDef = {

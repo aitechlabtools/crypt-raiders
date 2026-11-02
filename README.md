@@ -45,15 +45,18 @@ node scripts/serve.mjs   # sirve dist/ en http://localhost:4173
 - **Pantalla de inicio**: jugar/continuar, ajustes (volumen, música, borrar personaje).
 - **Creación de personaje**: Guerrero o Mago (Pícaro y Clérigo visibles como «Próximamente»), nombre, color de capa y de piel.
 - **Lobby (Bastión de Ceniza)**: personaje y habilidades; equipo con 8 ranuras y estadísticas; mochila en cuadrícula con arrastrar y soltar, tooltips, rarezas, comparación, apilado y ordenación; almacén seguro; mercader (comprar y vender); misiones con recompensa; preparación de expedición.
-- **Mazmorra isométrica** (Las Criptas de Umbravel, 6 salas): cámara que sigue al jugador, movimiento por teclado o clic (con búsqueda de camino), colisiones, puertas, trampas, antorchas con luz parpadeante, niebla de guerra con línea de visión, cofres, murciélagos, esqueletos, jefe (Señor del Osario), portal y temporizador de 12 minutos.
+- **Mazmorras isométricas**: la primera expedición es Las Criptas de Umbravel (diseñada a mano, sirve de tutorial); a partir de la segunda, **cada expedición genera un mapa nuevo** (7-9 salas, siempre con inicio, jefe, cofres, portal y Kael; el número de mapa aparece bajo el temporizador). Incluye cámara que sigue al jugador, movimiento por teclado o clic (con búsqueda de camino), colisiones, puertas, trampas, antorchas con luz parpadeante, niebla de guerra con línea de visión, cofres, murciélagos, esqueletos, jefe (Señor del Osario), portal y temporizador de 12 minutos.
 - **Combate por turnos**: orden por velocidad, ataque básico, 2 habilidades por clase, defensa, objetos, huida, 7 estados alterados, críticos, evasión, IA enemiga, aliados en combate, registro y animaciones.
+- **Apariencia según el equipo**: el personaje cambia de aspecto con cada pieza visible (arma, secundaria, cabeza, torso, guantes, botas y amuleto) en el lobby, el combate y la mazmorra, incluso al cambiar de equipo en plena expedición. Cómo se ve cada objeto está en `src/shared/gearLook.ts`.
+- **Interacción**: E usa lo que tienes delante; si hay varias cosas cerca (Kael, un cofre, una puerta…) abre un menú para elegir (teclas 1-9).
+- **Móvil**: la web y la demo avisan de que se juega con teclado y ratón y permiten enviarse el enlace.
 - **Aventurero rival (Kael)**: hablar, aliarse, duelo consensuado (no letal), ignorar, ataque hostil, reparto del botín, traición del jugador (con confirmación) y traición de Kael (con aviso previo según cómo le trates). Si cae, deja una bolsa con sus pertenencias.
 - **Extracción y muerte**: canalizar 3 s en el portal → resumen y botín conservado. Morir o quedarse sin tiempo → se pierde todo lo transportado; el almacén y el oro del banco se mantienen; la experiencia se conserva.
 - **Persistencia** en IndexedDB (respaldo en localStorage). Si la página se recarga a mitad de expedición, esta se anula sin pérdidas.
 
 ## Pruebas
 
-- `npm test`: 44 pruebas unitarias del núcleo (incluye simulaciones de balance).
+- `npm test`: 51 pruebas unitarias del núcleo (incluye simulaciones de balance y 300 mapas generados validados).
 - `node scripts/e2e.cjs http://localhost:5173/play/`: recorrido completo en un navegador real (crear personaje → comprar poción → mazmorra → combate → cofre → alianza → portal → el botín aparece en el lobby → recarga → muerte). Requiere Playwright.
 - `node scripts/e2e-social.cjs …`: duelo, alianza, traición, saqueo y huida.
 - `node scripts/screenshots.cjs …`: regenera las capturas de la web en `public/screenshots/`.
@@ -70,6 +73,7 @@ src/core/             Lógica pura y determinista (sin Phaser ni React): reutili
   expedition.ts       Reglas de entrada, extracción y muerte
   social.ts           Confianza, codicia, alianzas y traiciones
   dungeon.ts          Formato de mazmorra (salas + pasillos) y búsqueda de caminos
+  dungeonGen.ts       Generador procedural (determinista por semilla) y validación de mapas
 src/game/engine/      Phaser: escena isométrica, luz, movimiento, IA de exploración
 src/game/state/       Estado global y acciones (puente entre núcleo, interfaz y motor)
 src/game/ui/          Interfaz React del juego
@@ -84,7 +88,7 @@ docs/                 Arquitectura, diseño, multijugador y recursos a sustituir
 ## Próximos pasos propuestos
 
 1. Pícaro y Clérigo completos (los datos y habilidades ya existen).
-2. Generación procedural de mazmorras a partir del formato de salas actual.
+2. Más variedad en los mapas generados (salas especiales, eventos, distintos biomas).
 3. Arte y audio definitivos (ver `docs/ASSETS.md`).
 4. Más criaturas (goblin, araña venenosa, mago esquelético) y reputación de aventurero.
 5. Servidor autoritativo con Colyseus (ver `docs/ARQUITECTURA.md`).

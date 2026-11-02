@@ -3,21 +3,29 @@ import type { Loc } from '../../core/inventory';
 import { stackAt } from '../../core/inventory';
 import { getItem } from '../../core/data/items';
 import { sellPrice } from '../../core/economy';
-import type { Appearance, ClassId } from '../../core/types';
+import type { Appearance, ClassId, Equipment } from '../../core/types';
 import { heroUrl, monsterUrl, iconUrl } from '../../shared/art';
 import { actions, containersFor, getState, useGame } from '../state/store';
 import type { InvMode } from './inventory';
 import { ItemIcon } from './inventory';
 import { RARITY_INFO } from '../../core/data/items';
 
-export function HeroSprite({ classId, appearance, scale = 6, animate = true, pose = 'idle' as 'idle' | 'attack' | 'hurt', className = '' }: { classId: ClassId; appearance: Appearance; scale?: number; animate?: boolean; pose?: 'idle' | 'attack' | 'hurt'; className?: string }) {
+export function HeroSprite({ classId, appearance, equipment, scale = 6, animate = true, pose = 'idle' as 'idle' | 'attack' | 'hurt', className = '' }: { classId: ClassId; appearance: Appearance; equipment?: Equipment; scale?: number; animate?: boolean; pose?: 'idle' | 'attack' | 'hurt'; className?: string }) {
   const [f, setF] = useState(0);
   useEffect(() => {
     if (!animate) return;
     const t = setInterval(() => setF((x) => (x + 1) % 4), 220);
     return () => clearInterval(t);
   }, [animate]);
-  return <img src={heroUrl(classId, appearance, scale, animate ? f : 0, pose)} className={`pixelated ${className}`} alt="" draggable={false} />;
+  return <img src={heroUrl(classId, appearance, scale, animate ? f : 0, pose, equipment)} className={`pixelated ${className}`} alt="" draggable={false} data-testid="hero-sprite" />;
+}
+
+/** El personaje del jugador con lo que lleva puesto ahora mismo (en la mazmorra, el equipo de la expedición). */
+export function PlayerSprite(props: { scale?: number; animate?: boolean; pose?: 'idle' | 'attack' | 'hurt'; className?: string }) {
+  const profile = useGame((s) => s.profile);
+  const expEquipment = useGame((s) => (s.screen === 'dungeon' ? s.expedition?.equipment : undefined));
+  if (!profile) return null;
+  return <HeroSprite classId={profile.character.classId} appearance={profile.character.appearance} equipment={expEquipment ?? profile.equipment} {...props} />;
 }
 
 export function MonsterSprite({ sprite, scale = 6, pose = 'idle', className = '' }: { sprite: string; scale?: number; pose?: 'idle' | 'attack' | 'hurt'; className?: string }) {

@@ -355,6 +355,13 @@ describe('Alianzas y traición', () => {
     r = shareLoot(r, ['old_coin'], 2).rival;
     expect(evaluateBetrayal(r, { playerHpPct: 0.9, playerLootValue: 100, nearPortal: true }).action).not.toBe('betray');
   });
+  it('Kael lleva equipo real que se puede saquear', () => {
+    const r = initialRival();
+    expect(r.bagItemIds).toEqual(expect.arrayContaining(['bone_dagger', 'leather_hood', 'swift_boots']));
+    expect(r.gold).toBeGreaterThan(0);
+    const after = shareLoot(proposeAlliance(talk(r).rival).rival, ['golden_chalice'], 2).rival;
+    expect(after.bagItemIds).toContain('golden_chalice');
+  });
   it('el jugador puede traicionar', () => {
     const r = playerBetrays(proposeAlliance(talk(initialRival()).rival).rival);
     expect(r.disposition).toBe('hostile');

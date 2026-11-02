@@ -1,10 +1,25 @@
 import Phaser from 'phaser';
 import * as Art from '../../shared/art';
 import { PAL } from '../../shared/palette';
-import type { Appearance, ClassId } from '../../core/types';
+import type { Appearance, ClassId, Equipment } from '../../core/types';
 
-/** Registra en Phaser todas las texturas generadas proceduralmente. */
-export function registerTextures(scene: Phaser.Scene, hero: { classId: ClassId; appearance: Appearance }) {
+/** Texturas del héroe según su equipo. Cada versión usa claves nuevas (hero{v}_0…3) para no tocar las que están en uso. */
+export function registerHeroTextures(scene: Phaser.Scene, version: number, hero: { classId: ClassId; appearance: Appearance; equipment: Equipment }) {
+  for (let f = 0; f < 4; f++) {
+    const key = `hero${version}_${f}`;
+    if (scene.textures.exists(key)) scene.textures.remove(key);
+    scene.textures.addCanvas(key, Art.drawHumanoid(Art.heroSpec(hero.classId, hero.appearance, hero.equipment), f));
+  }
+  // Libera la versión anterior
+  for (let f = 0; f < 4; f++) {
+    const old = `hero${version - 1}_${f}`;
+    if (version > 0 && scene.textures.exists(old)) scene.time.delayedCall(500, () => scene.textures.exists(old) && scene.textures.remove(old));
+  }
+  return `hero${version}_`;
+}
+
+/** Registra en Phaser el resto de texturas generadas proceduralmente. */
+export function registerTextures(scene: Phaser.Scene) {
   const tx = scene.textures;
   const add = (key: string, c: HTMLCanvasElement) => {
     if (tx.exists(key)) tx.remove(key);
@@ -34,7 +49,6 @@ export function registerTextures(scene: Phaser.Scene, hero: { classId: ClassId; 
   add('marker_hostile', Art.drawMarker(PAL.threat2));
   add('bag', Art.drawBag());
   for (let f = 0; f < 4; f++) {
-    add(`hero${f}`, Art.drawHumanoid(Art.heroSpec(hero.classId, hero.appearance), f));
     add(`skeleton${f}`, Art.drawHumanoid(Art.MONSTER_SPECS.skeleton, f));
     add(`rival${f}`, Art.drawHumanoid(Art.MONSTER_SPECS.rival, f));
     add(`boss${f}`, Art.drawHumanoid(Art.MONSTER_SPECS.boss, f));

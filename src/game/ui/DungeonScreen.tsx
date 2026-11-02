@@ -9,7 +9,7 @@ import { countItem, gridValue, type Loc } from '../../core/inventory';
 import { timeLeft } from '../../core/expedition';
 import { CombatScreen } from './CombatScreen';
 import { Bar, EquipmentView, GridView, StatsList, ItemIcon } from './inventory';
-import { HeroSprite, MonsterSprite, Modal, formatTime, ItemActions, GoldAmount } from './common';
+import { PlayerSprite, MonsterSprite, Modal, formatTime, ItemActions, GoldAmount } from './common';
 import { SettingsModal } from './TitleScreen';
 
 export function DungeonScreen() {
@@ -46,6 +46,14 @@ export function DungeonScreen() {
       if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
       const k = e.key.toLowerCase();
       if (s.combat) return; // el combate gestiona sus teclas
+      if (s.modal?.type === 'interact') {
+        const n = Number(e.key);
+        if (n >= 1 && n <= s.modal.options.length) {
+          e.preventDefault();
+          activeScene?.chooseInteraction(n - 1);
+          return;
+        }
+      }
       if (k === 'escape') {
         e.preventDefault();
         if (s.modal) actions.closeModal();
@@ -76,6 +84,7 @@ export function DungeonScreen() {
       {modal?.type === 'confirmBetray' && <ConfirmBetray />}
       {modal?.type === 'inventory' && <DungeonInventory />}
       {modal?.type === 'pause' && <PauseModal />}
+      {modal?.type === 'interact' && <InteractMenu options={modal.options} />}
       {combat && <CombatScreen />}
       {!profile.tutorialSeen.dungeon && !modal && !combat && <DungeonTutorial />}
     </div>
@@ -95,7 +104,7 @@ function Hud() {
     <>
       <div className="absolute left-3 top-3 panel p-3 w-64 z-10" data-testid="hud-player">
         <div className="flex items-center gap-2 mb-2">
-          <div className="w-10 h-10 bg-[#0d0c11] border-2 border-stone-700 flex items-end justify-center overflow-hidden"><HeroSprite classId={ch.classId} appearance={ch.appearance} scale={2} animate={false} /></div>
+          <div className="w-10 h-10 bg-[#0d0c11] border-2 border-stone-700 flex items-end justify-center overflow-hidden"><PlayerSprite scale={2} animate={false} /></div>
           <div className="min-w-0">
             <div className="truncate">{ch.name}</div>
             <div className="text-xs text-stone-400">{CLASSES[ch.classId].name} · Nv {ch.level}</div>
@@ -112,6 +121,7 @@ function Hud() {
       <div className="absolute left-1/2 -translate-x-1/2 top-3 text-center z-10 pointer-events-none">
         <div className={`panel px-5 py-1 font-display text-3xl ${urgent ? 'text-blood animate-pulse' : 'text-parchment'}`} data-testid="hud-timer">{formatTime(left)}</div>
         <div className="mt-1 text-sm text-stone-300 tracking-widest uppercase font-display" data-testid="hud-room">{s.hud.room}</div>
+        {s.dungeon && <div className="text-[11px] text-stone-500 mt-0.5" data-testid="hud-dungeon">{s.dungeon.name}{s.dungeon.seed !== undefined ? ` · mapa ${s.dungeon.seed}` : ''}</div>}
       </div>
 
       <div className="absolute right-3 top-3 flex flex-col items-end gap-2 z-10">
@@ -233,7 +243,7 @@ function RivalModal() {
         {!allied && <button className="btn btn-danger" onClick={() => actions.rivalAttack()} data-testid="rival-attack">Atacar (combate hostil)</button>}
         {allied && <button className="btn btn-danger" onClick={() => actions.askBetray()} data-testid="rival-betray">Traicionar…</button>}
       </div>
-      <p className="text-xs text-stone-400 mt-3 font-body text-sm">Un duelo amistoso no mata a nadie ni roba nada. Un ataque hostil o una traición, sí.</p>
+      <p className="text-xs text-stone-400 mt-3 font-body text-sm">Un duelo amistoso no mata a nadie ni roba nada. Una traición es a muerte y sin huida: el que gana se queda con todo.</p>
       <button className="btn mt-3 text-sm" onClick={() => actions.closeModal()}>Cerrar</button>
     </Modal>
   );
@@ -243,7 +253,7 @@ function ConfirmBetray() {
   return (
     <Modal onClose={() => actions.closeModal()} testId="confirm-betray">
       <h2 className="panel-title text-xl text-blood mb-2">¿Traicionar a Kael?</h2>
-      <p className="font-body text-lg">Romperás la alianza y lo atacarás por sorpresa (empezará aturdido). Si cae, podrás quedarte con todo lo que lleva. Si sobrevive… no lo olvidará.</p>
+      <p className="font-body text-lg">Romperás la alianza y lo atacarás por sorpresa (empezará aturdido). <b className="text-blood">Lucharéis a muerte, sin posibilidad de huir.</b> Si ganas, te quedas con todo lo que lleva: su daga, su capucha, sus botas y su oro. Si pierdes, mueres aquí y la cripta se queda con tu equipo.</p>
       <div className="flex gap-2 mt-4">
         <button className="btn btn-danger" onClick={() => actions.confirmBetray()} data-testid="confirm-betray-yes">Sí, es una traición</button>
         <button className="btn" onClick={() => actions.closeModal()}>No, era un error</button>
@@ -264,7 +274,7 @@ function DungeonInventory() {
       <div className="flex items-center justify-between mb-3"><h2 className="panel-title text-xl">Inventario</h2><button className="btn text-sm" onClick={() => actions.sortContainer('backpack')}>Ordenar</button></div>
       <div className="grid md:grid-cols-2 gap-5">
         <div className="space-y-4">
-          <EquipmentView equipment={s.expedition.equipment} selected={sel} onSelect={setSel} mode="dungeon" portrait={<HeroSprite classId={ch.classId} appearance={ch.appearance} scale={5} />} />
+          <EquipmentView equipment={s.expedition.equipment} selected={sel} onSelect={setSel} mode="dungeon" portrait={<PlayerSprite scale={5} />} />
           <StatsList stats={stats} resourceName={CLASSES[ch.classId].resourceName} />
         </div>
         <div>
@@ -319,5 +329,21 @@ function DungeonTutorial() {
       </ul>
       <button className="btn btn-gold mt-4" onClick={() => actions.markTutorial('dungeon')} data-testid="btn-dungeon-tutorial-ok">¡A por ello!</button>
     </Modal>
+  );
+}
+
+function InteractMenu({ options }: { options: string[] }) {
+  return (
+    <div className="absolute left-1/2 -translate-x-1/2 bottom-6 z-50 panel panel-gold p-3 w-80 fade-in" data-testid="interact-menu" role="menu">
+      <div className="text-sm text-stone-300 mb-2">¿Qué quieres hacer?</div>
+      <div className="flex flex-col gap-1.5">
+        {options.map((o, i) => (
+          <button key={o} className="btn text-left flex items-center gap-2" onClick={() => activeScene?.chooseInteraction(i)} data-testid={`interact-${i}`} autoFocus={i === 0} role="menuitem">
+            <kbd className="text-xs bg-black/40 px-1.5">{i + 1}</kbd>{o}
+          </button>
+        ))}
+      </div>
+      <button className="btn w-full mt-2 text-sm" onClick={() => actions.closeModal()}>Cancelar <kbd className="opacity-60">Esc</kbd></button>
+    </div>
   );
 }

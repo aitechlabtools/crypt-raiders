@@ -20,6 +20,8 @@ fs.mkdirSync(OUT, { recursive: true });
   });
   const step = async (name, fn) => { process.stdout.write(`· ${name}… `); await fn(); console.log('ok'); };
   const tp = (x, y) => page.evaluate(([x, y]) => window.__DREADBOUND__.scene().debugTeleport(x, y), [x, y]);
+  // Retira los enemigos cercanos a un punto para que las pruebas de cofre/portal no acaben en combate
+  const clearNear = (x, y, r = 7) => page.evaluate(([x, y, r]) => { for (const e of window.__DREADBOUND__.scene().enemies) if (!e.dead && Math.hypot(e.x - x, e.y - y) < r) { e.dead = true; e.sprite.destroy(); e.shadow.destroy(); } }, [x, y, r]);
 
   await page.goto(BASE + '?debug');
   await page.waitForSelector('[data-testid=btn-play]');
@@ -41,6 +43,16 @@ fs.mkdirSync(OUT, { recursive: true });
     if (s.gold !== goldBefore - 20) throw new Error('el oro no bajó: ' + s.gold);
     await shot('03-merchant');
   });
+  await step('El aspecto cambia al equiparse un yelmo', async () => {
+    await page.click('[data-testid=buy-iron_helm]');
+    await page.click('[data-testid=tab-gear]');
+    const before = await page.$eval('[data-testid=equipment] [data-testid=hero-sprite]', (i) => i.src);
+    await page.dblclick('[data-testid^=slot-backpack][data-item=iron_helm]');
+    await page.waitForSelector('[data-testid=slot-equip-helmet][data-item=iron_helm]');
+    await page.waitForTimeout(300);
+    const after = await page.$eval('[data-testid=equipment] [data-testid=hero-sprite]', (i) => i.src);
+    if (before === after) throw new Error('el retrato no cambió al equipar el yelmo');
+  });
   await step('Equipo e inventario', async () => {
     await page.click('[data-testid=tab-gear]');
     await page.waitForSelector('[data-testid=slot-equip-mainHand][data-item=rusty_sword]');
@@ -56,6 +68,17 @@ fs.mkdirSync(OUT, { recursive: true });
     await page.click('[data-testid=btn-dungeon-tutorial-ok]');
     await page.waitForTimeout(800);
     await shot('06-dungeon-start');
+  });
+  await step('Quitarse el yelmo en la mazmorra cambia el personaje al momento', async () => {
+    const t0 = await page.evaluate(() => window.__DREADBOUND__.scene().player.tex);
+    await page.keyboard.press('i');
+    await page.waitForSelector('[data-testid=dungeon-inventory]');
+    await page.dblclick('[data-testid=slot-equip-helmet]');
+    await page.waitForTimeout(300);
+    const t1 = await page.evaluate(() => window.__DREADBOUND__.scene().player.tex);
+    if (t0 === t1) throw new Error('la textura del personaje no cambió');
+    await page.dblclick('[data-testid^=slot-backpack][data-item=iron_helm]');
+    await page.keyboard.press('Escape');
   });
   await step('Caminar con el teclado', async () => {
     const before = await page.evaluate(() => { const p = window.__DREADBOUND__.scene().player; return [p.x, p.y]; });
@@ -90,6 +113,7 @@ fs.mkdirSync(OUT, { recursive: true });
     await page.click('[data-testid=btn-combat-continue]');
   });
   await step('Abrir un cofre y coger el botín', async () => {
+    await clearNear(18, 17);
     await tp(18, 17);
     await page.waitForTimeout(400);
     await shot('10-near-chest');
@@ -102,10 +126,16 @@ fs.mkdirSync(OUT, { recursive: true });
   const carried = (await st()).backpack;
   console.log('   mochila:', carried.join(', '));
   await step('Hablar con Kael y aliarse', async () => {
+    // El esqueleto de la Sala de los Pilares podría interrumpir la prueba
+    await page.evaluate(() => { for (const e of window.__DREADBOUND__.scene().enemies) if (e.id === 'e_skel3' && !e.dead) { e.dead = true; e.sprite.destroy(); e.shadow.destroy(); } });
     const pos = await page.evaluate(() => { const r = window.__DREADBOUND__.scene().rival; return [r.x, r.y]; });
     await tp(Math.floor(pos[0]) + 1, Math.floor(pos[1]));
     await page.waitForTimeout(300);
     await page.keyboard.press('e');
+    if (await page.waitForSelector('[data-testid=interact-menu]', { timeout: 500 }).catch(() => null)) {
+      const labels = await page.$$eval('[data-testid^=interact-]:not([data-testid=interact-menu])', (els) => els.map((e) => e.textContent));
+      await page.keyboard.press(String(labels.findIndex((l) => /Kael/.test(l)) + 1));
+    }
     await page.waitForSelector('[data-testid=rival-modal]');
     await page.click('[data-testid=rival-talk]');
     await page.click('[data-testid=rival-ally]');
@@ -116,14 +146,40 @@ fs.mkdirSync(OUT, { recursive: true });
     await page.waitForTimeout(800);
     await shot('13-ally');
   });
+  await step('Elegir entre varias acciones con E (Kael + cofre)', async () => {
+    // Retira el esqueleto de esa sala para que la prueba no acabe en combate
+    await page.evaluate(() => { for (const e of window.__DREADBOUND__.scene().enemies) if (e.id === 'e_skel3' && !e.dead) { e.dead = true; e.sprite.destroy(); e.shadow.destroy(); } });
+    await tp(3, 19);
+    await page.waitForTimeout(2500); // Kael se acerca
+    await page.evaluate(() => { const s = window.__DREADBOUND__.scene(); const r = s.rival; r.x = s.player.x + 0.6; r.y = s.player.y; });
+    await page.waitForTimeout(300);
+    const prompt = await page.textContent('[data-testid=hud-prompt]');
+    if (!/Elegir acción/.test(prompt)) throw new Error('el aviso no indica varias opciones: ' + prompt);
+    await page.keyboard.press('e');
+    await page.waitForSelector('[data-testid=interact-menu]');
+    await shot('13b-interact-menu');
+    const labels = await page.$$eval('[data-testid^=interact-]:not([data-testid=interact-menu])', (els) => els.map((e) => e.textContent));
+    const idx = labels.findIndex((l) => /cofre/i.test(l));
+    if (idx < 0) throw new Error('no aparece el cofre: ' + labels);
+    await page.keyboard.press(String(idx + 1));
+    await page.waitForSelector('[data-testid=loot-modal]');
+    // Reparto justo: le damos a Kael un objeto del cofre
+    const first = await page.$('[data-testid^=slot-loot-][data-item]:not([data-item=""])');
+    if (first && (await page.$('text=Kael espera su parte'))) {
+      await first.click();
+      await page.click('[data-testid=btn-give]');
+    }
+    await page.click('[data-testid=btn-close-loot]');
+  });
   await step('Llegar al portal y extraer', async () => {
+    await clearNear(5, 24);
     await tp(5, 24);
     await page.waitForTimeout(400);
     await shot('14-portal');
     await page.keyboard.press('e');
     await page.waitForTimeout(1500);
     await shot('15-channel');
-    await page.waitForSelector('[data-testid=summary]', { timeout: 8000 });
+    await page.waitForSelector('[data-testid=summary]', { timeout: 30000 });
     await page.waitForTimeout(400);
     await shot('16-summary');
     const t = await page.textContent('[data-testid=summary-title]');
@@ -145,10 +201,36 @@ fs.mkdirSync(OUT, { recursive: true });
     const again = (await st()).backpack;
     for (const it of carried) if (!again.includes(it)) throw new Error('tras recargar falta ' + it);
   });
-  await step('Morir pierde lo transportado', async () => {
+  let firstSeed;
+  await step('Segunda expedición: mapa procedural y extracción', async () => {
+    await page.click('[data-testid=tab-expedition]');
+    await page.click('[data-testid=btn-enter-dungeon]');
+    await page.waitForTimeout(1200);
+    const info = await page.textContent('[data-testid=hud-dungeon]');
+    firstSeed = await page.evaluate(() => window.__DREADBOUND__.getState().dungeon.seed);
+    if (firstSeed === undefined) throw new Error('la segunda expedición no es procedural: ' + info);
+    console.log('\n   mapa:', info);
+    await shot('20-procedural-start');
+    const portal = await page.evaluate(() => window.__DREADBOUND__.getState().dungeon.entities.find((e) => e.kind === 'portal'));
+    // Despeja enemigos junto al portal para que no interrumpan la prueba
+    await page.evaluate(([px, py]) => { for (const e of window.__DREADBOUND__.scene().enemies) if (!e.dead && Math.hypot(e.x - px, e.y - py) < 8) { e.dead = true; e.sprite.destroy(); e.shadow.destroy(); } }, [portal.x, portal.y]);
+    await tp(portal.x, portal.y + 1);
+    await page.waitForTimeout(600);
+    await shot('21-procedural-portal');
+    await page.keyboard.press('e');
+    if (await page.$('[data-testid=interact-menu]')) {
+      const labels = await page.$$eval('[data-testid^=interact-]:not([data-testid=interact-menu])', (els) => els.map((e) => e.textContent));
+      await page.keyboard.press(String(labels.findIndex((l) => /portal/i.test(l)) + 1));
+    }
+    await page.waitForSelector('[data-testid=summary]', { timeout: 30000 });
+    await page.click('[data-testid=btn-back-lobby]');
+  });
+  await step('Morir pierde lo transportado (otro mapa distinto)', async () => {
     await page.click('[data-testid=tab-expedition]');
     await page.click('[data-testid=btn-enter-dungeon]');
     await page.waitForTimeout(800);
+    const seed2 = await page.evaluate(() => window.__DREADBOUND__.getState().dungeon.seed);
+    if (seed2 === firstSeed) throw new Error('se repitió el mismo mapa');
     await page.evaluate(() => window.__DREADBOUND__.actions.trapHit(9999));
     await page.waitForSelector('[data-testid=summary]');
     await shot('18-death');

@@ -1,5 +1,9 @@
+import { useState } from 'react';
 import { Diorama } from './Diorama';
+import { isMobileLike } from '../shared/device';
+import { MobileNotice } from '../shared/MobileNotice';
 import { heroUrl, iconUrl, monsterUrl } from '../shared/art';
+import { SHOWCASE_GEAR } from '../shared/gearLook';
 import { CLASSES } from '../core/data/classes';
 import type { ClassId } from '../core/types';
 
@@ -16,7 +20,7 @@ const LOOP = [
 ];
 
 const FEATURES = [
-  { icon: 'key', title: 'Mazmorras isométricas', text: 'Salas conectadas, puertas, trampas de pinchos y antorchas que apenas alcanzan. Lo que no ves, también te ve.' },
+  { icon: 'key', title: 'Mazmorras isométricas', text: 'Cada expedición, un mapa distinto: salas, puertas, trampas y antorchas que apenas alcanzan. Lo que no ves, también te ve.' },
   { icon: 'staff_fire', title: 'Combate por turnos', text: 'Orden por velocidad, habilidades con coste, defensa, pociones y huida. Veneno, quemadura, congelación, sangrado y aturdimiento.' },
   { icon: 'chalice', title: 'Botín con rarezas', text: 'De común a legendario. Inventario en cuadrícula, arrastrar y soltar, comparación de equipo y pilas de consumibles.' },
   { icon: 'dagger', title: 'Alianzas y traiciones', text: 'Repartir o no el botín cambia lo que el otro piensa de ti. Las traiciones avisan, pero no siempre a tiempo.' },
@@ -35,9 +39,18 @@ function Sprite({ src, w, label, className = '' }: { src: string; w: number; lab
   return <img src={src} width={w} alt={label} className={`pixelated ${className}`} />;
 }
 
+// Abre el aviso para móviles en lugar de lanzar directamente la demo
+let openMobileNotice: (() => void) | null = null;
+function guardPlay(e: React.MouseEvent) {
+  if (isMobileLike() && openMobileNotice) {
+    e.preventDefault();
+    openMobileNotice();
+  }
+}
+
 function PlayButton({ big = false }: { big?: boolean }) {
   return (
-    <a href={PLAY_URL} className={`btn-play ${big ? 'text-xl px-9 py-4' : 'px-6 py-3'}`} data-testid="cta-play">
+    <a href={PLAY_URL} onClick={guardPlay} className={`btn-play ${big ? 'text-xl px-9 py-4' : 'px-6 py-3'}`} data-testid="cta-play">
       Jugar la demo gratis
     </a>
   );
@@ -53,8 +66,11 @@ function DownloadButton() {
 }
 
 export function App() {
+  const [notice, setNotice] = useState(false);
+  openMobileNotice = () => setNotice(true);
   return (
     <div className="min-h-screen">
+      {notice && <MobileNotice onContinue={() => (window.location.href = PLAY_URL)} onClose={() => setNotice(false)} continueLabel="Abrir la demo igualmente" />}
       <header className="fixed top-0 inset-x-0 z-30 site-nav">
         <nav className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-6" aria-label="Principal">
           <a href="#top" className="font-display font-extrabold tracking-[0.14em] text-parchment">DREADBOUND</a>
@@ -64,7 +80,7 @@ export function App() {
             <a href="#capturas" className="hover:text-parchment">Capturas</a>
             <a href="#demo" className="hover:text-parchment">Demo</a>
           </div>
-          <a href={PLAY_URL} className="ml-auto btn-play px-4 py-1.5 text-sm">Jugar</a>
+          <a href={PLAY_URL} onClick={guardPlay} className="ml-auto btn-play px-4 py-1.5 text-sm">Jugar</a>
         </nav>
       </header>
 
@@ -130,7 +146,7 @@ export function App() {
       <section className="max-w-6xl mx-auto px-4 py-24">
         <div className="grid lg:grid-cols-[1fr_1fr] gap-12 items-center">
           <div className="flex items-end justify-center gap-6 lg:gap-10 min-h-[240px]">
-            <Sprite src={heroUrl('warrior', { cloak: 0, skin: 0 }, 8)} w={160} label="Guerrero" />
+            <Sprite src={heroUrl('warrior', { cloak: 0, skin: 0 }, 8, 0, 'idle', SHOWCASE_GEAR.warrior)} w={160} label="Guerrero" />
             <Sprite src={monsterUrl('rival', 8)} w={160} label="Kael el Errante" className="-scale-x-100" />
           </div>
           <div>
@@ -143,7 +159,7 @@ export function App() {
               Si sois aliados combate a tu lado y espera su parte de cada cofre. Quédatelo todo y empezará a mirar tu mochila.
             </p>
             <p className="font-body text-xl text-stone-300 mt-4 leading-relaxed">
-              Traicionar a un aliado exige confirmarlo, para que nadie lo haga por un mal clic. Que te traicionen a ti, no.
+              Una traición es un duelo a muerte sin huida posible: si ganas, su equipo es tuyo; si pierdes, el tuyo se queda en la cripta. Traicionar exige confirmarlo, para que nadie lo haga por un mal clic. Que te traicionen a ti, no.
             </p>
           </div>
         </div>
@@ -160,7 +176,7 @@ export function App() {
               return (
                 <article key={id} className={`class-card ${c.playable ? '' : 'is-locked'}`}>
                   <div className="h-44 flex items-end justify-center">
-                    <Sprite src={heroUrl(id, { cloak: id === 'mage' ? 3 : id === 'rogue' ? 2 : id === 'cleric' ? 1 : 0, skin: id === 'cleric' ? 1 : 0 }, 7)} w={140} label={c.name} />
+                    <Sprite src={heroUrl(id, { cloak: id === 'mage' ? 3 : id === 'rogue' ? 2 : id === 'cleric' ? 1 : 0, skin: id === 'cleric' ? 1 : 0 }, 7, 0, 'idle', SHOWCASE_GEAR[id])} w={140} label={c.name} />
                   </div>
                   <h3 className="font-display text-2xl mt-4" style={{ color: c.color }}>{c.name}</h3>
                   <p className="font-body italic text-stone-300">{c.tagline}</p>
@@ -193,7 +209,7 @@ export function App() {
         <div className="relative max-w-6xl mx-auto px-4 py-24 grid lg:grid-cols-[1.2fr_1fr] gap-12">
           <div>
             <h2 className="font-display text-4xl md:text-5xl text-parchment leading-tight">Juega ahora en el navegador</h2>
-            <p className="font-body text-xl text-stone-300 mt-4 max-w-xl leading-relaxed">Crea a tu aventurero, equípalo, baja a las Criptas de Umbravel y vuelve con algo. Tu progreso se guarda en este navegador.</p>
+            <p className="font-body text-xl text-stone-300 mt-4 max-w-xl leading-relaxed">Crea a tu aventurero, equípalo, baja a unas criptas que nunca son iguales y vuelve con algo. Tu progreso se guarda en este navegador.</p>
             <div className="mt-8"><PlayButton big /></div>
             <p className="font-body text-stone-400 mt-4">Recomendado: ordenador con teclado y ratón. WASD o clic para moverte, E para interactuar.</p>
           </div>
@@ -202,7 +218,7 @@ export function App() {
               <h3 className="font-display text-xl text-heal mb-3">En la demo</h3>
               <ul className="space-y-1.5 text-stone-300">
                 <li>Guerrero y Mago</li>
-                <li>Una cripta de seis salas</li>
+                <li>Mazmorras distintas en cada expedición</li>
                 <li>Esqueletos, murciélagos y un jefe</li>
                 <li>Combate por turnos completo</li>
                 <li>Inventario, almacén y mercader</li>
@@ -214,7 +230,6 @@ export function App() {
               <h3 className="font-display text-xl text-stone-300 mb-3">Todavía no</h3>
               <ul className="space-y-1.5 text-stone-400">
                 <li>Multijugador con personas reales</li>
-                <li>Mazmorras procedurales</li>
                 <li>Pícaro y Clérigo</li>
                 <li>Arte y música definitivos</li>
                 <li>Versión para Windows</li>
@@ -239,7 +254,7 @@ export function App() {
         <span className="font-display tracking-[0.14em] text-stone-300">DREADBOUND</span>
         <span>Proyecto indie en desarrollo. Demo v0.1. Arte y sonido provisionales generados por código.</span>
         <div className="md:ml-auto flex gap-5">
-          <a href={PLAY_URL} className="hover:text-parchment">Jugar</a>
+          <a href={PLAY_URL} onClick={guardPlay} className="hover:text-parchment">Jugar</a>
           <a href="#juego" className="hover:text-parchment">El juego</a>
           <a href="#top" className="hover:text-parchment">Volver arriba</a>
         </div>

@@ -3,7 +3,7 @@ import { getItem, RARITY_INFO } from '../../core/data/items';
 import { getEnemy } from '../../core/data/enemies';
 import type { ItemStack } from '../../core/types';
 import { ItemIcon } from './inventory';
-import { HeroSprite, formatTime } from './common';
+import { PlayerSprite, formatTime } from './common';
 import { startMusic } from '../audio';
 
 function ItemRow({ items, empty }: { items: ItemStack[]; empty: string }) {
@@ -33,7 +33,7 @@ export function SummaryScreen() {
     <div className="h-full overflow-y-auto scroll-thin" style={{ background: ok ? 'radial-gradient(ellipse at 50% 20%, #2a2140 0%, #0b0910 60%)' : 'radial-gradient(ellipse at 50% 20%, #3a1018 0%, #0b0608 60%)' }} data-testid="summary">
       <div className="max-w-3xl mx-auto p-6 fade-in">
         <div className="text-center">
-          <div className={`flex justify-center ${ok ? '' : 'grayscale opacity-60'}`}><HeroSprite classId={profile.character.classId} appearance={profile.character.appearance} scale={7} animate={ok} /></div>
+          <div className={`flex justify-center ${ok ? '' : 'grayscale opacity-60'}`}><PlayerSprite scale={7} animate={ok} /></div>
           <h1 className={`font-display text-5xl mt-2 ${ok ? 'text-gold' : 'text-blood'} title-glow`} data-testid="summary-title">{title}</h1>
           <p className="font-body text-xl text-stone-300 mt-2">
             {ok ? 'El portal te escupe en el patio del Bastión. Todo lo que llevas es tuyo.' : summary.reason === 'timeout' ? 'El reloj llegó a cero. Las puertas de piedra se sellaron contigo dentro.' : 'Tu cuerpo queda en las criptas. Tu equipo, también.'}

@@ -54,13 +54,15 @@ const BASE = process.argv[2] || 'http://localhost:5173/play/';
   await page.click('[data-testid=confirm-betray-yes]');
   await page.waitForSelector('[data-testid=combat]');
   await page.screenshot({ path: '/tmp/claude-0/betray.png' });
+  await page.waitForSelector('[data-testid=act-flee]');
+  console.log('huir bloqueado en la traición:', await page.$eval('[data-testid=act-flee]', (b) => b.disabled));
   // Pociones si hace falta
   for (let i = 0; i < 80; i++) {
     const s = await S();
     if (s.outcome) break;
     const hp = await page.evaluate(() => window.__DREADBOUND__.getState().expedition.hp);
     if (await page.$('[data-testid=act-attack]')) {
-      if (hp < 30 && await page.$('[data-testid=act-item]:not([disabled])')) { await page.click('[data-testid=act-item]'); await page.click('[data-testid^=use-health]'); }
+      if (hp < 30 && await page.$('[data-testid=act-item]:not([disabled])')) { await page.click('[data-testid=act-item]'); { const u = await page.$('[data-testid^=use-health]') ?? await page.$('[data-testid^=use-]'); if (u) await u.click(); else await page.keyboard.press('Escape'); } }
       else { const f = await page.$('[data-testid=act-skill-0]:not([disabled])'); await (f ?? await page.$('[data-testid=act-attack]')).click(); }
     }
     await page.waitForTimeout(350);
@@ -73,6 +75,8 @@ const BASE = process.argv[2] || 'http://localhost:5173/play/';
   if (res.outcome === 'victory') {
     await page.keyboard.press('e');
     await page.waitForSelector('[data-testid=loot-modal]');
+    const loot = await page.$$eval('[data-testid^=slot-loot-]', (els) => els.map((e) => e.getAttribute('data-item')).filter(Boolean));
+    console.log('bolsa de Kael:', loot.join(', '));
     await page.click('[data-testid=btn-take-all]');
     await page.click('[data-testid=btn-close-loot]');
     console.log('saqueo de Kael ok');

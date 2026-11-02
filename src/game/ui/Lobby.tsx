@@ -10,9 +10,8 @@ import { countItem, equippedValue, gridValue, type Loc } from '../../core/invent
 import { needsRecruitKit } from '../../core/profile';
 import { buyPrice } from '../../core/economy';
 import { EXPEDITION_DURATION_MS } from '../../core/expedition';
-import { CRYPTS_OF_UMBRAVEL } from '../../core/dungeon';
 import { EquipmentView, GridView, ItemIcon, StatsList, Bar, type InvMode } from './inventory';
-import { HeroSprite, GoldAmount, ItemActions, Modal } from './common';
+import { PlayerSprite, GoldAmount, ItemActions, Modal } from './common';
 import { SettingsModal } from './TitleScreen';
 import { sfx, startMusic } from '../audio';
 import type { ItemStack } from '../../core/types';
@@ -41,7 +40,7 @@ export function Lobby() {
       {/* Barra superior */}
       <header className="panel flex items-center gap-4 px-4 py-2 shrink-0 border-x-0 border-t-0">
         <div className="w-12 h-12 flex items-end justify-center overflow-hidden bg-[#0d0c11] border-2 border-stone-700">
-          <HeroSprite classId={ch.classId} appearance={ch.appearance} scale={2} animate={false} />
+          <PlayerSprite scale={2} animate={false} />
         </div>
         <div className="min-w-0">
           <div className="font-display text-lg leading-tight truncate" data-testid="hero-name">{ch.name}</div>
@@ -125,7 +124,7 @@ function HeroTab() {
   return (
     <div className="grid lg:grid-cols-[320px_1fr] gap-4">
       <Section title="Aventurero">
-        <div className="flex justify-center h-48 items-end"><HeroSprite classId={ch.classId} appearance={ch.appearance} scale={8} /></div>
+        <div className="flex justify-center h-48 items-end"><PlayerSprite scale={8} /></div>
         <div className="text-center font-display text-2xl mt-2">{ch.name}</div>
         <div className="text-center text-sm" style={{ color: cls.color }}>{cls.name} de nivel {ch.level}</div>
         <div className="mt-3"><Bar value={ch.xp} max={xpForNextLevel(ch.level)} color="#a35ae0" label="Experiencia" /></div>
@@ -174,7 +173,7 @@ function GearTab() {
       <div className="grid xl:grid-cols-[minmax(380px,460px)_1fr] gap-4">
         <div className="space-y-4">
           <Section title="Equipamiento">
-            <EquipmentView equipment={profile.equipment} selected={sel} onSelect={setSel} mode={mode} portrait={<HeroSprite classId={ch.classId} appearance={ch.appearance} scale={6} />} />
+            <EquipmentView equipment={profile.equipment} selected={sel} onSelect={setSel} mode={mode} portrait={<PlayerSprite scale={6} />} />
           </Section>
           <Section title="Estadísticas">
             <StatsList stats={stats} base={baseStats(ch.classId, ch.level)} resourceName={cls.resourceName} />
@@ -288,6 +287,7 @@ function ExpeditionTab() {
   const risk = gridValue(profile.backpack) + equippedValue(profile.equipment);
   const potions = countItem(profile.backpack, 'health_potion');
   const noWeapon = !profile.equipment.mainHand;
+  const firstTime = profile.stats.expeditions === 0;
   const enter = () => {
     sfx('portal');
     if (profile.settings.music) startMusic('dungeon');
@@ -298,12 +298,15 @@ function ExpeditionTab() {
     <div className="grid lg:grid-cols-[1fr_360px] gap-4 max-w-6xl">
       <section className="panel panel-gold p-0 overflow-hidden">
         <div className="h-48 relative" style={{ background: 'radial-gradient(ellipse at 50% 100%, rgba(163,90,224,0.45), transparent 60%), linear-gradient(180deg, #120e18, #0a0810)' }}>
-          <div className="absolute inset-0 flex items-end justify-center pb-2"><HeroSprite classId={ch.classId} appearance={ch.appearance} scale={6} /></div>
+          <div className="absolute inset-0 flex items-end justify-center pb-2"><PlayerSprite scale={6} /></div>
         </div>
         <div className="p-5">
-          <div className="text-xs uppercase tracking-[0.3em] text-stone-400">Destino</div>
-          <h2 className="font-display text-3xl text-parchment">{CRYPTS_OF_UMBRAVEL.name}</h2>
-          <p className="font-body text-lg text-stone-300 mt-2 leading-snug">Seis salas bajo el Bastión, selladas desde la caída de la orden. Murciélagos, esqueletos y un señor que no acepta que su reino terminó. Dicen que otro aventurero bajó esta mañana.</p>
+          <h2 className="font-display text-3xl text-parchment">{firstTime ? 'Las Criptas de Umbravel' : 'Las criptas cambiantes'}</h2>
+          <p className="font-body text-lg text-stone-300 mt-2 leading-snug">
+            {firstTime
+              ? 'Seis salas bajo el Bastión, selladas desde la caída de la orden. Murciélagos, esqueletos y un señor que no acepta que su reino terminó. Dicen que otro aventurero bajó esta mañana.'
+              : 'Bajo el Bastión los pasillos nunca están donde los dejaste. Cada expedición, un mapa distinto: salas nuevas, cofres nuevos y el Señor del Osario esperando en algún rincón. Y siempre hay otro aventurero ahí abajo.'}
+          </p>
           <ul className="mt-4 space-y-1 font-body text-base">
             <li>⏳ Tienes <b className="text-gold">{EXPEDITION_DURATION_MS / 60000} minutos</b> para encontrar el portal de extracción.</li>
             <li>☠ Si mueres o se agota el tiempo, <b className="text-blood">pierdes todo lo que llevas encima</b>.</li>

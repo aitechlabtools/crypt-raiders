@@ -11,7 +11,7 @@ Estadísticas finales = base de clase + crecimiento por nivel + equipo.
   - La evasión solo afecta a ataques físicos (la Puñalada traicionera la ignora).
 - Al final de su turno, cada combatiente sufre veneno (7 %), quemadura (6 %) o sangrado (5 %) de su vida máxima, regenera (6 %) si tiene Regeneración y recupera 2 de recurso.
 - Congelación y aturdimiento hacen perder el siguiente turno.
-- Huir: 40 % ± 3 % por punto de velocidad respecto al enemigo más rápido (15–85 %). No se puede huir de jefes ni de duelos.
+- Huir: 40 % ± 3 % por punto de velocidad respecto al enemigo más rápido (15–85 %). No se puede huir de jefes, duelos ni traiciones.
 - Desde la ronda 25 todos pierden un 8 % de vida por ronda, acumulativo.
 
 ## Extracción
@@ -25,7 +25,9 @@ Estadísticas finales = base de clase + crecimiento por nivel + equipo.
 - Aliado: te sigue, combate a tu lado y espera su parte de los cofres con 2 o más objetos. Darle algo: confianza +15, codicia −10. No darle nada: confianza −15, codicia +20.
 - **Traición** = codicia + valor de tu botín/15 (máx. 40) − confianza/2 + 25 si tienes menos del 40 % de vida + 20 si estáis cerca del portal.
   ≥ 40: te avisa una vez («Kael mira tu mochila…»). ≥ 60: te ataca (empiezas sangrando).
-- Si le traicionas tú, empieza aturdido. Si cae, deja una bolsa con sus objetos.
+- **Las traiciones son a muerte, en los dos sentidos: no se puede huir.** Si le traicionas tú, empieza aturdido; si te traiciona él, empiezas sangrando.
+- Kael lleva equipo real: daga de hueso, capucha de cuero, botas del correveidile (raras), una moneda antigua, una poción y 45 de oro, más lo que le hayas dado. Si cae, lo deja todo en una bolsa. Si ganas tú, te lo quedas; si pierdes, mueres y pierdes lo que llevabas.
+- Atacar a un Kael neutral (combate hostil, sin traición) sí permite huir.
 - El duelo consensuado no mata: quien pierde se queda con algo de vida y nadie roba nada.
 
 ## Balance (simulado en `tests/balance.test.ts`, nivel 1 con equipo inicial y vida completa)

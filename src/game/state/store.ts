@@ -11,7 +11,7 @@ import { addManyToGrid, addToGrid, countItem, emptyGrid, gridValue, removeItem, 
 import { buy, sell } from '../../core/economy';
 import { computeStats } from '../../core/stats';
 import { createCombat, performAction, runAITurn, currentActor, getCombatant, type CombatAction, type CombatState } from '../../core/combat';
-import { enemyCombatant, playerCombatant, rivalCombatant } from '../../core/combatants';
+import { enemyCombatant, playerCombatant, rivalCombatant, levelScale } from '../../core/combatants';
 import { getEnemy } from '../../core/data/enemies';
 import { getItem } from '../../core/data/items';
 import { questDef, isComplete } from '../../core/quests';
@@ -214,7 +214,7 @@ export const actions = {
         return;
       }
     }
-    set({ profile: p, screen: 'title' });
+    set({ profile: p && needsRecruitKit(p) ? grantRecruitKit(p) : p, screen: 'title' });
   },
 
   goto(screen: Screen) {
@@ -445,7 +445,12 @@ export const actions = {
   async finishExpedition(reason: EndReason) {
     const s = state;
     if (!s.profile || !s.expedition) return;
-    const { profile, summary } = endExpedition(s.profile, s.expedition, reason, Date.now());
+    let { profile, summary } = endExpedition(s.profile, s.expedition, reason, Date.now());
+    // Kit de recluta automático: si al morir no te queda ningún arma, el intendente te equipa
+    if (reason !== 'extracted' && needsRecruitKit(profile)) {
+      profile = grantRecruitKit(profile);
+      summary = { ...summary, recruitKit: true };
+    }
     set({ profile, summary, expedition: null, screen: 'summary', combat: null, modal: null });
     sfx(reason === 'extracted' ? 'victory' : 'defeat');
     await saveNow();
@@ -629,7 +634,7 @@ export const actions = {
     if (kind === 'pve' && enemyId) {
       const e = getEnemy(enemyId);
       if (s.rival.disposition === 'allied') list.push(rivalCombatant(s.rival.hp, 'A', s.rival.potions));
-      list.push(enemyCombatant(enemyId, entityId ?? 'enemy'));
+      list.push(enemyCombatant(enemyId, entityId ?? 'enemy', 'B', ch.level));
       title = e.boss ? `¡${e.name}!` : e.name;
       canFlee = !e.boss;
     } else {
@@ -696,7 +701,7 @@ export const actions = {
         for (const c of next.combatants.filter((x) => x.side === 'B')) {
           if (c.ref && c.ref !== 'rival') {
             const e = getEnemy(c.ref);
-            xp += e.xp;
+            xp += Math.round(e.xp * levelScale(s.profile.character.level));
             const l = rollLoot(e.loot, rng);
             gold += l.gold;
             items.push(...l.items);

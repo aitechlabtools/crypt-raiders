@@ -7,7 +7,8 @@ import { CLASSES, STAT_LABELS } from '../../core/data/classes';
 import type { Loc } from '../../core/inventory';
 import { sellPrice } from '../../core/economy';
 import { iconUrl } from '../../shared/art';
-import { actions } from '../state/store';
+import { actions, useGame } from '../state/store';
+import { getSkill } from '../../core/data/skills';
 
 export const SLOT_LABELS: Record<EquipSlot, string> = {
   mainHand: 'Arma', offHand: 'Secundaria', helmet: 'Cabeza', armor: 'Torso', gloves: 'Manos', boots: 'Pies', ring: 'Anillo', amulet: 'Amuleto',
@@ -32,6 +33,7 @@ function statLine(k: keyof Stats, v: number) {
 
 export function ItemTooltip({ stack, equipment, mode }: { stack: ItemStack; equipment?: Equipment; mode?: InvMode }) {
   const def = getItem(stack.itemId);
+  const who = useGame((s) => s.profile?.character);
   const r = RARITY_INFO[def.rarity];
   const equipped = def.slot && equipment ? equipment[def.slot] : null;
   const cmp = equipped && equipped.uid !== stack.uid ? getItem(equipped.itemId) : null;
@@ -51,8 +53,18 @@ export function ItemTooltip({ stack, equipment, mode }: { stack: ItemStack; equi
       )}
       {def.use && <div className="text-frost mb-2">Uso: {def.description}</div>}
       <div className="font-body italic text-stone-300 leading-snug">{def.use ? '' : def.description}</div>
-      {def.classes && <div className="text-xs mt-2 text-stone-300">Clases: {def.classes.map((c) => CLASSES[c].name).join(', ')}</div>}
-      {def.levelReq && <div className="text-xs text-ember">Requiere nivel {def.levelReq}</div>}
+      {(def.attack || def.grants) && (
+        <div className="text-xs mt-2 pt-2 border-t border-stone-700">
+          {def.attack && <div className="text-stone-300">Ataque básico: <span className="text-parchment">{def.attack.name}</span></div>}
+          {def.grants && <div className="text-stone-300">{def.slot === 'offHand' ? 'Habilidades defensivas' : 'Habilidades'}: <span className={def.slot === 'offHand' ? 'text-frost' : 'text-parchment'}>{def.grants.map((g) => getSkill(g).name).join(', ')}</span></div>}
+        </div>
+      )}
+      {def.classes && <div className={`text-xs mt-2 ${who && !def.classes.includes(who.classId) ? 'text-blood' : 'text-stone-300'}`}>Clases: {def.classes.map((c) => CLASSES[c].name).join(', ')}</div>}
+      {def.levelReq && def.slot && (
+        <div className={`text-xs ${who && who.level < def.levelReq ? 'text-blood' : 'text-heal'}`} data-testid="tooltip-level">
+          Requiere nivel {def.levelReq}{who && who.level < def.levelReq ? ` (tienes ${who.level}): puedes guardarlo, pero no equiparlo` : ''}
+        </div>
+      )}
       {cmp && (
         <div className="mt-2 pt-2 border-t border-stone-600 text-xs">
           <div className="text-stone-300 mb-1">Comparado con {cmp.name}:</div>
@@ -93,6 +105,10 @@ export function ItemSlot({ stack, loc, lootId, equipment, mode, selected, placeh
   const [over, setOver] = useState(false);
   const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
   const rarity = stack ? RARITY_INFO[getItem(stack.itemId).rarity] : null;
+  const who = useGame((s) => s.profile?.character);
+  const sdef = stack ? getItem(stack.itemId) : null;
+  const tooHigh = !!(sdef?.slot && who && sdef.levelReq && who.level < sdef.levelReq);
+  const wrongClass = !!(sdef?.slot && who && sdef.classes && !sdef.classes.includes(who.classId));
   const testId = loc.kind === 'equip' ? `slot-equip-${loc.slot}` : `slot-${loc.container}-${loc.index}`;
   return (
     <div
@@ -137,6 +153,11 @@ export function ItemSlot({ stack, loc, lootId, equipment, mode, selected, placeh
     >
       {stack ? <ItemIcon itemId={stack.itemId} /> : placeholderIcon ? <img src={iconUrl(placeholderIcon, 3)} width={30} height={30} className="pixelated opacity-15" alt="" draggable={false} /> : null}
       {stack && stack.qty > 1 && <span className="qty">{stack.qty}</span>}
+      {stack && loc.kind === 'grid' && (tooHigh || wrongClass) && (
+        <span className="absolute left-0.5 top-0 text-[10px] leading-none px-0.5 bg-black/80 text-blood" data-testid="slot-locked" title={wrongClass ? 'Tu clase no puede usarlo' : `Requiere nivel ${sdef!.levelReq}`}>
+          {wrongClass ? '✕' : `Nv${sdef!.levelReq}`}
+        </span>
+      )}
       {tip && stack && createPortal(
         <div className="fixed z-[100] pointer-events-none" style={{ left: Math.min(tip.x, window.innerWidth - 270), top: Math.min(tip.y, window.innerHeight - 280) }}>
           <ItemTooltip stack={stack} equipment={equipment} mode={mode} />

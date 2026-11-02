@@ -14,6 +14,8 @@ import { emptyEquipment, emptyGrid } from './inventory';
 // ════════════════════════════════════════════════════════════════════
 
 export const EXPEDITION_DURATION_MS = 12 * 60 * 1000;
+/** Experiencia extra por sobrevivir y extraer. */
+export const EXTRACTION_XP = 50;
 
 export interface ExpeditionState {
   startedAt: number;
@@ -45,6 +47,8 @@ export interface ExpeditionSummary {
   lost: ItemStack[];
   found: ItemStack[];
   extractedValue: number;
+  /** Se entregó automáticamente el equipo de recluta. */
+  recruitKit?: boolean;
 }
 
 export function startExpedition(p: Profile, now: number): { profile: Profile; expedition: ExpeditionState } {
@@ -78,7 +82,8 @@ function carried(e: ExpeditionState): ItemStack[] {
 
 export function endExpedition(p: Profile, e: ExpeditionState, reason: EndReason, now: number): { profile: Profile; summary: ExpeditionSummary } {
   const extracted = reason === 'extracted';
-  const xp = applyXp(p.character.level, p.character.xp, e.xpGained);
+  const xpGained = e.xpGained + (extracted ? EXTRACTION_XP : 0);
+  const xp = applyXp(p.character.level, p.character.xp, xpGained);
   const totalKills = Object.values(e.kills).reduce((a, b) => a + b, 0);
   const extractedValue = extracted ? gridValue(e.backpack) + equippedValue(e.equipment) : 0;
   const quests = updateQuests(p.quests, { extracted, kills: e.kills, extractedValue: extracted ? gridValue(e.backpack) : 0 });
@@ -105,7 +110,7 @@ export function endExpedition(p: Profile, e: ExpeditionState, reason: EndReason,
       durationMs: Math.min(e.durationMs, now - e.startedAt),
       goldGained: extracted ? e.goldFound : 0,
       goldLost: extracted ? 0 : e.goldFound,
-      xpGained: e.xpGained,
+      xpGained,
       levelsGained: xp.levelsGained,
       kills: { ...e.kills },
       kept: extracted ? carried(e) : [],

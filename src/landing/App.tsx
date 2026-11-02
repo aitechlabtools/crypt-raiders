@@ -13,19 +13,19 @@ const PLAY_URL = './play/';
 
 const LOOP = [
   { verb: 'Explora', text: 'Bajas a las criptas con lo puesto y un reloj en contra.' },
-  { verb: 'Combate', text: 'Cada criatura te lleva a un duelo por turnos donde la velocidad, el maná y los estados deciden.' },
+  { verb: 'Combate', text: 'Cada criatura te lleva a un duelo por turnos donde la velocidad, el maná, el veneno, el fuego y el hielo deciden.' },
   { verb: 'Negocia', text: 'Te cruzas con otro aventurero. Podéis hablar, aliaros y repartir el botín.' },
   { verb: 'Traiciona', text: 'O no. Una alianza solo dura lo que tarda alguien en decidir que tu mochila vale más que tú.' },
   { verb: 'Escapa', text: 'Si llegas al portal, todo lo que llevas es tuyo. Si caes, se queda abajo.' },
 ];
 
 const FEATURES = [
-  { icon: 'key', title: 'Mazmorras isométricas', text: 'Cada expedición, un mapa distinto: salas, puertas, trampas y antorchas que apenas alcanzan. Lo que no ves, también te ve.' },
-  { icon: 'staff_fire', title: 'Combate por turnos', text: 'Orden por velocidad, habilidades con coste, defensa, pociones y huida. Veneno, quemadura, congelación, sangrado y aturdimiento.' },
-  { icon: 'chalice', title: 'Botín con rarezas', text: 'De común a legendario. Inventario en cuadrícula, arrastrar y soltar, comparación de equipo y pilas de consumibles.' },
-  { icon: 'dagger', title: 'Alianzas y traiciones', text: 'Repartir o no el botín cambia lo que el otro piensa de ti. Las traiciones avisan, pero no siempre a tiempo.' },
-  { icon: 'gem_red', title: 'Extracción con riesgo', text: 'Doce minutos para encontrar el portal. Morir cuesta todo lo que llevabas encima. El almacén del Bastión, nunca.' },
-  { icon: 'amulet_heart', title: 'Progresión', text: 'Experiencia y niveles, misiones con recompensa, oro y un mercader que compra lo que sacas de ahí abajo.' },
+  { icon: 'key', title: 'Ninguna bajada es igual', text: 'Cada expedición cambia las salas, los cofres y los peligros. Y la luz de las antorchas nunca llega a todas partes.' },
+  { icon: 'staff_fire', title: 'Piensa antes de golpear', text: 'Atacar, protegerte, lanzar un hechizo o beber una poción: tú decides. El veneno, el fuego y el hielo pueden darle la vuelta a cualquier pelea.' },
+  { icon: 'chalice', title: 'Botín que se nota', text: 'Armas y armaduras de común a legendario. Cada pieza mejora a tu personaje… y cambia su aspecto.' },
+  { icon: 'dagger', title: 'Aliados de los que no fiarse', text: 'Repartir el botín o quedártelo todo tiene consecuencias. Las traiciones avisan, pero no siempre a tiempo.' },
+  { icon: 'gem_red', title: 'Todo o nada', text: 'Doce minutos para llegar al portal. Si caes, pierdes lo que llevabas encima. Lo que guardas en el almacén, nunca.' },
+  { icon: 'amulet_heart', title: 'Cada bajada te hace más fuerte', text: 'Sube de nivel, cumple encargos y vende tus hallazgos para equiparte mejor la próxima vez.' },
 ];
 
 const SHOTS = [
@@ -60,7 +60,7 @@ function DownloadButton() {
   if (DOWNLOAD_URL) return <a href={DOWNLOAD_URL} className="btn-ghost px-6 py-3">Descargar para Windows</a>;
   return (
     <span className="btn-ghost px-6 py-3 opacity-60 cursor-not-allowed" aria-disabled="true" title="Todavía no hay versión descargable" data-testid="cta-download">
-      Descargar juego · Próximamente
+      Versión para Windows: próximamente
     </span>
   );
 }
@@ -90,13 +90,13 @@ export function App() {
         <div className="absolute inset-0 hero-fade pointer-events-none" />
         <div className="relative z-10 h-full max-w-6xl mx-auto px-4 flex flex-col justify-end pb-16 md:pb-24">
           <h1 className="hero-title font-display font-extrabold text-parchment">DREADBOUND</h1>
-          <p className="font-display text-xl md:text-3xl text-gold mt-3 tracking-wide">Trust No One. Escape With Everything.</p>
-          <p className="font-body text-xl md:text-2xl text-bone/90 mt-4 max-w-xl leading-snug">Un RPG de extracción donde las mazmorras son peligrosas, pero los aventureros todavía más.</p>
+          <p className="font-display text-xl md:text-3xl text-gold mt-3 tracking-wide">Confía en tu espada. En nadie más.</p>
+          <p className="font-body text-xl md:text-2xl text-bone/90 mt-4 max-w-2xl leading-snug">Baja a las criptas, llena la mochila y encuentra la salida. Los monstruos son lo de menos: el peligro de verdad camina a tu lado.</p>
           <div className="flex flex-wrap gap-3 mt-8">
             <PlayButton big />
             <DownloadButton />
           </div>
-          <p className="font-body text-stone-300 mt-4 text-base">Demo para navegador de escritorio. Sin registro. Un jugador con aventureros controlados por IA.</p>
+          <p className="font-body text-stone-300 mt-4 text-base">Gratis en el navegador de tu ordenador. Sin registro ni descargas.</p>
         </div>
       </section>
 
@@ -104,13 +104,13 @@ export function App() {
       <section id="juego" className="max-w-6xl mx-auto px-4 py-24">
         <div className="grid md:grid-cols-[1fr_1.3fr] gap-12 items-start">
           <div>
-            <h2 className="font-display text-4xl md:text-5xl text-parchment leading-tight">Bajas a por oro. Subes, si subes, con lo que puedas cargar.</h2>
+            <h2 className="font-display text-4xl md:text-5xl text-parchment leading-tight">Bajas a por oro. Si vuelves, vuelves rico.</h2>
             <p className="font-body text-xl text-stone-300 mt-6 leading-relaxed">
-              En DREADBOUND preparas a tu aventurero en el Bastión de Ceniza y bajas a criptas compartidas con otros buscadores de fortuna.
-              Combates por turnos contra lo que vive allí abajo, abres cofres y buscas el portal antes de que se acabe el tiempo.
+              En el Bastión de Ceniza preparas a tu aventurero. Bajo sus muros esperan unas criptas que cambian en cada expedición:
+              combates por turnos, cofres por abrir y un portal que debes encontrar antes de que se acabe el tiempo.
             </p>
             <p className="font-body text-xl text-stone-300 mt-4 leading-relaxed">
-              Lo que de verdad cambia cada partida son los demás aventureros: pueden ayudarte, ignorarte o esperar a que estés malherido.
+              Pero no bajas solo. Ahí abajo hay otro aventurero, y puede ser tu mejor aliado o tu peor error.
             </p>
           </div>
           <ol className="loop" aria-label="Una expedición, paso a paso">
@@ -155,11 +155,11 @@ export function App() {
               «Trato hecho. Repartimos lo que encontremos. Tú vigila mi espalda y yo la tuya.»
             </blockquote>
             <p className="font-body text-xl text-stone-300 mt-6 leading-relaxed">
-              Puedes hablar con él, aliarte, proponer un duelo amistoso que no mata a nadie, ignorarlo o atacarlo.
-              Si sois aliados combate a tu lado y espera su parte de cada cofre. Quédatelo todo y empezará a mirar tu mochila.
+              Puedes hablar con él, aliarte, retarle a un duelo amistoso o seguir tu camino. Como aliado lucha a tu lado y espera su parte
+              de cada cofre. Quédatelo todo y empezará a mirar tu mochila.
             </p>
             <p className="font-body text-xl text-stone-300 mt-4 leading-relaxed">
-              Una traición es un duelo a muerte sin huida posible: si ganas, su equipo es tuyo; si pierdes, el tuyo se queda en la cripta. Traicionar exige confirmarlo, para que nadie lo haga por un mal clic. Que te traicionen a ti, no.
+              Traicionarle es un duelo a muerte, sin huida: si ganas, su equipo es tuyo; si pierdes, el tuyo se queda en la cripta. Y recuerda que él también puede decidir que tu mochila vale más que vuestra amistad.
             </p>
           </div>
         </div>
@@ -169,7 +169,7 @@ export function App() {
       <section id="clases" className="bg-crypt border-y border-stone-800">
         <div className="max-w-6xl mx-auto px-4 py-20">
           <h2 className="font-display text-3xl md:text-4xl text-parchment">Elige quién baja</h2>
-          <p className="font-body text-xl text-stone-300 mt-3 max-w-2xl">Guerrero y Mago están completos en la demo. Pícaro y Clérigo están en desarrollo.</p>
+          <p className="font-body text-xl text-stone-300 mt-3 max-w-2xl">En la demo puedes jugar con el Guerrero y el Mago. El Pícaro y el Clérigo llegarán pronto.</p>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-10">
             {(Object.keys(CLASSES) as ClassId[]).map((id) => {
               const c = CLASSES[id];
@@ -181,7 +181,7 @@ export function App() {
                   <h3 className="font-display text-2xl mt-4" style={{ color: c.color }}>{c.name}</h3>
                   <p className="font-body italic text-stone-300">{c.tagline}</p>
                   <p className="font-body text-lg text-stone-300 mt-3 leading-snug">{c.description}</p>
-                  <p className="font-body text-base mt-4 text-stone-400">{c.playable ? 'Jugable en la demo' : 'En desarrollo'}</p>
+                  <p className="font-body text-base mt-4 text-stone-400">{c.playable ? 'Disponible' : 'Próximamente'}</p>
                 </article>
               );
             })}
@@ -191,8 +191,8 @@ export function App() {
 
       {/* Capturas reales */}
       <section id="capturas" className="max-w-6xl mx-auto px-4 py-24">
-        <h2 className="font-display text-3xl md:text-4xl text-parchment">Capturas de la demo</h2>
-        <p className="font-body text-xl text-stone-300 mt-3">Tomadas directamente de la versión jugable actual.</p>
+        <h2 className="font-display text-3xl md:text-4xl text-parchment">Así se ve ahora mismo</h2>
+        <p className="font-body text-xl text-stone-300 mt-3">Capturas reales de la demo, sin retoques.</p>
         <div className="grid md:grid-cols-2 gap-6 mt-10">
           {SHOTS.map((s) => (
             <figure key={s.src} className="shot">
@@ -208,26 +208,26 @@ export function App() {
         <div className="absolute inset-0 demo-glow" />
         <div className="relative max-w-6xl mx-auto px-4 py-24 grid lg:grid-cols-[1.2fr_1fr] gap-12">
           <div>
-            <h2 className="font-display text-4xl md:text-5xl text-parchment leading-tight">Juega ahora en el navegador</h2>
+            <h2 className="font-display text-4xl md:text-5xl text-parchment leading-tight">Juega gratis ahora</h2>
             <p className="font-body text-xl text-stone-300 mt-4 max-w-xl leading-relaxed">Crea a tu aventurero, equípalo, baja a unas criptas que nunca son iguales y vuelve con algo. Tu progreso se guarda en este navegador.</p>
             <div className="mt-8"><PlayButton big /></div>
-            <p className="font-body text-stone-400 mt-4">Recomendado: ordenador con teclado y ratón. WASD o clic para moverte, E para interactuar.</p>
+            <p className="font-body text-stone-400 mt-4">Necesitas un ordenador con teclado y ratón.</p>
           </div>
           <div className="grid grid-cols-2 gap-8 font-body text-lg">
             <div>
-              <h3 className="font-display text-xl text-heal mb-3">En la demo</h3>
+              <h3 className="font-display text-xl text-heal mb-3">Ya disponible</h3>
               <ul className="space-y-1.5 text-stone-300">
                 <li>Guerrero y Mago</li>
                 <li>Mazmorras distintas en cada expedición</li>
                 <li>Esqueletos, murciélagos y un jefe</li>
                 <li>Combate por turnos completo</li>
                 <li>Inventario, almacén y mercader</li>
-                <li>Un aventurero rival con IA</li>
+                <li>Un rival que decide por sí mismo si ayudarte o traicionarte</li>
                 <li>Misiones y niveles</li>
               </ul>
             </div>
             <div>
-              <h3 className="font-display text-xl text-stone-300 mb-3">Todavía no</h3>
+              <h3 className="font-display text-xl text-stone-300 mb-3">En camino</h3>
               <ul className="space-y-1.5 text-stone-400">
                 <li>Multijugador con personas reales</li>
                 <li>Pícaro y Clérigo</li>
@@ -252,7 +252,7 @@ export function App() {
 
       <footer className="max-w-6xl mx-auto px-4 py-12 flex flex-col md:flex-row gap-4 md:items-center text-stone-400 font-body text-base">
         <span className="font-display tracking-[0.14em] text-stone-300">DREADBOUND</span>
-        <span>Proyecto indie en desarrollo. Demo v0.1. Arte y sonido provisionales generados por código.</span>
+        <span>Juego independiente en desarrollo. Demo 0.1. El arte y el sonido actuales son provisionales.</span>
         <div className="md:ml-auto flex gap-5">
           <a href={PLAY_URL} onClick={guardPlay} className="hover:text-parchment">Jugar</a>
           <a href="#juego" className="hover:text-parchment">El juego</a>

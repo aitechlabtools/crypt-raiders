@@ -44,11 +44,11 @@ fs.mkdirSync(OUT, { recursive: true });
     await shot('03-merchant');
   });
   await step('El aspecto cambia al equiparse un yelmo', async () => {
-    await page.click('[data-testid=buy-iron_helm]');
+    await page.click('[data-testid=buy-leather_hood]');
     await page.click('[data-testid=tab-gear]');
     const before = await page.$eval('[data-testid=equipment] [data-testid=hero-sprite]', (i) => i.src);
-    await page.dblclick('[data-testid^=slot-backpack][data-item=iron_helm]');
-    await page.waitForSelector('[data-testid=slot-equip-helmet][data-item=iron_helm]');
+    await page.dblclick('[data-testid^=slot-backpack][data-item=leather_hood]');
+    await page.waitForSelector('[data-testid=slot-equip-helmet][data-item=leather_hood]');
     await page.waitForTimeout(300);
     const after = await page.$eval('[data-testid=equipment] [data-testid=hero-sprite]', (i) => i.src);
     if (before === after) throw new Error('el retrato no cambió al equipar el yelmo');
@@ -77,7 +77,7 @@ fs.mkdirSync(OUT, { recursive: true });
     await page.waitForTimeout(300);
     const t1 = await page.evaluate(() => window.__DREADBOUND__.scene().player.tex);
     if (t0 === t1) throw new Error('la textura del personaje no cambió');
-    await page.dblclick('[data-testid^=slot-backpack][data-item=iron_helm]');
+    await page.dblclick('[data-testid^=slot-backpack][data-item=leather_hood]');
     await page.keyboard.press('Escape');
   });
   await step('Caminar con el teclado', async () => {
@@ -101,9 +101,14 @@ fs.mkdirSync(OUT, { recursive: true });
       const myTurn = await page.$('[data-testid=act-attack]');
       if (myTurn) {
         if (s.hp < 40 && (await page.$('[data-testid=act-item]:not([disabled])'))) { await page.keyboard.press('5'); await page.click('[data-testid=use-health_potion]'); }
-        else if (i === 1) await page.click('[data-testid=act-skill-0]');
+        else if (i === 1) {
+          await page.click('[data-testid=act-skills]');
+          await page.waitForSelector('[data-testid=skills-menu]');
+          await shot('08-skills-menu');
+          await page.click('[data-testid=skill-rending_slash]');
+        }
         else await page.keyboard.press('1');
-        if (i === 1) { await page.waitForTimeout(250); await shot('08-combat-skill'); }
+        
       }
       await page.waitForTimeout(450);
     }
@@ -233,12 +238,15 @@ fs.mkdirSync(OUT, { recursive: true });
     if (seed2 === firstSeed) throw new Error('se repitió el mismo mapa');
     await page.evaluate(() => window.__DREADBOUND__.actions.trapHit(9999));
     await page.waitForSelector('[data-testid=summary]');
+    // Se pierde todo lo transportado y el intendente entrega el kit de recluta automáticamente
+    await page.waitForSelector('[data-testid=recruit-kit]');
     await shot('18-death');
     await page.click('[data-testid=btn-back-lobby]');
     const s = await st();
-    if (s.backpack.length !== 0) throw new Error('tras morir la mochila no está vacía: ' + s.backpack);
+    if (s.backpack.join() !== 'health_potionx1') throw new Error('tras morir la mochila debería tener solo la poción del kit: ' + s.backpack);
+    const weapon = await page.evaluate(() => window.__DREADBOUND__.getState().profile.equipment.mainHand?.itemId);
+    if (weapon !== 'rusty_sword') throw new Error('el kit de recluta no equipó el arma: ' + weapon);
     await page.click('[data-testid=tab-gear]');
-    await page.waitForSelector('[data-testid=recruit-kit]');
     await shot('19-lobby-after-death');
   });
   console.log('\nErrores de consola:', errors.length ? errors : 'ninguno');

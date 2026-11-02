@@ -3,10 +3,10 @@ import { actions, useGame } from '../state/store';
 import { CLASSES } from '../../core/data/classes';
 import type { ClassId } from '../../core/types';
 import { CLOAK_COLORS, CLOAK_NAMES, SKIN_COLORS, SKIN_NAMES } from '../../shared/palette';
-import { HeroSprite, MonsterSprite, Modal } from './common';
+import { HeroSprite, MonsterSprite, Modal, LoadoutPanel } from './common';
+import { starterEquipment } from '../../shared/gearLook';
 import { StatsList } from './inventory';
 import { baseStats } from '../../core/stats';
-import { getSkill } from '../../core/data/skills';
 import { sfx, startMusic } from '../audio';
 
 export function Logo({ size = 'text-6xl md:text-8xl' }: { size?: string }) {
@@ -73,7 +73,7 @@ export function TitleScreen() {
       <div className="absolute bottom-[12%] right-[8%] hidden md:block opacity-80 breathe" style={{ animationDelay: '0.8s' }}><MonsterSprite sprite="rival" scale={7} className="-scale-x-100" /></div>
       <div className="relative text-center fade-in px-4">
         <Logo />
-        <p className="font-body italic text-xl md:text-2xl text-stone-300 mt-4">Trust no one. Escape with everything.</p>
+        <p className="font-body italic text-xl md:text-2xl text-stone-300 mt-4">Confía en tu espada. En nadie más.</p>
         <div className="flex flex-col gap-3 mt-10 w-72 mx-auto">
           <button className="btn btn-gold text-lg py-3" onClick={start} data-testid="btn-play" autoFocus>
             {profile ? `Continuar como ${profile.character.name}` : 'Jugar'}
@@ -178,8 +178,9 @@ export function CreateScreen() {
             <div className="font-display text-2xl text-center mt-2" style={{ color: def.color }}>{name.trim() || def.name}</div>
             <p className="font-body text-base text-stone-300 my-3 leading-snug">{def.description}</p>
             <StatsList stats={baseStats(cls, 1)} resourceName={def.resourceName} />
-            <div className="mt-3 text-sm space-y-1">
-              {def.skills.map((s) => <div key={s}><span className="text-gold">{getSkill(s).name}:</span> <span className="font-body text-base text-stone-300">{getSkill(s).description}</span></div>)}
+            <div className="mt-3 text-sm">
+              <div className="text-xs text-stone-400 mb-2">Armas: {def.weapons}</div>
+              <LoadoutPanel classId={cls} equipment={starterEquipment(cls)} compact />
             </div>
             <button className="btn btn-gold mt-4 py-3 text-lg" disabled={!valid} data-testid="btn-create" onClick={() => { sfx('equip'); void actions.createCharacter(name, cls, ap); }}>
               Comenzar

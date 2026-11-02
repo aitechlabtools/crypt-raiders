@@ -1,6 +1,6 @@
 # DREADBOUND
 
-**Trust No One. Escape With Everything.**
+**Confía en tu espada. En nadie más.**
 RPG de extracción por turnos de fantasía oscura, en 2D isométrico. Explora, combate, negocia, traiciona y escapa.
 
 Versión **0.1 (primera entrega jugable)**. Un jugador con un aventurero rival controlado por IA. Todavía no hay multijugador real ni versión de Windows.
@@ -47,6 +47,8 @@ node scripts/serve.mjs   # sirve dist/ en http://localhost:4173
 - **Lobby (Bastión de Ceniza)**: personaje y habilidades; equipo con 8 ranuras y estadísticas; mochila en cuadrícula con arrastrar y soltar, tooltips, rarezas, comparación, apilado y ordenación; almacén seguro; mercader (comprar y vender); misiones con recompensa; preparación de expedición.
 - **Mazmorras isométricas**: la primera expedición es Las Criptas de Umbravel (diseñada a mano, sirve de tutorial); a partir de la segunda, **cada expedición genera un mapa nuevo** (7-9 salas, siempre con inicio, jefe, cofres, portal y Kael; el número de mapa aparece bajo el temporizador). Incluye cámara que sigue al jugador, movimiento por teclado o clic (con búsqueda de camino), colisiones, puertas, trampas, antorchas con luz parpadeante, niebla de guerra con línea de visión, cofres, murciélagos, esqueletos, jefe (Señor del Osario), portal y temporizador de 12 minutos.
 - **Combate por turnos**: orden por velocidad, ataque básico, 2 habilidades por clase, defensa, objetos, huida, 7 estados alterados, críticos, evasión, IA enemiga, aliados en combate, registro y animaciones.
+- **Clase, arma y nivel**: cada clase tiene 1 habilidad propia; el arma equipada da el ataque básico y sus habilidades (sin arma, puños); las defensivas solo con escudo o tomo. Todo el equipo tiene nivel mínimo (1, 3, 5, 8): se puede guardar pero no equipar hasta alcanzarlo. Ver `docs/DISENO.md`.
+- **Kit de recluta automático**: si mueres y no te queda ningún arma, recibes arma, armadura y una poción.
 - **Apariencia según el equipo**: el personaje cambia de aspecto con cada pieza visible (arma, secundaria, cabeza, torso, guantes, botas y amuleto) en el lobby, el combate y la mazmorra, incluso al cambiar de equipo en plena expedición. Cómo se ve cada objeto está en `src/shared/gearLook.ts`.
 - **Interacción**: E usa lo que tienes delante; si hay varias cosas cerca (Kael, un cofre, una puerta…) abre un menú para elegir (teclas 1-9).
 - **Móvil**: la web y la demo avisan de que se juega con teclado y ratón y permiten enviarse el enlace.
@@ -56,7 +58,7 @@ node scripts/serve.mjs   # sirve dist/ en http://localhost:4173
 
 ## Pruebas
 
-- `npm test`: 51 pruebas unitarias del núcleo (incluye simulaciones de balance y 300 mapas generados validados).
+- `npm test`: 72 pruebas unitarias del núcleo (incluye simulaciones de balance y 300 mapas generados validados).
 - `node scripts/e2e.cjs http://localhost:5173/play/`: recorrido completo en un navegador real (crear personaje → comprar poción → mazmorra → combate → cofre → alianza → portal → el botín aparece en el lobby → recarga → muerte). Requiere Playwright.
 - `node scripts/e2e-social.cjs …`: duelo, alianza, traición, saqueo y huida.
 - `node scripts/screenshots.cjs …`: regenera las capturas de la web en `public/screenshots/`.

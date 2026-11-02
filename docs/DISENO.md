@@ -4,6 +4,16 @@
 Vida, recurso (Aguante / Maná / Energía / Fe), Ataque, Defensa, Poder mágico, Resistencia mágica, Velocidad, Crítico %, Evasión %.
 Estadísticas finales = base de clase + crecimiento por nivel + equipo.
 
+## Clase, arma y nivel
+- **La clase define quién eres:** 1 habilidad exclusiva siempre disponible (Guerrero: Grito de guerra, +30 % de daño 3 turnos; Mago: Meditación, +18 de maná) y qué familias de armas puede usar (Guerrero: espadas, hachas y escudos; Mago: báculos y tomos).
+- **El arma define cómo luchas:** da el ataque básico y sus habilidades (3-4 en total). Sin arma: Puñetazo y Golpe bajo. Cada báculo da hechizos distintos.
+- **Las defensivas dependen del equipo:** Bloqueo, Embestida y Muro de hierro solo con escudo; Barrera arcana solo con tomo. «Defender» (-50 % ese turno) está siempre.
+- **El nivel marca tu progresión:** todo el equipo tiene nivel mínimo (1, 3, 5 u 8). Puedes llevar y guardar objetos de nivel superior, pero no equiparlos.
+- Botín por escalones: cofres comunes niv. 1-3, cofres lacrados niv. 3-5, cofre del jefe niv. 5-8. El mercader vende hasta niv. 3.
+- Las criaturas ganan un 15 % de vida, ataque y defensa por cada nivel del aventurero por encima del 1, y dan proporcionalmente más XP.
+- XP: esqueleto 45, murciélago 30, jefe 250, Kael 60, +50 por extraer.
+- Kit de recluta automático al morir sin ningún arma: arma y armadura básicas de la clase y una poción.
+
 ## Combate
 - Cada ronda, los vivos actúan de mayor a menor **velocidad** (empate: bando del jugador primero).
 - **Daño** = potencia × (Ataque o Poder mágico) × 60 / (60 + Defensa o Resistencia) × variación 0,9–1,1.

@@ -9,6 +9,9 @@ import { actions, containersFor, getState, useGame } from '../state/store';
 import type { InvMode } from './inventory';
 import { ItemIcon } from './inventory';
 import { RARITY_INFO } from '../../core/data/items';
+import { combatLoadout } from '../../core/loadout';
+import { getSkill } from '../../core/data/skills';
+import { CLASSES } from '../../core/data/classes';
 
 export function HeroSprite({ classId, appearance, equipment, scale = 6, animate = true, pose = 'idle' as 'idle' | 'attack' | 'hurt', className = '' }: { classId: ClassId; appearance: Appearance; equipment?: Equipment; scale?: number; animate?: boolean; pose?: 'idle' | 'attack' | 'hurt'; className?: string }) {
   const [f, setF] = useState(0);
@@ -117,3 +120,35 @@ export function useHotkey(key: string, fn: () => void, enabled = true) {
 }
 
 export { getState };
+
+const SOURCE_LABEL = { class: 'De clase · siempre disponible', weapon: 'Del arma', offhand: 'Defensiva' } as const;
+
+/** Habilidades disponibles con el equipo indicado, agrupadas: clase, arma y secundaria. */
+export function LoadoutPanel({ classId, equipment, compact = false }: { classId: ClassId; equipment: Equipment; compact?: boolean }) {
+  const kit = combatLoadout(classId, equipment);
+  const res = CLASSES[classId].resourceName.toLowerCase();
+  const hasOff = kit.groups.some((g) => g.source === 'offhand');
+  return (
+    <div className="space-y-3" data-testid="loadout">
+      {kit.groups.map((g) => (
+        <div key={g.source}>
+          <div className="text-xs text-stone-400 mb-1">{SOURCE_LABEL[g.source]} · <span className="text-stone-300">{g.label}</span></div>
+          {g.source === 'weapon' && (
+            <div className="flex gap-2 items-baseline"><span className="text-parchment">{kit.basicAttack.name}</span><span className="text-xs text-stone-400">ataque básico, sin coste</span></div>
+          )}
+          {g.skills.map((id) => {
+            const sk = getSkill(id);
+            return (
+              <div key={id} className="mt-0.5">
+                <span className={g.source === 'class' ? 'text-gold' : g.source === 'offhand' ? 'text-frost' : 'text-parchment'}>{sk.name}</span>
+                <span className="text-xs text-stone-400"> · {sk.cost ? `${sk.cost} ${res}` : 'sin coste'}</span>
+                {!compact && <div className="font-body text-base text-stone-300 leading-snug">{sk.description}</div>}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+      {!hasOff && <div className="text-xs text-stone-500 italic">Sin escudo ni tomo: no tienes habilidades defensivas.</div>}
+    </div>
+  );
+}

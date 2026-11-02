@@ -41,6 +41,12 @@ export interface ItemDef {
   /** Preparado para inventarios con objetos de varias casillas. En la demo todo ocupa 1x1. */
   size?: { w: number; h: number };
   use?: ItemEffect;
+  /** Familia del arma o de la secundaria (decide quién puede llevarla y su estilo). */
+  family?: 'sword' | 'axe' | 'dagger' | 'staff' | 'mace' | 'shield' | 'tome';
+  /** Ataque básico que da el arma (solo mano principal). */
+  attack?: AttackDef;
+  /** Habilidades que concede mientras está equipado. */
+  grants?: string[];
 }
 
 export interface ItemStack {
@@ -52,7 +58,7 @@ export interface ItemStack {
 export type Grid = (ItemStack | null)[];
 export type Equipment = Record<EquipSlot, ItemStack | null>;
 
-export type StatusId = 'poison' | 'burn' | 'freeze' | 'stun' | 'bleed' | 'protect' | 'regen';
+export type StatusId = 'poison' | 'burn' | 'freeze' | 'stun' | 'bleed' | 'protect' | 'regen' | 'empower' | 'block';
 
 export interface StatusInstance {
   id: StatusId;
@@ -83,7 +89,18 @@ export interface SkillDef {
   /** Daño extra contra no-muertos (para el Clérigo). */
   bonusVsUndead?: number;
   ignoresEvasion?: boolean;
+  /** Fracción de la defensa del objetivo que se ignora (0..1). */
+  armorPierce?: number;
+  /** Recurso que recupera el lanzador. */
+  manaGain?: number;
   fx: 'slash' | 'fire' | 'frost' | 'shield' | 'poison' | 'holy' | 'dark' | 'bite' | 'smash';
+}
+
+export interface AttackDef {
+  name: string;
+  kind: DamageKind;
+  power: number;
+  fx: SkillDef['fx'];
 }
 
 export interface Appearance {

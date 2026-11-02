@@ -1,17 +1,15 @@
 import { useState, type ReactNode } from 'react';
 import { actions, useGame } from '../state/store';
 import { CLASSES } from '../../core/data/classes';
-import { getSkill } from '../../core/data/skills';
 import { getItem, RARITY_INFO } from '../../core/data/items';
 import { MERCHANT_STOCK } from '../../core/data/merchant';
 import { QUESTS } from '../../core/data/quests';
 import { computeStats, baseStats, xpForNextLevel } from '../../core/stats';
 import { countItem, equippedValue, gridValue, type Loc } from '../../core/inventory';
-import { needsRecruitKit } from '../../core/profile';
 import { buyPrice } from '../../core/economy';
 import { EXPEDITION_DURATION_MS } from '../../core/expedition';
 import { EquipmentView, GridView, ItemIcon, StatsList, Bar, type InvMode } from './inventory';
-import { PlayerSprite, GoldAmount, ItemActions, Modal } from './common';
+import { PlayerSprite, GoldAmount, ItemActions, Modal, LoadoutPanel } from './common';
 import { SettingsModal } from './TitleScreen';
 import { sfx, startMusic } from '../audio';
 import type { ItemStack } from '../../core/types';
@@ -105,17 +103,6 @@ function useSelection() {
   return { sel, setSel, clear: () => setSel(null) };
 }
 
-function RecruitKitBanner() {
-  const profile = useGame((s) => s.profile)!;
-  if (!needsRecruitKit(profile)) return null;
-  return (
-    <div className="panel p-3 mb-4 border-ember flex items-center gap-3 flex-wrap" data-testid="recruit-kit">
-      <span className="font-body text-lg flex-1">No te queda ningún arma. El intendente del Bastión puede prestarte un equipo de recluta.</span>
-      <button className="btn btn-gold" onClick={() => actions.claimRecruitKit()}>Pedir equipo de recluta</button>
-    </div>
-  );
-}
-
 function HeroTab() {
   const profile = useGame((s) => s.profile)!;
   const ch = profile.character;
@@ -141,19 +128,8 @@ function HeroTab() {
           <p className="font-body text-stone-300 mt-3 text-base">Entre paréntesis, la bonificación del equipo. Subir de nivel mejora tus atributos base.</p>
         </Section>
         <Section title="Habilidades">
-          <div className="space-y-3">
-            <div className="flex gap-3"><span className="text-xs bg-stone-700 px-2 py-1 h-fit">1</span><div><div className="text-gold">{cls.basicAttack.name} (ataque básico)</div><div className="font-body text-base text-stone-300">Sin coste. Daño {cls.basicAttack.kind === 'physical' ? 'físico' : 'mágico'} x{cls.basicAttack.power}.</div></div></div>
-            {cls.skills.map((id, i) => {
-              const s = getSkill(id);
-              return (
-                <div key={id} className="flex gap-3">
-                  <span className="text-xs bg-stone-700 px-2 py-1 h-fit">{i + 2}</span>
-                  <div><div className="text-gold">{s.name} <span className="text-xs text-frost">· {s.cost} {cls.resourceName.toLowerCase()}</span></div><div className="font-body text-base text-stone-300">{s.description}</div></div>
-                </div>
-              );
-            })}
-            <p className="font-body text-stone-400 text-base italic">Nuevas habilidades y talentos llegarán en próximas versiones.</p>
-          </div>
+          <LoadoutPanel classId={ch.classId} equipment={profile.equipment} />
+          <p className="font-body text-stone-400 text-base mt-3">Tu clase define quién eres; el arma, cómo luchas. Cambia de arma o de escudo y cambiarán tus habilidades.</p>
         </Section>
       </div>
     </div>
@@ -169,7 +145,6 @@ function GearTab() {
   const mode: InvMode = 'lobby';
   return (
     <>
-      <RecruitKitBanner />
       <div className="grid xl:grid-cols-[minmax(380px,460px)_1fr] gap-4">
         <div className="space-y-4">
           <Section title="Equipamiento">
@@ -232,7 +207,11 @@ function MerchantTab() {
                 <div className="slot" style={{ borderColor: RARITY_INFO[d.rarity].color + 'aa' }}><ItemIcon itemId={id} /></div>
                 <div className="flex-1 min-w-0">
                   <div className="truncate" style={{ color: RARITY_INFO[d.rarity].color }}>{d.name}</div>
-                  <div className="text-xs text-stone-400 truncate">{d.stats ? Object.entries(d.stats).map(([k, v]) => `${v! > 0 ? '+' : ''}${v} ${k}`).join(' ') : d.description}{!usable && <span className="text-blood"> · otra clase</span>}</div>
+                  <div className="text-xs text-stone-400 truncate">
+                    {d.slot && d.levelReq ? <span className={ch.level < d.levelReq ? 'text-blood' : 'text-heal'}>Nv {d.levelReq} · </span> : null}
+                    {d.stats ? Object.entries(d.stats).map(([k, v]) => `${v! > 0 ? '+' : ''}${v} ${k}`).join(' ') : d.description}
+                    {!usable && <span className="text-blood"> · otra clase</span>}
+                  </div>
                 </div>
                 <button className="btn btn-gold text-sm whitespace-nowrap" disabled={profile.gold < price} onClick={() => actions.buy(id)} data-testid={`buy-${id}`}>{price} oro</button>
               </div>

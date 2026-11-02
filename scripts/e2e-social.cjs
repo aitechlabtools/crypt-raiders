@@ -12,9 +12,11 @@ const BASE = process.argv[2] || 'http://localhost:5173/play/';
     for (let i = 0; i < 80; i++) {
       const s = await S();
       if (s.outcome || !s.combat) break;
-      const btn = await page.$(prefer && i % 2 ? prefer : '[data-testid=act-attack]');
-      if (btn && !(await btn.isDisabled())) await btn.click();
-      else if (await page.$('[data-testid=act-attack]')) await page.click('[data-testid=act-attack]');
+      if (prefer && i % 2 && (await page.$('[data-testid=act-skills]'))) {
+        await page.click('[data-testid=act-skills]');
+        const sk = await page.$(`${prefer}:not([disabled])`);
+        if (sk) await sk.click(); else { await page.keyboard.press('Escape'); await page.click('[data-testid=act-attack]'); }
+      } else if (await page.$('[data-testid=act-attack]')) await page.click('[data-testid=act-attack]');
       await page.waitForTimeout(350);
     }
   };
@@ -40,7 +42,7 @@ const BASE = process.argv[2] || 'http://localhost:5173/play/';
   await page.click('[data-testid=rival-talk]');
   await page.click('[data-testid=rival-duel]');
   await page.waitForSelector('[data-testid=combat]');
-  await fight('[data-testid=act-skill-1]');
+  await fight('[data-testid=skill-frost_lance]');
   console.log('duelo:', (await S()).outcome);
   await page.click('[data-testid=btn-combat-continue]');
   console.log('tras duelo, Kael:', (await S()).rival, 'pantalla:', (await S()).screen);
@@ -63,7 +65,11 @@ const BASE = process.argv[2] || 'http://localhost:5173/play/';
     const hp = await page.evaluate(() => window.__DREADBOUND__.getState().expedition.hp);
     if (await page.$('[data-testid=act-attack]')) {
       if (hp < 30 && await page.$('[data-testid=act-item]:not([disabled])')) { await page.click('[data-testid=act-item]'); { const u = await page.$('[data-testid^=use-health]') ?? await page.$('[data-testid^=use-]'); if (u) await u.click(); else await page.keyboard.press('Escape'); } }
-      else { const f = await page.$('[data-testid=act-skill-0]:not([disabled])'); await (f ?? await page.$('[data-testid=act-attack]')).click(); }
+      else {
+        await page.click('[data-testid=act-skills]');
+        const f = await page.$('[data-testid=skill-frost_lance]:not([disabled])') ?? await page.$('[data-testid=skill-spark]:not([disabled])');
+        if (f) await f.click(); else { await page.keyboard.press('Escape'); await page.click('[data-testid=act-attack]'); }
+      }
     }
     await page.waitForTimeout(350);
   }

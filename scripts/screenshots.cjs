@@ -15,6 +15,7 @@ const OUT = process.argv[3] || 'public/screenshots';
   await page.evaluate(() => {
     const s = window.__DREADBOUND__.getState();
     s.profile.gold = 600;
+    s.profile.character.level = 3;
   });
   await page.click('[data-testid=tab-merchant]');
   for (const id of ['iron_helm', 'gauntlets', 'chainmail', 'iron_sword', 'health_potion', 'copper_ring', 'antidote']) await page.click(`[data-testid=buy-${id}]`);
@@ -45,8 +46,11 @@ const OUT = process.argv[3] || 'public/screenshots';
   await page.evaluate(() => window.__DREADBOUND__.actions.startCombat('pve', 'e_boss', 'ossuary_lord'));
   for (let i = 0; i < 6; i++) {
     await page.waitForTimeout(1100);
-    const btn = await page.$('[data-testid=act-skill-0]:not([disabled])');
-    if (btn) await btn.click();
+    if (await page.$('[data-testid=act-skills]')) {
+      await page.click('[data-testid=act-skills]');
+      const btn = await page.$('[data-testid=skill-rending_slash]:not([disabled])');
+      if (btn) await btn.click(); else await page.keyboard.press('Escape');
+    }
   }
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${OUT}/combat.png` });

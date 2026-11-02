@@ -139,17 +139,21 @@ export function canUseSkill(c: Combatant, skillId: string): boolean {
 
 export interface DamageRoll { amount: number; crit: boolean; miss: boolean }
 
-export function rollDamage(att: Combatant, def: Combatant, kind: DamageKind, power: number, rng: Rng, opts: { ignoresEvasion?: boolean; undeadMult?: number } = {}): DamageRoll {
+export function rollDamage(att: Combatant, def: Combatant, kind: DamageKind, power: number, rng: Rng, opts: { ignoresEvasion?: boolean; undeadMult?: number; armorPierce?: number } = {}): DamageRoll {
   if (kind === 'physical' && !opts.ignoresEvasion && rng.chance(def.stats.eva / 100)) {
     return { amount: 0, crit: false, miss: true };
   }
   const off = kind === 'physical' ? att.stats.atk : att.stats.mag;
-  const mit = kind === 'physical' ? def.stats.def : def.stats.res;
+  const mit = (kind === 'physical' ? def.stats.def : def.stats.res) * (1 - (opts.armorPierce ?? 0));
   let dmg = power * off * (DAMAGE_K / (DAMAGE_K + Math.max(0, mit)));
   dmg *= 0.9 + rng.next() * 0.2;
   const crit = rng.chance(att.stats.crit / 100);
   if (crit) dmg *= 1.5;
   if (def.undead && opts.undeadMult) dmg *= opts.undeadMult;
+  for (const st of att.statuses) {
+    const m = STATUSES[st.id].damageDealtMult;
+    if (m && st.turns > 0) dmg *= m;
+  }
   if (def.defending) dmg *= 0.5;
   for (const st of def.statuses) {
     const m = STATUSES[st.id].damageTakenMult;
@@ -167,6 +171,14 @@ export function fleeChance(actor: Combatant, foes: Combatant[]): number {
 
 function dealDamage(s: CombatState, target: Combatant, amount: number, crit: boolean, source: 'hit' | 'dot' | 'doom', status?: StatusId) {
   target.hp = Math.max(0, target.hp - amount);
+  if (source === 'hit') {
+    // Estados que se gastan al recibir un golpe (bloqueo con escudo)
+    for (const st of target.statuses.filter((x) => STATUSES[x.id].consumedOnHit)) {
+      s.events.push({ type: 'status', targetId: target.id, status: st.id, applied: false });
+      s.log.push(`${target.name} detiene el golpe con el escudo.`);
+    }
+    target.statuses = target.statuses.filter((x) => !STATUSES[x.id].consumedOnHit);
+  }
   s.events.push({ type: 'damage', targetId: target.id, amount, crit, source, status });
   if (target.hp === 0) {
     s.events.push({ type: 'death', targetId: target.id });
@@ -244,7 +256,7 @@ function executeAction(s: CombatState, actor: Combatant, action: CombatAction, r
       s.events.push({ type: 'action', actorId: actor.id, label: sk.name, fx: sk.fx, targetId: target.id });
       let landed = true;
       if (sk.kind && sk.power && sk.target === 'enemy') {
-        const r = rollDamage(actor, target, sk.kind, sk.power, rng, { ignoresEvasion: sk.ignoresEvasion, undeadMult: sk.bonusVsUndead });
+        const r = rollDamage(actor, target, sk.kind, sk.power, rng, { ignoresEvasion: sk.ignoresEvasion, undeadMult: sk.bonusVsUndead, armorPierce: sk.armorPierce });
         if (r.miss) {
           landed = false;
           s.events.push({ type: 'miss', targetId: target.id });
@@ -255,6 +267,12 @@ function executeAction(s: CombatState, actor: Combatant, action: CombatAction, r
         }
       } else {
         s.log.push(`${actor.name} usa ${sk.name}.`);
+      }
+      if (sk.manaGain) {
+        const real = Math.min(actor.stats.maxMp - actor.mp, sk.manaGain);
+        actor.mp += real;
+        s.events.push({ type: 'mana', targetId: actor.id, amount: real });
+        s.log.push(`${actor.name} recupera ${real} de ${actor.resourceName.toLowerCase()}.`);
       }
       if (sk.healPct) {
         const h = heal(s, actor, actor.stats.maxHp * sk.healPct);

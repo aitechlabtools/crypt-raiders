@@ -3,24 +3,34 @@ import type { Combatant, Side } from './combat';
 import { CLASSES } from './data/classes';
 import { getEnemy } from './data/enemies';
 import { computeStats } from './stats';
+import { combatLoadout } from './loadout';
 
 export function playerCombatant(ch: CharacterData, equipment: Equipment, hp: number, mp: number): Combatant {
   const cls = CLASSES[ch.classId];
   const stats = computeStats(ch.classId, ch.level, equipment);
+  const kit = combatLoadout(ch.classId, equipment);
   return {
     id: 'player', name: ch.name, side: 'A', sprite: `hero_${ch.classId}`,
     stats, hp: Math.min(hp, stats.maxHp), mp: Math.min(mp, stats.maxMp),
     resourceName: cls.resourceName, resourceRegen: cls.resourceRegen,
-    statuses: [], skills: [...cls.skills], basicAttack: cls.basicAttack,
+    statuses: [], skills: kit.skills, basicAttack: kit.basicAttack,
     control: 'player', skillChance: 0, undead: false, defending: false, potions: 0,
   };
 }
 
-export function enemyCombatant(enemyId: string, instanceId: string, side: Side = 'B'): Combatant {
+/** Las criaturas se hacen más duras según el nivel del aventurero (+15% por nivel por encima del 1). */
+export function levelScale(level: number): number {
+  return 1 + 0.15 * (Math.max(1, level) - 1);
+}
+
+export function enemyCombatant(enemyId: string, instanceId: string, side: Side = 'B', level = 1): Combatant {
   const e = getEnemy(enemyId);
+  const k = levelScale(level);
+  const stats = { ...e.stats };
+  for (const key of ['maxHp', 'atk', 'def', 'mag', 'res'] as const) stats[key] = Math.round(stats[key] * k);
   return {
     id: instanceId, name: e.name, side, sprite: e.sprite,
-    stats: { ...e.stats }, hp: e.stats.maxHp, mp: 0,
+    stats, hp: stats.maxHp, mp: 0,
     resourceName: '—', resourceRegen: 0, statuses: [], skills: [...e.skills],
     basicAttack: e.basicAttack, control: 'ai', skillChance: e.skillChance,
     undead: e.undead, defending: false, potions: 0, boss: e.boss, ref: enemyId,

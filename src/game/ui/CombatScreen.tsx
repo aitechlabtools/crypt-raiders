@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { actions, useGame } from '../state/store';
 import { currentActor, canUseSkill, fleeChance, opponents, type Combatant, type CombatEvent } from '../../core/combat';
 import { getSkill } from '../../core/data/skills';
+import { combatLoadout } from '../../core/loadout';
 import { getItem } from '../../core/data/items';
 import { STATUSES } from '../../core/statuses';
 import { countItem } from '../../core/inventory';
@@ -23,7 +24,7 @@ export function CombatScreen() {
   const cs = combat.state;
   const actor = currentActor(cs);
   const playerTurn = actor?.control === 'player';
-  const [menu, setMenu] = useState<'main' | 'items'>('main');
+  const [menu, setMenu] = useState<'main' | 'items' | 'skills'>('main');
   const [target, setTarget] = useState<string | null>(null);
   const [floats, setFloats] = useState<Float[]>([]);
   const [anim, setAnim] = useState<{ step: number; actorId: string | null; hit: Set<string>; fx: string | null; fromLeft: boolean }>({ step: 0, actorId: null, hit: new Set(), fx: null, fromLeft: true });
@@ -93,18 +94,20 @@ export function CombatScreen() {
         return;
       }
       if (!playerTurn) return;
-      if (menu === 'items') {
-        if (e.key === 'Escape') setMenu('main');
+      if (menu !== 'main') {
+        if (e.key === 'Escape') { e.preventDefault(); setMenu('main'); return; }
+        if (menu === 'skills') {
+          const id = orderedSkills[Number(e.key) - 1];
+          if (id && canUseSkill(player, id)) { e.preventDefault(); doSkill(id); }
+        }
         return;
       }
-      const skills = player.skills;
       const map: Record<string, () => void> = {
         '1': () => doAttack(),
-        '2': () => skills[0] && canUseSkill(player, skills[0]) && doSkill(skills[0]),
-        '3': () => skills[1] && canUseSkill(player, skills[1]) && doSkill(skills[1]),
-        '4': () => actions.combatAct({ type: 'defend' }),
-        '5': () => setMenu('items'),
-        '6': () => actions.combatAct({ type: 'flee' }),
+        '2': () => setMenu('skills'),
+        '3': () => actions.combatAct({ type: 'defend' }),
+        '4': () => usableItems.length > 0 && setMenu('items'),
+        '5': () => cs.canFlee && actions.combatAct({ type: 'flee' }),
       };
       if (map[e.key]) { e.preventDefault(); map[e.key](); }
     };
@@ -116,6 +119,11 @@ export function CombatScreen() {
   const doSkill = (id: string) => actions.combatAct({ type: 'skill', skillId: id, targetId: getSkill(id).target === 'enemy' ? tgt?.id : undefined });
 
   const usableItems = ['health_potion', 'mana_potion', 'antidote'].filter((id) => expedition && countItem(expedition.backpack, id) > 0);
+  // Habilidades agrupadas por origen (clase, arma, secundaria) con el equipo que llevas
+  const kit = combatLoadout(profile.character.classId, expedition?.equipment ?? profile.equipment);
+  const groups = kit.groups.map((g) => ({ ...g, skills: g.skills.filter((id) => player.skills.includes(id)) })).filter((g) => g.skills.length);
+  const orderedSkills = groups.flatMap((g) => g.skills);
+  const affordable = orderedSkills.filter((id) => canUseSkill(player, id)).length;
 
   return (
     <div className="absolute inset-0 z-40 flex flex-col fade-in" data-testid="combat" style={{ background: 'radial-gradient(ellipse at 50% 75%, #2a1d26 0%, #120e16 45%, #050407 100%)' }}>
@@ -158,14 +166,33 @@ export function CombatScreen() {
             <div className="h-full flex items-center justify-center text-stone-300 font-body italic text-lg">{actor ? `${actor.name} está actuando…` : '…'}</div>
           ) : menu === 'main' ? (
             <div className="grid grid-cols-2 gap-2">
-              <ActionBtn k="1" label={player.basicAttack.name} sub="Ataque básico" onClick={doAttack} testId="act-attack" />
-              {player.skills.map((id, i) => {
-                const s = getSkill(id);
-                return <ActionBtn key={id} k={String(i + 2)} label={s.name} sub={`${s.cost} ${player.resourceName.toLowerCase()}`} disabled={!canUseSkill(player, id)} onClick={() => doSkill(id)} cls="btn-arcane" title={s.description} testId={`act-skill-${i}`} />;
-              })}
-              <ActionBtn k="4" label="Defender" sub="-50% de daño este turno" onClick={() => actions.combatAct({ type: 'defend' })} testId="act-defend" />
-              <ActionBtn k="5" label="Objeto" sub={`${usableItems.length ? usableItems.map((id) => countItem(expedition!.backpack, id)).reduce((a, b) => a + b, 0) : 0} disponibles`} disabled={!usableItems.length} onClick={() => setMenu('items')} testId="act-item" />
-              <ActionBtn k="6" label="Huir" sub={cs.canFlee ? `${Math.round(fleeChance(player, foes) * 100)}% de éxito` : 'Imposible'} disabled={!cs.canFlee} onClick={() => actions.combatAct({ type: 'flee' })} cls="btn-danger" testId="act-flee" />
+              <ActionBtn k="1" label={player.basicAttack.name} sub="Ataque básico · sin coste" onClick={doAttack} testId="act-attack" />
+              <ActionBtn k="2" label="Habilidades" sub={`${affordable} de ${orderedSkills.length} disponibles`} onClick={() => setMenu('skills')} cls="btn-arcane" testId="act-skills" />
+              <ActionBtn k="3" label="Defender" sub="-50% de daño este turno" onClick={() => actions.combatAct({ type: 'defend' })} testId="act-defend" />
+              <ActionBtn k="4" label="Objeto" sub={`${usableItems.length ? usableItems.map((id) => countItem(expedition!.backpack, id)).reduce((a, b) => a + b, 0) : 0} disponibles`} disabled={!usableItems.length} onClick={() => setMenu('items')} testId="act-item" />
+              <ActionBtn k="5" label="Huir" sub={cs.canFlee ? `${Math.round(fleeChance(player, foes) * 100)}% de éxito` : 'Imposible'} disabled={!cs.canFlee} onClick={() => actions.combatAct({ type: 'flee' })} cls="btn-danger" testId="act-flee" />
+            </div>
+          ) : menu === 'skills' ? (
+            <div className="space-y-2 max-h-[300px] overflow-y-auto scroll-thin pr-1" data-testid="skills-menu">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-stone-300">Habilidades</span>
+                <button className="btn text-xs py-1" onClick={() => setMenu('main')}>Volver <kbd className="opacity-60">Esc</kbd></button>
+              </div>
+              {groups.map((g) => (
+                <div key={g.source}>
+                  <div className="text-[11px] text-stone-400 mb-1">{g.source === 'class' ? 'Clase' : g.source === 'weapon' ? `Arma · ${g.label}` : `Defensa · ${g.label}`}</div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {g.skills.map((id) => {
+                      const sk = getSkill(id);
+                      const n = orderedSkills.indexOf(id) + 1;
+                      return (
+                        <ActionBtn key={id} k={String(n)} label={sk.name} sub={sk.cost ? `${sk.cost} ${player.resourceName.toLowerCase()}` : 'sin coste'} disabled={!canUseSkill(player, id)} onClick={() => doSkill(id)}
+                          cls={g.source === 'class' ? 'btn-gold' : g.source === 'offhand' ? '' : 'btn-arcane'} title={sk.description} testId={`skill-${id}`} />
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="space-y-2">

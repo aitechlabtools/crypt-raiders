@@ -68,7 +68,7 @@ describe('Inventario', () => {
     const bp = addToGrid(p.backpack, { uid: 'n', itemId: 'iron_sword', qty: 1 }).grid;
     const c: Containers = { backpack: bp, stash: p.stash, loot: emptyGrid(0), equipment: p.equipment };
     const idx = bp.findIndex((s) => s?.itemId === 'iron_sword');
-    const r = transfer(c, { kind: 'grid', container: 'backpack', index: idx }, { kind: 'equip', slot: 'mainHand' }, { classId: 'warrior', level: 1 });
+    const r = transfer(c, { kind: 'grid', container: 'backpack', index: idx }, { kind: 'equip', slot: 'mainHand' }, { classId: 'warrior', level: 3 });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.containers.equipment.mainHand?.itemId).toBe('iron_sword');

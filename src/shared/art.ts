@@ -704,6 +704,7 @@ const ICON_SHAPES: Record<string, string[]> = {
   coin: ['............', '............', '....gggg....', '...gyyyyG...', '..gyygGyyG..', '..gygGgyyG..', '..gyygGyyG..', '..gyyyyyyG..', '...gGGGGG...', '............', '............', '............'],
   chalice: ['............', '..gggggggg..', '..gyrrrryG..', '..gyyyyyyG..', '...gyyyyG...', '....gyyG....', '.....gG.....', '.....gG.....', '....gyyG....', '...gggggG...', '............', '............'],
   gem: ['............', '............', '....aaaa....', '...ahhaaA...', '..ahaaaaAA..', '..aaaaaaAA..', '...aaaaAA...', '....aaAA....', '.....AA.....', '............', '............', '............'],
+  mace: ['............', '.......aaa..', '......ahaaA.', '......aaaaA.', '.......aAA..', '......bB....', '.....bB.....', '.....bB.....', '....bB......', '....bB......', '...gg.......', '............'],
   key: ['............', '............', '..ggg.......', '.g...g......', '.g...gggggg.', '.g...g..g.g.', '..ggg...g.g.', '............', '............', '............', '............', '............'],
 };
 
@@ -712,6 +713,17 @@ interface IconVariant { shape: string; a: string; A?: string; h?: string; g?: st
 const ICONS: Record<string, IconVariant> = {
   sword: { shape: 'sword', a: PAL.steel2 },
   axe: { shape: 'axe', a: PAL.steel2, g: PAL.gold2 },
+  axe_exec: { shape: 'axe', a: PAL.steel3, A: PAL.steel1, g: PAL.threat2 },
+  axe_bone: { shape: 'axe', a: PAL.bone2, A: PAL.bone0, g: PAL.magic2 },
+  sword_knight: { shape: 'sword', a: PAL.steel3, g: PAL.gold3 },
+  sword_dread: { shape: 'sword', a: PAL.threat2, A: PAL.threat0, g: PAL.magic2 },
+  staff_frost: { shape: 'staff', a: PAL.ice, h: '#ffffff', A: '#3d7be0' },
+  mace: { shape: 'mace', a: PAL.gold2, A: PAL.gold1, h: PAL.gold3 },
+  shield_steel: { shape: 'shield', a: PAL.steel2, A: PAL.steel1, g: PAL.steel0 },
+  tome_dark: { shape: 'tome', a: PAL.outline, A: PAL.magic0, g: PAL.magic2 },
+  helm_knight: { shape: 'helm', a: PAL.steel3, A: PAL.gold1 },
+  plate: { shape: 'tunic', a: PAL.steel3, A: PAL.steel1, g: PAL.gold2 },
+  robe_gold: { shape: 'robe', a: PAL.night1, A: PAL.night0, g: PAL.gold2 },
   staff: { shape: 'staff', a: PAL.ice, h: PAL.bone3 },
   staff_fire: { shape: 'staff', a: PAL.fire1, h: PAL.fire3, A: PAL.fire0 },
   staff_rune: { shape: 'staff', a: PAL.magic2, h: PAL.magic3, A: PAL.magic1 },

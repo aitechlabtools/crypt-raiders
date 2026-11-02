@@ -1,4 +1,4 @@
-import type { ClassId, DamageKind, Stats } from '../types';
+import type { ClassId, Stats } from '../types';
 
 export interface ClassDef {
   id: ClassId;
@@ -8,10 +8,12 @@ export interface ClassDef {
   playable: boolean;
   resourceName: string;
   resourceRegen: number;
-  basicAttack: { name: string; kind: DamageKind; power: number; fx: 'slash' | 'fire' | 'frost' | 'dark' | 'holy' | 'smash' };
   base: Stats;
   perLevel: Partial<Stats>;
-  skills: string[];
+  /** Habilidad exclusiva de la clase: siempre disponible, lleve el arma que lleve. */
+  classSkill: string;
+  /** Familias de armas que puede usar (informativo; el objeto decide con su lista de clases). */
+  weapons: string;
   starterKit: { itemId: string; qty: number }[];
   color: string;
 }
@@ -21,10 +23,9 @@ export const CLASSES: Record<ClassId, ClassDef> = {
     id: 'warrior', name: 'Guerrero', tagline: 'Acero, cicatrices y paciencia.',
     description: 'Vida y defensa elevadas. Aguanta en primera línea y castiga con golpes que hacen sangrar.',
     playable: true, resourceName: 'Aguante', resourceRegen: 2,
-    basicAttack: { name: 'Espadazo', kind: 'physical', power: 1, fx: 'slash' },
     base: { maxHp: 120, maxMp: 20, atk: 16, def: 12, mag: 4, res: 8, spd: 9, crit: 5, eva: 3 },
     perLevel: { maxHp: 12, maxMp: 2, atk: 2, def: 2, res: 1 },
-    skills: ['rending_slash', 'iron_wall'],
+    classSkill: 'war_cry', weapons: 'Espadas, hachas y escudos',
     starterKit: [{ itemId: 'rusty_sword', qty: 1 }, { itemId: 'wooden_shield', qty: 1 }, { itemId: 'padded_tunic', qty: 1 }, { itemId: 'health_potion', qty: 2 }],
     color: '#c0563b',
   },
@@ -32,10 +33,9 @@ export const CLASSES: Record<ClassId, ClassDef> = {
     id: 'mage', name: 'Mago', tagline: 'El conocimiento quema.',
     description: 'Daño elemental devastador a cambio de poca resistencia. Gestiona bien tu maná o caerás.',
     playable: true, resourceName: 'Maná', resourceRegen: 2,
-    basicAttack: { name: 'Proyectil arcano', kind: 'magical', power: 0.8, fx: 'dark' },
-    base: { maxHp: 80, maxMp: 45, atk: 6, def: 6, mag: 20, res: 12, spd: 11, crit: 6, eva: 5 },
-    perLevel: { maxHp: 7, maxMp: 5, mag: 3, res: 1, spd: 0 },
-    skills: ['fireball', 'frost_lance'],
+    base: { maxHp: 92, maxMp: 45, atk: 6, def: 7, mag: 21, res: 12, spd: 11, crit: 6, eva: 5 },
+    perLevel: { maxHp: 10, maxMp: 5, mag: 3, def: 1, res: 1 },
+    classSkill: 'meditation', weapons: 'Báculos y tomos',
     starterKit: [{ itemId: 'apprentice_staff', qty: 1 }, { itemId: 'linen_robe', qty: 1 }, { itemId: 'health_potion', qty: 2 }, { itemId: 'mana_potion', qty: 1 }],
     color: '#7b5ae0',
   },
@@ -43,10 +43,9 @@ export const CLASSES: Record<ClassId, ClassDef> = {
     id: 'rogue', name: 'Pícaro', tagline: 'Nadie le oye llegar.',
     description: 'Velocidad, evasión y críticos. Envenena y desaparece antes de la respuesta.',
     playable: false, resourceName: 'Energía', resourceRegen: 3,
-    basicAttack: { name: 'Cuchillada', kind: 'physical', power: 1, fx: 'slash' },
     base: { maxHp: 90, maxMp: 30, atk: 14, def: 8, mag: 5, res: 8, spd: 16, crit: 15, eva: 12 },
     perLevel: { maxHp: 8, atk: 2, spd: 1, crit: 1 },
-    skills: ['venom_strike', 'backstab'],
+    classSkill: 'shadow_veil', weapons: 'Dagas',
     starterKit: [{ itemId: 'bone_dagger', qty: 1 }, { itemId: 'leather_hood', qty: 1 }, { itemId: 'health_potion', qty: 2 }],
     color: '#4fa36b',
   },
@@ -54,11 +53,10 @@ export const CLASSES: Record<ClassId, ClassDef> = {
     id: 'cleric', name: 'Clérigo', tagline: 'La luz también corta.',
     description: 'Curación, protección y castigo sagrado contra las criaturas de la oscuridad.',
     playable: false, resourceName: 'Fe', resourceRegen: 2,
-    basicAttack: { name: 'Maza bendita', kind: 'physical', power: 1, fx: 'holy' },
     base: { maxHp: 100, maxMp: 40, atk: 10, def: 11, mag: 15, res: 15, spd: 8, crit: 4, eva: 3 },
     perLevel: { maxHp: 10, maxMp: 4, mag: 2, res: 2 },
-    skills: ['holy_light', 'sanctuary'],
-    starterKit: [{ itemId: 'apprentice_staff', qty: 1 }, { itemId: 'wooden_shield', qty: 1 }, { itemId: 'health_potion', qty: 2 }],
+    classSkill: 'prayer', weapons: 'Mazas, escudos y tomos',
+    starterKit: [{ itemId: 'blessed_mace', qty: 1 }, { itemId: 'wooden_shield', qty: 1 }, { itemId: 'health_potion', qty: 2 }],
     color: '#e0c25a',
   },
 };

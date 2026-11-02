@@ -74,5 +74,6 @@ export function grantRecruitKit(p: Profile): Profile {
     if (def.slot && !equipment[def.slot]) equipment[def.slot] = stack;
     else backpack = addToGrid(backpack, stack).grid;
   }
+  backpack = addToGrid(backpack, { uid: makeUid(), itemId: 'health_potion', qty: 1 }).grid;
   return { ...p, backpack, equipment };
 }

@@ -1,0 +1,7 @@
+# Crypt Raiders · cryptraiders.es
+# Las páginas con los datos del titular y sus imágenes no deben aparecer en buscadores.
+User-agent: *
+Disallow: /aviso-legal.html
+Disallow: /privacidad.html
+Disallow: /legal/
+Allow: /

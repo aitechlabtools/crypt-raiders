@@ -121,13 +121,17 @@ Cada fase termina con: pruebas automáticas, capturas en 1920×1080, 1180×820 y
 y abrir `http://IP:5173/play/` con el móvil en la misma Wi-Fi), texto del commit y esperar el visto bueno del usuario.
 
 ## Siguiente paso
+Botón «Apoyar» (donaciones con Stripe): PREPARADO y oculto. Se activa poniendo el Payment Link de Stripe en DONATE_URL
+(src/landing/site.tsx): entonces aparece junto a «Jugar» en la cabecera, en el pie, en el Aviso legal y como apartado
+«Si apoyas el proyecto» en la Política de privacidad (y una frase en la de cookies). Es un enlace externo: la web no carga Stripe.
 Páginas legales (paso 7) y revisión de calidad (paso 8): HECHAS el 3/11 (commit pendiente del usuario:
 «Páginas legales: aviso legal, privacidad y cookies; pie común y revisión de accesibilidad»).
 aviso-legal.html, privacidad.html y cookies.html (src/legal), pie común con enlaces (src/landing/site.tsx), enlaces discretos en
 Ajustes del juego. Auditoría: sin cookies, sin terceros (fuentes con @fontsource en el propio sitio), solo IndexedDB «cryptraiders»
 → sin banner. Arreglado: el juego creaba una base vacía «dreadbound» al buscar partidas antiguas. Grises de la web aclarados para
-contraste AA (axe sin errores). FALTA que el usuario rellene [NOMBRE Y APELLIDOS], [NIF], [DOMICILIO] y [EMAIL DE CONTACTO] en
-src/legal/texts.tsx y que un profesional revise los textos.
+contraste AA (axe sin errores). Datos del titular puestos el 3/11 como IMÁGENES (public/legal/d1–d5.png) para que los bots no los copien; domicilio:
+solo la ciudad por ahora. Botón «Escribir un correo» que monta la dirección al pulsarlo. Máxima protección: los datos solo se cargan al pulsar «Ver datos del
+titular»; robots.txt y meta robots (noindex, noimageindex) en aviso legal y privacidad. Falta que un profesional revise los textos.
 Fase 10: HECHA el 3/11 (noche). El plan de 10 fases está terminado. Pendiente de decidir lo siguiente con el usuario
 (por ejemplo: arte definitivo de los atuendos, Pícaro y Clérigo, remontar el tráiler con el rótulo «ATUENDOS»).
 Cambio de nombre a Crypt Raiders: HECHO (código, landing, app instalable, tráiler y póster).

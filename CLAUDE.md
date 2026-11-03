@@ -35,4 +35,10 @@ Cómo se hace en este proyecto:
   redes sociales, guardado en la nube, cuentas, compras), actualiza la Política de cookies (tabla) y la de privacidad, y si no es
   estrictamente necesario, añade antes un banner de consentimiento (Aceptar y Rechazar igual de visibles, Configurar por categorías,
   nada cargado hasta aceptar y enlace «Configurar cookies» en el pie).
-- Los datos del titular ([NOMBRE Y APELLIDOS], [NIF], [DOMICILIO], [EMAIL DE CONTACTO]) son marcadores: no inventarlos nunca.
+- Los datos del titular (nombre, NIF, ciudad y correo) van SOLO como imágenes (public/legal/d1–d5.png, componente `Dato`)
+  para que los bots no los copien: no escribirlos nunca como texto en el código, los documentos ni los commits.
+  El correo se abre con el botón «Escribir un correo» (`MailButton`), que monta la dirección al pulsarlo.
+  Además, no se cargan hasta pulsar «Ver datos del titular» (`revealData`), y public/robots.txt y la etiqueta robots de
+  aviso-legal.html y privacidad.html piden a los buscadores no indexar esas páginas ni las imágenes de /legal/.
+  Si cambian, se generan de nuevo las imágenes (tipografía Crimson Pro 400, 80 px, interlineado 1,3; color #e9e1cc en la ficha
+  del titular y #d6d1c4 dentro de un párrafo). Nunca inventar datos del titular.

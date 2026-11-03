@@ -3,6 +3,24 @@
 
 export const PLAY_URL = './play/';
 
+/**
+ * Enlace de donaciones (Stripe Payment Link, p. ej. https://donate.stripe.com/...). Mientras sea null, el botón «Apoyar»
+ * no aparece en ninguna página. Al ponerlo, también se muestran el apartado «Apoyar el proyecto» de la Política de privacidad
+ * y la frase sobre las aportaciones del Aviso legal.
+ * Es un enlace a la página de pago de Stripe: esta web no carga nada de Stripe ni guarda datos de pago.
+ */
+export const DONATE_URL: string | null = null;
+
+export function DonateButton({ className = '' }: { className?: string }) {
+  if (!DONATE_URL) return null;
+  return (
+    <a href={DONATE_URL} target="_blank" rel="noopener" className={`btn-donate ${className}`} data-testid="cta-donate"
+      aria-label="Apoyar el desarrollo de Crypt Raiders con una aportación (se abre la página de pago de Stripe)">
+      <span aria-hidden>♥</span> Apoyar
+    </a>
+  );
+}
+
 export const LEGAL_LINKS = [
   { href: './aviso-legal.html', label: 'Aviso legal' },
   { href: './privacidad.html', label: 'Política de privacidad' },
@@ -17,12 +35,15 @@ const NAV = [
 export function SiteHeader({ home = '' }: { home?: string }) {
   return (
     <header className="fixed top-0 inset-x-0 z-30 site-nav">
-      <nav className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-6" aria-label="Principal">
-        <a href={home ? home : '#top'} className="font-display font-extrabold tracking-[0.14em] text-parchment" aria-label="Crypt Raiders, ir al inicio">CRYPT RAIDERS</a>
+      <nav className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3 sm:gap-6" aria-label="Principal">
+        <a href={home ? home : '#top'} className="font-display font-extrabold whitespace-nowrap text-sm sm:text-base tracking-[0.08em] sm:tracking-[0.14em] text-parchment" aria-label="Crypt Raiders, ir al inicio">CRYPT RAIDERS</a>
         <div className="hidden md:flex gap-5 text-stone-300 font-body text-lg">
           {NAV.map(([id, label]) => <a key={id} href={`${home}#${id}`} className="hover:text-parchment">{label}</a>)}
         </div>
-        <a href={PLAY_URL} className="ml-auto btn-play px-4 py-1.5 text-sm">Jugar</a>
+        <div className="ml-auto flex items-center gap-2">
+          <a href={PLAY_URL} className="btn-play px-3 sm:px-4 py-1.5 text-sm whitespace-nowrap">Jugar</a>
+          <DonateButton className="px-2.5 sm:px-3 py-1.5 text-sm" />
+        </div>
       </nav>
     </header>
   );
@@ -44,6 +65,7 @@ export function SiteFooter({ home = '' }: { home?: string }) {
             <li><a href={PLAY_URL} className="footer-link">Jugar la demo</a></li>
             <li><a href={`${home}#varkhollow`} className="footer-link">VarkHollow</a></li>
             <li><a href={`${home}#hoja-de-ruta`} className="footer-link">Hoja de ruta</a></li>
+            {DONATE_URL && <li><a href={DONATE_URL} target="_blank" rel="noopener" className="footer-link">Apoya el proyecto</a></li>}
             <li><a href={home ? home : '#top'} className="footer-link">Volver al inicio</a></li>
           </ul>
         </nav>

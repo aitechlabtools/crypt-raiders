@@ -1,8 +1,42 @@
 // Plantilla de las páginas legales: misma cabecera y pie que la landing, índice, fecha y botones.
-import type { ReactNode } from 'react';
+import { useSyncExternalStore, type ReactNode } from 'react';
 import { PLAY_URL, SiteFooter, SiteHeader } from '../landing/site';
 
 export interface LegalSection { id: string; title: string; body: ReactNode }
+
+/**
+ * Dato del titular mostrado como imagen (public/legal/d*.png), para que los programas que copian páginas
+ * no lo lean como texto. Las imágenes se generan fuera del repositorio: los datos no están escritos en el código.
+ */
+export function Dato({ id, alt }: { id: 'd1' | 'd2' | 'd3' | 'd4' | 'd5'; alt: string }) {
+  return <img src={`./legal/${id}.png`} alt={alt} className="legal-img" draggable={false} />;
+}
+
+/** Botón que monta la dirección de correo solo al pulsarlo (no aparece escrita en la página). */
+export function MailButton() {
+  const open = () => {
+    const u = 'otcatnoc'.split('').reverse().join('');
+    const d = 'se.sredniatpyrc'.split('').reverse().join('');
+    window.location.href = `mailto:${u}@${d}`;
+  };
+  return <button type="button" onClick={open} className="btn-ghost px-5 py-2.5 text-base" data-testid="mail-button">✉ Escribir un correo</button>;
+}
+
+// ── Datos del titular: no están en la página hasta que alguien pulsa «Ver datos» ──
+// Los bots que leen la página sin hacer clic no llegan a cargar las imágenes. Al pulsar en un sitio se muestran en todos.
+let revealed = false;
+const revealListeners = new Set<() => void>();
+export function revealData() { if (!revealed) { revealed = true; revealListeners.forEach((l) => l()); } }
+export function useRevealed(): boolean {
+  return useSyncExternalStore((l) => { revealListeners.add(l); return () => revealListeners.delete(l); }, () => revealed, () => false);
+}
+
+/** Correo dentro de un párrafo: un enlace-botón discreto que, al pulsarlo, muestra la imagen del correo. */
+export function EmailInline() {
+  const shown = useRevealed();
+  if (shown) return <Dato id="d5" alt="correo electrónico de contacto (en imagen)" />;
+  return <button type="button" className="legal-reveal-inline" onClick={revealData} data-testid="reveal-inline">nuestro correo (pulsa para verlo)</button>;
+}
 
 /** Dato que debe rellenar el titular. Muy visible a propósito. */
 export function Ph({ children }: { children: string }) {

@@ -153,3 +153,16 @@ a:focus-visible, button:focus-visible, span[aria-disabled]:focus-visible { outli
   .legal-dl { grid-template-columns: 1fr; gap: 0.15rem; }
   .legal-dl dd { margin-bottom: 0.6rem; }
 }
+/* Datos del titular en imagen: se ven como el texto de alrededor (misma letra, color y tamaño) */
+.legal-img { display: inline-block; height: 1.3em; width: auto; vertical-align: -0.33em; user-select: none; -webkit-user-drag: none; }
+.legal-reveal { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; background: #0d0c11; border: 2px solid #2a2830; padding: 1.25rem; }
+.legal-reveal p { flex: 1 1 18rem; color: #c9c3b6; }
+.legal-reveal-inline { font: inherit; color: var(--color-gold); text-decoration: underline; text-underline-offset: 3px; background: none; border: 0; padding: 0.35rem 0; cursor: pointer; }
+.legal-reveal-inline:hover { color: var(--color-parchment); }
+
+/* Botón de donar: secundario al de jugar, con un toque rojo sangre */
+.btn-donate { display: inline-flex; align-items: center; gap: 0.4rem; font-family: var(--font-display); font-weight: 800; letter-spacing: 0.04em;
+  color: var(--color-parchment); background: rgba(196, 40, 59, 0.18); border: 2px solid #c4283b; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.35);
+  min-height: 2.25rem; transition: background 0.15s, box-shadow 0.15s; }
+.btn-donate span { color: #ff6a5a; }
+.btn-donate:hover { background: rgba(196, 40, 59, 0.32); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.35), 0 0 18px rgba(196, 40, 59, 0.45); }

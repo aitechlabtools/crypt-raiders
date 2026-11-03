@@ -4,22 +4,42 @@
  * de la AEPD, a partir de lo que la web hace realmente (auditoría del 3/11/2026). No son asesoramiento jurídico:
  * conviene que los revise un profesional antes de darlos por definitivos, y actualizarlos cuando cambie la web
  * (analítica, cuentas, guardado en la nube, multijugador, compras…).
- * Los datos entre corchetes ([NOMBRE Y APELLIDOS], [NIF], [DOMICILIO], [EMAIL DE CONTACTO]) los rellena el titular.
+ * Los datos del titular (nombre, NIF, ciudad y correo) se muestran como imágenes (public/legal/d1–d5.png) para que los
+ * programas que copian páginas no los lean como texto, y solo se cargan al pulsar «Ver datos del titular». Además,
+ * public/robots.txt y la etiqueta robots de aviso-legal.html y privacidad.html piden a los buscadores no indexarlos.
+ * Para cambiarlos hay que generar de nuevo esas imágenes.
  */
 import type { ReactNode } from 'react';
-import { Ph, StorageTable, type LegalSection } from './LegalPage';
+import { DONATE_URL } from '../landing/site';
+import { Dato, EmailInline, MailButton, StorageTable, revealData, useRevealed, type LegalSection } from './LegalPage';
 
 export const UPDATED = '3 de noviembre de 2026';
 
-const Titular = () => (
-  <dl className="legal-dl">
-    <dt>Titular</dt><dd><Ph>[NOMBRE Y APELLIDOS]</Ph></dd>
-    <dt>NIF</dt><dd><Ph>[NIF]</Ph></dd>
-    <dt>Domicilio</dt><dd><Ph>[DOMICILIO]</Ph></dd>
-    <dt>Correo electrónico</dt><dd><Ph>[EMAIL DE CONTACTO]</Ph></dd>
-    <dt>Sitio web</dt><dd>cryptraiders.es</dd>
-  </dl>
-);
+function Titular() {
+  const shown = useRevealed();
+  if (!shown) return (
+    <div className="legal-reveal" data-testid="titular-oculto">
+      <p className="m-0">Los datos del titular (nombre, NIF, domicilio y correo) se muestran al pulsar el botón. Así se protegen de los programas que copian páginas de forma automática.</p>
+      <button type="button" className="btn-play px-6 py-3" onClick={revealData} data-testid="reveal-titular">Ver datos del titular</button>
+    </div>
+  );
+  return (
+    <>
+      <dl className="legal-dl" data-testid="titular-datos">
+        <dt>Titular</dt><dd><Dato id="d1" alt="Nombre y apellidos del titular (en imagen)" /></dd>
+        <dt>NIF</dt><dd><Dato id="d2" alt="NIF del titular (en imagen)" /></dd>
+        <dt>Domicilio</dt><dd><Dato id="d3" alt="Ciudad del domicilio del titular (en imagen)" /></dd>
+        <dt>Correo electrónico</dt><dd><Dato id="d4" alt="Correo electrónico de contacto (en imagen)" /></dd>
+        <dt>Sitio web</dt><dd>cryptraiders.es</dd>
+      </dl>
+      <div className="flex flex-wrap items-center gap-4">
+        <MailButton />
+        <p className="text-base text-stone-400 m-0">Los datos se muestran como imagen para protegerlos de programas automáticos. Si no puedes verlos, usa el botón para escribirnos.</p>
+      </div>
+    </>
+  );
+}
+const Email = EmailInline;
 
 export interface PageDef { title: string; intro: ReactNode; sections: LegalSection[] }
 
@@ -37,6 +57,7 @@ export const AVISO: PageDef = {
     { id: 'objeto', title: 'Objeto de la web', body: <>
       <p>Esta web presenta <strong>Crypt Raiders</strong>, un videojuego independiente en desarrollo, y da acceso gratuito a una demo jugable en el navegador, en ordenador y en el móvil.</p>
       <p>La web no vende nada. Dentro de la demo, la Tienda de atuendos solo usa el oro que se consigue jugando: no hay pagos con dinero real, y los atuendos son solo estéticos, no dan ventajas.</p>
+      {DONATE_URL && <p>Si quieres, puedes apoyar el desarrollo con una aportación voluntaria desde el botón «Apoyar», que lleva a la página de pago de Stripe. Es una aportación libre: no compra nada ni da ninguna ventaja en el juego. Las condiciones del pago son las que indica Stripe en esa página.</p>}
     </> },
     { id: 'uso', title: 'Condiciones de uso', body: <>
       <p>Usar la web y la demo es gratis y no exige registro. Al usarlas aceptas este aviso legal. Te comprometes a usarlas de forma lícita y a no hacer nada que pueda dañarlas, sobrecargarlas o impedir que otras personas las usen, como intentar acceder a sistemas o datos ajenos o introducir programas dañinos.</p>
@@ -62,7 +83,7 @@ export const AVISO: PageDef = {
       <p>La hoja de ruta de la web indica intenciones, no compromisos: puede cambiar y no tiene fechas cerradas.</p>
     </> },
     { id: 'enlaces', title: 'Enlaces a otras webs', body: <>
-      <p>Si esta web enlaza a sitios de terceros, el titular no controla sus contenidos ni sus políticas de privacidad, y no responde de ellos. Si detectas un enlace a un contenido ilícito, escribe a <Ph>[EMAIL DE CONTACTO]</Ph> y se retirará.</p>
+      <p>Si esta web enlaza a sitios de terceros, el titular no controla sus contenidos ni sus políticas de privacidad, y no responde de ellos. Si detectas un enlace a un contenido ilícito, escribe a <Email /> y se retirará.</p>
     </> },
     { id: 'ley', title: 'Legislación aplicable y jurisdicción', body: <>
       <p>Este aviso legal se rige por la legislación española. Si eres consumidor, para cualquier controversia serán competentes los juzgados y tribunales de tu domicilio. En los demás casos, las partes se someten a los juzgados y tribunales del domicilio del titular.</p>
@@ -81,7 +102,7 @@ export const PRIVACIDAD: PageDef = {
   sections: [
     { id: 'responsable', title: 'Responsable del tratamiento', body: <>
       <Titular />
-      <p>Puedes escribir a esa dirección para cualquier cuestión sobre tus datos.</p>
+      <p>Puedes escribir al correo del titular para cualquier cuestión sobre tus datos.</p>
     </> },
     { id: 'datos', title: 'Qué datos tratamos', body: <>
       <p><strong>El titular no recoge datos personales a través de la web.</strong> No hay registro, formularios, comentarios, analítica, píxeles de seguimiento, publicidad ni botones de redes sociales.</p>
@@ -99,14 +120,25 @@ export const PRIVACIDAD: PageDef = {
       <p>El dominio cryptraiders.es está registrado en Hostinger. Hostinger no recibe los datos de tu visita a la web; como mucho, recibe las consultas técnicas para encontrar la dirección del sitio (DNS), que normalmente hace tu proveedor de Internet y no tu dispositivo.</p>
     </> },
     { id: 'contacto', title: 'Si nos escribes', body: <>
-      <p>Si escribes a <Ph>[EMAIL DE CONTACTO]</Ph>, el titular tratará tu dirección de correo y lo que cuentes en el mensaje solo para responderte. La base jurídica es tu consentimiento al escribir (artículo 6.1.a del RGPD). Los mensajes se guardan mientras haga falta para atender tu consulta y, después, durante los plazos legales que correspondan. No se ceden a nadie salvo obligación legal. El correo se gestiona con un proveedor de correo electrónico que actúa como encargado del tratamiento.</p>
+      <p>Si escribes a <Email />, el titular tratará tu dirección de correo y lo que cuentes en el mensaje solo para responderte. La base jurídica es tu consentimiento al escribir (artículo 6.1.a del RGPD). Los mensajes se guardan mientras haga falta para atender tu consulta y, después, durante los plazos legales que correspondan. No se ceden a nadie salvo obligación legal. El correo se gestiona con un proveedor de correo electrónico que actúa como encargado del tratamiento.</p>
       <p>Crypt Raiders no tiene redes sociales por ahora. Si en el futuro las tiene, esta política lo explicará.</p>
     </> },
+    ...(DONATE_URL ? [{ id: 'apoyar', title: 'Si apoyas el proyecto', body: <>
+      <p>El botón «Apoyar» te lleva a una página de pago de <strong>Stripe</strong>, fuera de esta web. Esta web no carga nada de Stripe ni ve los datos de tu tarjeta: el pago lo gestiona Stripe (Stripe Payments Europe, Ltd., Irlanda), con su propia política de privacidad (stripe.com/es/privacy).</p>
+      <ul>
+        <li><strong>Qué datos recibe el titular:</strong> los que Stripe le facilita sobre cada aportación, como tu nombre, tu correo electrónico, el importe, la fecha y el país. Nunca el número completo de tu tarjeta.</li>
+        <li><strong>Finalidad:</strong> gestionar tu aportación, responderte si hace falta y cumplir las obligaciones contables y fiscales.</li>
+        <li><strong>Base jurídica:</strong> la gestión de la aportación que tú decides hacer (artículo 6.1.b del RGPD) y el cumplimiento de obligaciones legales (artículo 6.1.c).</li>
+        <li><strong>Conservación:</strong> el tiempo que exija la normativa contable y fiscal.</li>
+        <li><strong>Transferencias:</strong> Stripe puede tratar datos en Estados Unidos con las garantías que describe en su política de privacidad.</li>
+      </ul>
+      <p>Las aportaciones son voluntarias y no dan ninguna ventaja en el juego.</p>
+    </> }] : []),
     { id: 'menores', title: 'Menores de edad', body: <>
       <p>La web no recoge datos de nadie, tampoco de menores. Si tienes menos de 14 años, pide permiso a tu madre, padre o tutor antes de escribirnos (artículo 7 de la LOPDGDD).</p>
     </> },
     { id: 'derechos', title: 'Tus derechos', body: <>
-      <p>Puedes ejercer tus derechos de <strong>acceso, rectificación, supresión, oposición, limitación del tratamiento y portabilidad</strong> escribiendo a <Ph>[EMAIL DE CONTACTO]</Ph>. Indica qué derecho quieres ejercer; si hace falta para comprobar que eres tú, se te pedirá algún dato más.</p>
+      <p>Puedes ejercer tus derechos de <strong>acceso, rectificación, supresión, oposición, limitación del tratamiento y portabilidad</strong> escribiendo a <Email />. Indica qué derecho quieres ejercer; si hace falta para comprobar que eres tú, se te pedirá algún dato más.</p>
       <p>Recuerda que el titular no tiene tu partida: la tienes tú en tu navegador y la puedes borrar directamente.</p>
       <p>Si crees que no se han respetado tus derechos, puedes reclamar ante la <strong>Agencia Española de Protección de Datos</strong> (www.aepd.es, C/ Jorge Juan 6, 28001 Madrid).</p>
     </> },
@@ -145,6 +177,7 @@ export const COOKIES: PageDef = {
     </> },
     { id: 'terceros', title: 'Cookies de terceros', body: <>
       <p>Ninguna. Las tipografías, las imágenes y el tráiler se sirven desde la propia web, sin servicios externos. El alojamiento (GitHub Pages) no instala cookies en tu navegador; lo que trata se explica en la <a href="./privacidad.html">Política de privacidad</a>.</p>
+      {DONATE_URL && <p>El botón «Apoyar» es un simple enlace a la página de pago de Stripe. Esta web no carga nada de Stripe; si lo pulsas y entras en su página, Stripe puede usar allí sus propias cookies, según su política.</p>}
     </> },
     { id: 'borrar', title: 'Cómo borrar o bloquear estos datos', body: <>
       <p className="legal-warn"><strong>Atención:</strong> si borras los datos de este sitio, <strong>perderás tu partida</strong> (personaje, equipo y progreso), y no se puede recuperar.</p>

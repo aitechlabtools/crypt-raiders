@@ -108,16 +108,21 @@ Versión publicada: 0.1.5.
      (screens/Atuendos.tsx) con confirmación y «¡Es tuyo!» → Ponérmelo. Pestaña Vestuario eliminada.
    - Prueba: node scripts/e2e-skins.cjs http://localhost:5173/play/ <carpeta> [dispositivo] y tests/skins.test.ts.
    - Tráiler: rótulo cambiado a «ATUENDOS» (trailer/v3/vestuario.png); el vídeo publicado aún no está remontado.
-10. Cierre: landing con VarkHollow, capturas en carrusel y hoja de ruta. PROPUESTA ENTREGADA (mockups/landing), falta aprobación.
+10. Landing — HECHA (commit pendiente del usuario: «Fase 10: landing con VarkHollow, carrusel de capturas y hoja de ruta»).
+   Sección «Esto es VarkHollow» (texto A) tras la cabecera, con las tres profundidades y su jefe; capturas en carrusel
+   (src/landing/sections.tsx); «Juega gratis ahora» sin listas y con el juego en un marco de móvil; hoja de ruta
+   «El camino hacia las profundidades» al final, con los textos en src/landing/roadmap.ts. Textos sin cifras exactas.
+   Capturas nuevas con partida avanzada (scripts/landing-shots.cjs → public/screenshots/landing, WebP + PNG;
+   scripts/landing-webp.py hace las WebP). og:image y twitter:card con screenshots/landing/compartir.png.
+   Guardián Hueco: «desde que cayó la orden». Sin redes sociales (el usuario no tiene).
+   Las capturas antiguas de public/screenshots (combat.png, dungeon.png, etc.) ya no se usan: se pueden borrar.
 Cada fase termina con: pruebas automáticas, capturas en 1920×1080, 1180×820 y 844×390, explicación de cómo probarlo
 (DevTools en modo dispositivo + recargar; en el móvil real: `npm run dev -- --host`, mirar la IP con `ipconfig`
 y abrir `http://IP:5173/play/` con el móvil en la misma Wi-Fi), texto del commit y esperar el visto bueno del usuario.
 
 ## Siguiente paso
-Fase 10: PROPUESTA ENTREGADA, esperando aprobación (3/11, noche). Maqueta en mockups/landing (abrir index.html):
-capturas a 1920×1080, 1180×820 y 390×844 y el código del borrador en mockups/landing/borrador (sections.tsx, roadmap.ts,
-App.tsx y landing-anadido.css). Capturas del juego en carrusel (pedido del usuario). La landing real (src/landing) NO está tocada.
-Al aprobar: copiar el borrador, capturas finales con partida avanzada, og:image, actualizar este documento y dar el commit.
+Fase 10: HECHA el 3/11 (noche). El plan de 10 fases está terminado. Pendiente de decidir lo siguiente con el usuario
+(por ejemplo: arte definitivo de los atuendos, Pícaro y Clérigo, remontar el tráiler con el rótulo «ATUENDOS»).
 Cambio de nombre a Crypt Raiders: HECHO (código, landing, app instalable, tráiler y póster).
 Idea aceptada para la Fase 7 (Alijo): la ficha de un arma muestra las habilidades que daría antes de equiparla.
 Nota: en el PC del trabajo (pci-pau) Claude no tiene terminal; prueba en una copia en la nube (GitHub + cambios)
@@ -128,4 +133,4 @@ Texto de commit sugerido para lo entregado (si se sube todo junto):
 
 ## Encargos guardados
 - Skins de traje completo: HECHO (docs/plan-skins.md, maquetas en mockups/skins).
-- Fase 10 (cierre): docs/pendiente-landing.md (landing con VarkHollow, capturas nuevas y hoja de ruta). Va después de las skins.
+- Fase 10 (cierre): HECHO (docs/pendiente-landing.md).

@@ -51,3 +51,47 @@ a:focus-visible, button:focus-visible, span[aria-disabled]:focus-visible { outli
 
 .shot img { width: 100%; height: auto; display: block; border: 2px solid #2a2830; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); }
 .demo-glow { background: radial-gradient(ellipse at 80% 50%, rgba(163, 90, 224, 0.18), transparent 55%), radial-gradient(ellipse at 10% 100%, rgba(196, 40, 59, 0.12), transparent 50%); }
+
+/* ── VarkHollow ── */
+.vh-glow { background: radial-gradient(ellipse at 15% 0%, rgba(196, 40, 59, 0.12), transparent 50%), radial-gradient(ellipse at 90% 100%, rgba(163, 90, 224, 0.12), transparent 55%); }
+.depths { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5rem; position: relative; }
+.depth { background: #0d0c11; border: 2px solid #2a2830; border-top: 3px solid var(--depth); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5); }
+.depth-art { position: relative; aspect-ratio: 16 / 9; overflow: hidden; background: #07060a; }
+.depth-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; filter: brightness(0.75); }
+.depth-boss { position: absolute; left: 50%; bottom: 6%; transform: translateX(-50%); height: 70%; width: auto; filter: drop-shadow(0 6px 0 rgba(0, 0, 0, 0.6)); }
+.depth-step { position: absolute; top: 0.6rem; left: 0.6rem; width: 2rem; height: 2rem; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); color: #07060a; background: var(--depth); }
+/* Cada profundidad un poco más abajo: sensación de descenso */
+@media (min-width: 900px) { .depth:nth-child(2) { margin-top: 2rem; } .depth:nth-child(3) { margin-top: 4rem; } }
+@media (max-width: 899px) { .depths { grid-template-columns: 1fr; } }
+
+/* ── Carrusel ── */
+.carousel-track { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; border: 2px solid #2a2830; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6); }
+.carousel-track::-webkit-scrollbar { display: none; }
+.carousel-slide { flex: 0 0 100%; margin: 0; scroll-snap-align: start; }
+.carousel-btn { width: 44px; height: 44px; flex-shrink: 0; font-family: var(--font-display); color: var(--color-bone); border: 2px solid #3a3741; background: rgba(7, 6, 10, 0.6); }
+.carousel-btn:hover { border-color: var(--color-gold); color: var(--color-gold); }
+.carousel-thumbs { display: grid; grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); gap: 0.5rem; margin-top: 1rem; }
+.carousel-thumb { aspect-ratio: 16 / 9; border: 2px solid #2a2830; opacity: 0.55; overflow: hidden; min-height: 44px; }
+.carousel-thumb.is-on { border-color: var(--color-gold); opacity: 1; }
+@media (max-width: 640px) { .carousel-thumbs { display: none; } }
+
+/* ── Móvil dentro de un marco ── */
+.phone-frame { width: min(100%, 560px); aspect-ratio: 844 / 390; padding: 12px 18px; background: #15131a; border: 2px solid #3a3741; border-radius: 28px; box-shadow: inset 0 0 0 2px #07060a, 0 24px 60px rgba(0, 0, 0, 0.7), 0 0 60px rgba(163, 90, 224, 0.15); }
+.phone-frame img { border-radius: 14px; }
+
+/* ── Hoja de ruta ── */
+.roadmap { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2rem; position: relative; }
+.roadmap::before { content: ""; position: absolute; top: 25px; left: 25px; right: 0; height: 2px; background: linear-gradient(90deg, #5fd19a, #e8b33a 50%, #a35ae0); opacity: 0.6; }
+.rm-col { position: relative; }
+.rm-head { display: flex; align-items: center; gap: 0.75rem; }
+.rm-node { position: relative; z-index: 1; width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; background: #0d0c11; border: 2px solid var(--rm); box-shadow: 0 0 18px color-mix(in srgb, var(--rm) 45%, transparent); }
+.rm-here { position: relative; z-index: 1; font-family: var(--font-display); font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase; color: #07060a; background: var(--rm); padding: 0.15rem 0.5rem; }
+.rm-list { list-style: none; padding: 0; display: grid; gap: 0.5rem; font-family: var(--font-body); font-size: 1.125rem; color: #d6d1c4; }
+.rm-list li { padding-left: 1.25rem; position: relative; line-height: 1.35; }
+.rm-list li::before { content: ""; position: absolute; left: 0; top: 0.55em; width: 8px; height: 8px; background: var(--rm); transform: rotate(45deg); }
+@media (max-width: 899px) {
+  .roadmap { grid-template-columns: 1fr; gap: 2.5rem; padding-left: 0; }
+  .roadmap::before { top: 25px; bottom: 0; left: 25px; right: auto; width: 2px; height: auto; background: linear-gradient(180deg, #5fd19a, #e8b33a 50%, #a35ae0); }
+  .rm-col { padding-left: 0; }
+  .rm-col h3, .rm-col p, .rm-list { margin-left: 3.75rem; }
+}

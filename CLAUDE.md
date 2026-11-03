@@ -18,7 +18,9 @@ Cómo se hace en este proyecto:
 - Mazmorra: joystick analógico + botón de acción (TouchControls.tsx → touchStick en engine/touchInput.ts); tocar el mapa mueve al personaje.
 - Prueba obligatoria tras cada cambio: `node scripts/touch-check.cjs <url>/play/` (toques reales, 5 dispositivos), `node scripts/mobile-check.cjs <url>/play/ <carpeta>` (móvil) y con
   `"iPad (gen 7) landscape"` como tercer argumento (tableta), además de scripts/e2e.cjs.
-- Mantener al día la lista «Ya disponible / En camino» y los textos de la landing (src/landing/App.tsx) cuando cambie el juego.
+- Mantener al día la hoja de ruta de la landing (src/landing/roadmap.ts: «Ya en el juego», «Próximamente», «Multijugador») y los textos
+  de la landing (src/landing/App.tsx y sections.tsx) cuando cambie el juego. Textos sin cifras exactas (como mucho «más de X»).
+  Capturas de la landing: `node scripts/landing-shots.cjs <url>/play/ public/screenshots/landing` y `python scripts/landing-webp.py`.
 
 ## Regla permanente: menús con la base de interfaz
 - Toda pantalla de menú usa las piezas de `src/game/ui/kit` y las medidas de `src/config/ui.ts` (y sus variables CSS en game.css).

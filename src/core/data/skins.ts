@@ -52,7 +52,7 @@ export const SKINS: Record<string, SkinDef> = Object.fromEntries(
     {
       id: 'skin_hollow_warden', order: 2, rarity: 'epic', price: { currency: 'gold', amount: 4000 },
       name: 'Guardián Hueco',
-      description: 'La armadura negra de la Guardia de VarkHollow. Nadie sabe qué hay dentro desde que cayó el Bastión.',
+      description: 'La armadura negra de la Guardia de VarkHollow. Nadie sabe qué hay dentro desde que cayó la orden.',
       body: { torso: '#26242c', trim: '#7a1c24', legs: '#1c1b22', boots: '#121117', head: 'helmet', headColor: '#2e2c35', torsoStyle: 'mail', hands: '#3a3741', cape: '#5a1018', eye: '#ff5a4a' },
     },
     {

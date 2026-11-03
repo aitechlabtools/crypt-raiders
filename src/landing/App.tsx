@@ -3,6 +3,7 @@ import { heroUrl, iconUrl, monsterUrl } from '../shared/art';
 import { SHOWCASE_GEAR } from '../shared/gearLook';
 import { CLASSES } from '../core/data/classes';
 import type { ClassId } from '../core/types';
+import { PhoneShot, RoadmapSection, ShotCarousel, VarkHollowSection, type Shot } from './sections';
 
 // La descarga solo se activa cuando exista un ejecutable real y comprobado.
 const DOWNLOAD_URL: string | null = null;
@@ -22,20 +23,21 @@ const FEATURES = [
   { icon: 'chalice', title: 'Botín que se nota', text: 'Armas y armaduras de común a legendario. Cada pieza mejora a tu personaje… y cambia su aspecto.' },
   { icon: 'dagger', title: 'Aliados de los que no fiarse', text: 'Repartir el botín o quedártelo todo tiene consecuencias. Las traiciones avisan, pero no siempre a tiempo.' },
   { icon: 'gem_red', title: 'Todo o nada', text: 'Doce minutos para llegar al portal. Si caes, pierdes lo que llevabas encima. Lo que guardas en el almacén, nunca.' },
-  { icon: 'amulet_heart', title: 'Cada bajada te hace más fuerte', text: 'Sube hasta el nivel 100, cumple encargos de cuatro vendedores y gana su confianza: mejores precios, mejor mercancía.' },
+  { icon: 'amulet_heart', title: 'Cada bajada te hace más fuerte', text: 'Sube hasta el nivel 100, cumple los encargos de los mercaderes y gana su confianza: mejores precios, mejor mercancía.' },
   { icon: 'shield_iron', title: 'Espadas de alquiler', text: 'Contrata mercenarios a Garra Roja o rompe las cadenas de los prisioneros que encuentres abajo. Si caen, el contrato se rompe.' },
-  { icon: 'pick', title: 'Pica, forja y luce', text: 'Saca mineral de las vetas con tu pico, llévaselo a Maese Brand para forjar tus armas y viste atuendos completos que cambian cómo te ves, nunca lo fuerte que eres.' },
+  { icon: 'pick', title: 'Pica, forja y luce', text: 'Saca mineral de las vetas con tu pico, llévaselo a Maese Brand para forjar tus armas y compra con el oro del juego atuendos completos que cambian cómo te ves, nunca lo fuerte que eres.' },
 ];
 
-const SHOTS = [
-  { src: './screenshots/dungeon.png', alt: 'Exploración de la cripta con el aventurero rival como aliado', caption: 'La Sala de los Pilares, con Kael como aliado.' },
-  { src: './screenshots/combat.png', alt: 'Combate por turnos contra el Señor del Osario', caption: 'Combate por turnos contra el Señor del Osario.' },
-  { src: './screenshots/inventory.png', alt: 'Inventario y equipamiento en el lobby', caption: 'Equipo, estadísticas y mochila en el Bastión.' },
-  { src: './screenshots/rival.png', alt: 'Diálogo con Kael el Errante', caption: 'Hablar, aliarse, ignorar o atacar.' },
-  { src: './screenshots/mercenary.jpg', alt: 'Combate en el Infierno con una mercenaria aliada', caption: 'En el Infierno, con Nyx la Pirómana a sueldo.' },
-  { src: './screenshots/contracts.jpg', alt: 'Contratos de mercenarios con Garra Roja', caption: 'Contratos con Garra Roja: elige a quién llevas.' },
-  { src: './screenshots/mining.jpg', alt: 'Picando una veta de mineral en la Cripta', caption: 'Picando una veta en la Cripta.' },
-  { src: './screenshots/infierno.jpg', alt: 'Exploración del Infierno', caption: 'El Infierno: la zona más honda.' },
+// Capturas reales con una partida avanzada (scripts/landing-shots.cjs). Cada una en WebP y PNG de respaldo.
+const SHOT_DIR = './screenshots/landing/';
+const SHOTS: Shot[] = [
+  { src: SHOT_DIR + 'combate', alt: 'Combate por turnos contra Belzar, Señor de las Cadenas, en el Infierno', caption: 'Cara a cara con Belzar, Señor de las Cadenas.' },
+  { src: SHOT_DIR + 'infierno', alt: 'Exploración del Infierno: un cofre y enemigos en una sala de lava y cadenas', caption: 'El Infierno: la zona más honda de VarkHollow.' },
+  { src: SHOT_DIR + 'cripta', alt: 'Exploración de la Cripta junto a un cofre y un caballero no muerto', caption: 'La necrópolis de Umbravel, en la Cripta.' },
+  { src: SHOT_DIR + 'jugar', alt: 'Pantalla Jugar del Bastión de Ceniza con el héroe equipado bajo un haz de luz', caption: 'El Bastión de Ceniza: elige zona y desciende.' },
+  { src: SHOT_DIR + 'alijo', alt: 'Alijo con el equipo puesto, la mochila llena de botín y el almacén', caption: 'El Alijo: equipo, mochila, bolsillo seguro y almacén.' },
+  { src: SHOT_DIR + 'forja', alt: 'Forja de Maese Brand con recetas y materiales', caption: 'Forja tus armas con los materiales de cada zona.' },
+  { src: SHOT_DIR + 'tienda', alt: 'Tienda de atuendos que se compran con oro del juego', caption: 'Atuendos con oro del juego. Solo cambian cómo te ves.' },
 ];
 
 function Sprite({ src, w, label, className = '' }: { src: string; w: number; label: string; className?: string }) {
@@ -66,11 +68,13 @@ export function App() {
         <nav className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-6" aria-label="Principal">
           <a href="#top" className="font-display font-extrabold tracking-[0.14em] text-parchment">CRYPT RAIDERS</a>
           <div className="hidden md:flex gap-5 text-stone-300 font-body text-lg">
+            <a href="#varkhollow" className="hover:text-parchment">VarkHollow</a>
             <a href="#trailer" className="hover:text-parchment">Tráiler</a>
             <a href="#juego" className="hover:text-parchment">El juego</a>
             <a href="#clases" className="hover:text-parchment">Clases</a>
             <a href="#capturas" className="hover:text-parchment">Capturas</a>
             <a href="#demo" className="hover:text-parchment">Demo</a>
+            <a href="#hoja-de-ruta" className="hover:text-parchment">Hoja de ruta</a>
           </div>
           <a href={PLAY_URL} className="ml-auto btn-play px-4 py-1.5 text-sm">Jugar</a>
         </nav>
@@ -91,6 +95,8 @@ export function App() {
           <p className="font-body text-stone-300 mt-4 text-base">Gratis en el navegador, en ordenador o móvil. Sin registro ni descargas.</p>
         </div>
       </section>
+
+      <VarkHollowSection />
 
       {/* Tráiler */}
       <section id="trailer" className="max-w-5xl mx-auto px-4 pt-24">
@@ -196,59 +202,20 @@ export function App() {
       <section id="capturas" className="max-w-6xl mx-auto px-4 py-24">
         <h2 className="font-display text-3xl md:text-4xl text-parchment">Así se ve ahora mismo</h2>
         <p className="font-body text-xl text-stone-300 mt-3">Capturas reales de la demo, sin retoques.</p>
-        <div className="grid md:grid-cols-2 gap-6 mt-10">
-          {SHOTS.map((s) => (
-            <figure key={s.src} className="shot">
-              <img src={s.src} alt={s.alt} loading="lazy" width={1440} height={900} className="w-full aspect-[16/10] object-cover bg-black" />
-              <figcaption className="font-body text-lg text-stone-300 mt-2">{s.caption}</figcaption>
-            </figure>
-          ))}
-        </div>
+        <div className="mt-10"><ShotCarousel shots={SHOTS} /></div>
       </section>
 
       {/* Demo */}
       <section id="demo" className="relative overflow-hidden border-t border-stone-800">
         <div className="absolute inset-0 demo-glow" />
-        <div className="relative max-w-6xl mx-auto px-4 py-24 grid lg:grid-cols-[1.2fr_1fr] gap-12">
+        <div className="relative max-w-6xl mx-auto px-4 py-24 grid lg:grid-cols-[1fr_1.1fr] gap-12 items-center">
           <div>
             <h2 className="font-display text-4xl md:text-5xl text-parchment leading-tight">Juega gratis ahora</h2>
             <p className="font-body text-xl text-stone-300 mt-4 max-w-xl leading-relaxed">Crea a tu aventurero, equípalo, baja a unas criptas que nunca son iguales y vuelve con algo. Tu progreso se guarda en este navegador.</p>
             <div className="mt-8"><PlayButton big /></div>
-            <p className="font-body text-stone-400 mt-4">En ordenador con teclado y ratón, o en el móvil en horizontal con controles táctiles.</p>
+            <p className="font-body text-stone-400 mt-4">En ordenador con teclado y ratón, o en el móvil en horizontal a pantalla completa, con controles táctiles. También puedes instalarlo como una app.</p>
           </div>
-          <div className="grid grid-cols-2 gap-8 font-body text-lg">
-            <div>
-              <h3 className="font-display text-xl text-heal mb-3">Ya disponible</h3>
-              <ul className="space-y-1.5 text-stone-300">
-                <li>Guerrero y Mago</li>
-                <li>Tres zonas cada vez más hondas: la Mazmorra, la Cripta y el Infierno, con mapas distintos en cada expedición</li>
-                <li>15 criaturas, 3 élites y 3 jefes</li>
-                <li>Hasta el nivel 100</li>
-                <li>Combate por turnos con 22 habilidades: cada arma te da las suyas</li>
-                <li>23 armas y 66 piezas de equipo que cambian el aspecto de tu personaje</li>
-                <li>Inventario, almacén ampliable y un bolsillo seguro que no pierdes al morir</li>
-                <li>4 vendedores con sus misiones y su reputación: más rango, mejores precios y mercancía</li>
-                <li>Cofres con cerradura: cada zona tiene su llave</li>
-                <li>Bestiario que se completa a medida que luchas</li>
-                <li>Forja: fabrica tus propias armas con materiales de cada zona</li>
-                <li>Minería: pica vetas de cobre, hierro, plata, obsidiana y azufre con tu pico</li>
-                <li>Atuendos: 3 trajes completos que se compran en la Tienda con el oro del juego y no dan ventaja</li>
-                <li>9 mercenarios que contratar por expediciones, y prisioneros que puedes rescatar en la mazmorra</li>
-                <li>Un rival que decide por sí mismo si ayudarte o traicionarte, y si te traiciona, es a muerte</li>
-
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-display text-xl text-stone-300 mb-3">En camino</h3>
-              <ul className="space-y-1.5 text-stone-400">
-                <li>Multijugador con personas reales</li>
-                <li>Arte definitivo de los atuendos</li>
-                <li>Pícaro y Clérigo</li>
-                <li>Arte y música definitivos</li>
-                <li>Versión para Windows</li>
-              </ul>
-            </div>
-          </div>
+          <PhoneShot src={SHOT_DIR + 'movil-infierno'} alt="Crypt Raiders en un móvil en horizontal: el Infierno con el joystick, la poción y el botón Usar" />
         </div>
       </section>
 
@@ -263,9 +230,11 @@ export function App() {
         </div>
       </section>
 
+      <RoadmapSection />
+
       <footer className="max-w-6xl mx-auto px-4 py-12 flex flex-col md:flex-row gap-4 md:items-center text-stone-400 font-body text-base">
         <span className="font-display tracking-[0.14em] text-stone-300">CRYPT RAIDERS</span>
-        <span>Juego independiente en desarrollo. Demo 0.1. El arte y el sonido actuales son provisionales.</span>
+        <span>Juego independiente en desarrollo. Demo jugable: el arte y el sonido actuales son provisionales.</span>
         <div className="md:ml-auto flex gap-5">
           <a href={PLAY_URL} className="hover:text-parchment">Jugar</a>
           <a href="#juego" className="hover:text-parchment">El juego</a>

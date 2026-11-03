@@ -28,8 +28,8 @@ import { rollLoot, CHEST_TABLES } from '../../core/loot';
 import { makeRng, makeUid, randomSeed } from '../../core/rng';
 import { initialRival, talk, proposeAlliance, rejectRival, leaveAlliance, shareLoot, evaluateBetrayal, playerBetrays, playerAttacksNeutral, type RivalState } from '../../core/social';
 import { bus } from './bus';
-import { legendCosmetic, rollEliteDrop, rollReliquary, unlock, wear, getCosmetic } from '../../core/cosmetics';
-import { QUEST_COSMETICS, type CosmeticSlot } from '../../core/data/cosmetics';
+import { buySkin, equipSkin } from '../../core/skins';
+import { getSkin } from '../../core/data/skins';
 import { bestPick, mineYield, wearPick, type VeinId } from '../../core/mining';
 import { captiveCandidate, dismiss, hire, mercBaseStats, mercCombatant, mercForExpedition, mercHpBack, rescuedMerc, setStance, settleMerc, STANCE_NAME, type MercState } from '../../core/mercenaries';
 import { getMerc } from '../../core/data/mercenaries';
@@ -232,16 +232,6 @@ function equipCtx() {
 // ════════════════════════════════════════════════════════════════════
 // Acciones
 // ════════════════════════════════════════════════════════════════════
-/** Desbloquea un aspecto y lo anuncia (si ya lo tenías, no hace nada). */
-function grantCosmetic(id: string | null, why: string) {
-  const p = state.profile;
-  if (!id || !p) return;
-  const r = unlock(p, id);
-  if (!r.isNew) return;
-  set({ profile: r.profile });
-  toast(`Nuevo aspecto (${why}): ${getCosmetic(id).name}. Póntelo en el Vestuario.`, 'loot');
-}
-
 /** Nivel de las criaturas (y de Kael) en la expedición actual: el del jugador dentro del rango de la zona. */
 function combatLevel(): number {
   const s = state;
@@ -443,11 +433,23 @@ export const actions = {
     toast(`Almacén ampliado: ahora tiene ${r.profile.stash.length} casillas.`, 'good');
   },
 
-  // ── Vestuario ──
-  wearCosmetic(slot: CosmeticSlot, id: string | null) {
+  // ── Atuendos (Tienda) ──
+  /** Compra un atuendo con oro (la confirmación la pide la Tienda antes de llamar aquí). */
+  buySkin(id: string): boolean {
+    const p = state.profile;
+    if (!p) return false;
+    const r = buySkin(p, id);
+    if (!r.ok) { toast(r.error, 'danger'); return false; }
+    sfx('coin');
+    set({ profile: r.profile });
+    toast(`Atuendo comprado: ${getSkin(id).name}. Es tuyo para siempre.`, 'loot');
+    return true;
+  },
+  /** Ponerse un atuendo o quitárselo (null). Solo cambia el aspecto. */
+  equipSkin(id: string | null) {
     const p = state.profile;
     if (!p) return;
-    set({ profile: wear(p, slot, id) });
+    set({ profile: equipSkin(p, id) });
     sfx('equip');
   },
 
@@ -546,8 +548,6 @@ export const actions = {
     });
     sfx('victory');
     toast(`Misión completada: +${def.reward.gold} oro, +${def.reward.xp} XP, +${def.reward.rep} de reputación${xp.levelsGained ? ' · ¡Subes de nivel!' : ''}`, 'good');
-    grantCosmetic(QUEST_COSMETICS[id] ?? null, 'misión');
-    if (rankOf(after) >= REP_RANKS.length - 1 && rankOf(before) < REP_RANKS.length - 1) grantCosmetic(legendCosmetic(def.vendor), 'rango Leyenda');
     if (rankOf(after) > rankOf(before)) toast(`${VENDORS[def.vendor].name} te considera ahora «${REP_RANKS[rankOf(after)].name}»: ${Math.round(REP_RANKS[rankOf(after)].discount * 100)}% de descuento y mercancía nueva.`, 'good');
   },
 
@@ -655,7 +655,6 @@ export const actions = {
       grid = addManyToGrid(emptyGrid(12), loot.items).grid;
       gold = loot.gold;
       const opened = { ...(s.expedition.chestsOpened ?? {}), [table]: (s.expedition.chestsOpened?.[table] ?? 0) + 1 };
-      if (chestType(table).look === 'boss' && s.profile) grantCosmetic(rollReliquary(s.profile, s.expedition.zone ?? 'mazmorra', rng), 'relicario');
       set({ expedition: { ...state.expedition!, chestsOpened: opened } });
       sfx('chest');
       if (gold) {
@@ -919,7 +918,6 @@ export const actions = {
             gold += l.gold;
             items.push(...l.items);
             kills[e.id] = (kills[e.id] ?? 0) + 1;
-            if (e.elite) grantCosmetic(rollEliteDrop(state.profile!, e.id, rng), 'botín raro');
             { const pr = state.profile!; set({ profile: { ...pr, bestiary: noteKill(pr.bestiary, e.id) } }); }
           }
         }

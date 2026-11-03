@@ -16,6 +16,9 @@ export interface ClassDef {
   weapons: string;
   starterKit: { itemId: string; qty: number }[];
   color: string;
+  /** Puntos fuertes y débiles (pantalla de crear personaje). */
+  pros?: string[];
+  cons?: string[];
 }
 
 export const CLASSES: Record<ClassId, ClassDef> = {
@@ -26,6 +29,8 @@ export const CLASSES: Record<ClassId, ClassDef> = {
     base: { maxHp: 120, maxMp: 20, atk: 16, def: 12, mag: 4, res: 8, spd: 9, crit: 5, eva: 3 },
     perLevel: { maxHp: 12, maxMp: 2, atk: 2, def: 2, res: 1 },
     classSkill: 'war_cry', weapons: 'Espadas, hachas y escudos',
+    pros: ['Mucha vida y defensa', 'Sus tajos hacen sangrar', 'Grito de guerra: +30 % de daño durante 3 turnos'],
+    cons: ['Lento', 'Casi sin poder mágico', 'Poco aguante para encadenar habilidades'],
     starterKit: [{ itemId: 'rusty_sword', qty: 1 }, { itemId: 'wooden_shield', qty: 1 }, { itemId: 'padded_tunic', qty: 1 }, { itemId: 'health_potion', qty: 2 }],
     color: '#c0563b',
   },
@@ -36,6 +41,8 @@ export const CLASSES: Record<ClassId, ClassDef> = {
     base: { maxHp: 92, maxMp: 45, atk: 6, def: 7, mag: 21, res: 12, spd: 11, crit: 6, eva: 5 },
     perLevel: { maxHp: 10, maxMp: 5, mag: 3, def: 1, res: 1 },
     classSkill: 'meditation', weapons: 'Báculos y tomos',
+    pros: ['Fuego, hielo y sombra según el báculo', 'Meditación: recupera maná sin pociones', 'Quema y congela a sus enemigos'],
+    cons: ['Poca vida', 'Poco daño físico', 'Sin maná, está perdido'],
     starterKit: [{ itemId: 'apprentice_staff', qty: 1 }, { itemId: 'linen_robe', qty: 1 }, { itemId: 'health_potion', qty: 2 }, { itemId: 'mana_potion', qty: 1 }],
     color: '#7b5ae0',
   },

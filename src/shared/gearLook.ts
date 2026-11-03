@@ -7,7 +7,6 @@ import { EQUIP_SLOTS } from '../core/types';
 import { CLASSES } from '../core/data/classes';
 import { getItem } from '../core/data/items';
 import { PAL } from './palette';
-import { COSMETICS } from '../core/data/cosmetics';
 
 export type GearLook =
   | { slot: 'mainHand'; shape: 'sword' | 'axe' | 'staff' | 'dagger' | 'mace'; color: string; orb?: string }
@@ -111,7 +110,7 @@ export const GEAR_LOOKS: Record<string, GearLook> = {
 };
 
 export function lookOf(itemId: string): GearLook | null {
-  return GEAR_LOOKS[itemId] ?? COSMETICS[itemId]?.look ?? null;
+  return GEAR_LOOKS[itemId] ?? null;
 }
 
 /** Equipo inicial de la clase como «equipo» (para la creación de personaje y la web). */

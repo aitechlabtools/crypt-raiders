@@ -1,5 +1,5 @@
 import { MERCENARIES } from './data/mercenaries';
-import { COSMETICS } from './data/cosmetics';
+import { SKINS } from './data/skins';
 import type { Appearance, ClassId, Profile } from './types';
 import { CLASSES } from './data/classes';
 import { addToGrid, BACKPACK_SIZE, emptyEquipment, emptyGrid, STASH_SIZE } from './inventory';
@@ -34,8 +34,7 @@ export function createProfile(name: string, classId: ClassId, appearance: Appear
     stats: { expeditions: 0, extractions: 0, deaths: 0, kills: 0 },
     bossesDefeated: [],
     contract: null,
-    cosmetics: [],
-    wardrobe: {},
+    skins: { owned: [], equipped: null },
     mercsRescued: [],
     mercDiscounts: [],
     bestiary: {},
@@ -83,10 +82,13 @@ export function sanitizeProfile(raw: unknown): Profile | null {
   // Partidas de antes de las zonas: si ya cobraste «El trono vacío», el Señor del Osario cuenta como derrotado
   if (!Array.isArray(p.bossesDefeated)) p.bossesDefeated = p.quests.some((q) => q.id === 'q_lord' && q.progress >= 1) ? ['ossuary_lord'] : [];
   if (!p.contract || typeof p.contract !== 'object' || !MERCENARIES[p.contract.mercId] || !(p.contract.left > 0)) p.contract = null;
-  if (!Array.isArray(p.cosmetics)) p.cosmetics = [];
-  p.cosmetics = p.cosmetics.filter((id) => COSMETICS[id] && COSMETICS[id].source !== 'shop');
-  if (!p.wardrobe || typeof p.wardrobe !== 'object') p.wardrobe = {};
-  for (const [k, v] of Object.entries(p.wardrobe)) if (!v || !p.cosmetics.includes(v)) delete (p.wardrobe as Record<string, string>)[k];
+  // El antiguo Vestuario (aspectos por pieza) desaparece: sus datos se descartan sin más (nadie los compró).
+  delete (p as { cosmetics?: unknown }).cosmetics;
+  delete (p as { wardrobe?: unknown }).wardrobe;
+  // Atuendos: solo los que existen; el puesto tiene que ser uno de los tuyos.
+  const sk = (p.skins ?? {}) as Partial<Profile['skins']>;
+  const owned = Array.isArray(sk.owned) ? [...new Set(sk.owned.filter((id) => typeof id === 'string' && SKINS[id]))] : [];
+  p.skins = { owned, equipped: sk.equipped && owned.includes(sk.equipped) ? sk.equipped : null };
   if (!Array.isArray(p.mercsRescued)) p.mercsRescued = [];
   p.mercsRescued = p.mercsRescued.filter((id) => MERCENARIES[id]);
   if (!Array.isArray(p.mercDiscounts)) p.mercDiscounts = [];

@@ -48,7 +48,7 @@ const DEVICE = process.argv[4];
   await page.screenshot({ path: `${OUT}/contract-active.png` });
 
   await tap('[data-testid=tab-play]');
-  console.log('preparación:', await page.$eval('[data-testid=prep-merc]', (e) => e.textContent));
+  console.log('preparación:', await page.$eval('[data-testid=expedition-summary]', (e) => e.textContent));
   await tap('[data-testid=btn-enter-dungeon]');
   await tap('[data-testid=btn-dungeon-tutorial-ok]');
   await page.waitForSelector('[data-testid=hud-merc]');

@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Maqueta de skins · Crypt Raiders</title>
+    <script>
+      // La maqueta NO debe tocar tu partida guardada: se desactiva el guardado del navegador en esta página.
+      try { Object.defineProperty(window, 'indexedDB', { value: undefined }); } catch (e) {}
+      try { Storage.prototype.setItem = function () {}; Storage.prototype.removeItem = function () {}; } catch (e) {}
+      if (!/[?&]debug/.test(location.search)) location.replace(location.pathname + (location.search ? location.search + '&debug' : '?debug'));
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./maqueta.tsx"></script>
+  </body>
+</html>

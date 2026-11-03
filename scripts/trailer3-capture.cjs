@@ -130,7 +130,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
     [['iron_ore',10],['bone_dust',10],['copper_ore',10],['silver_ore',10],['blessed_silver',10],['ancient_bone',10],['iron_ore',10]].forEach(([id,q],i)=> st[i] = { uid: 'ts'+i, itemId: id, qty: q });
     return { ...p, backpack: bp, stash: st, gold: 20000, character: { ...p.character, level: 30 }, tutorialSeen: { lobby: true, dungeon: true },
       stats: { ...p.stats, expeditions: 1 }, bossesDefeated: ['ossuary_lord', 'veiled_queen'], reputation: { garra: 1500, brand: 1500, orvel: 300, vesper: 300 },
-      cosmetics: ['cos_ossuary_helm','cos_redclaw_mail','cos_umbral_blade','cos_spectral_shield','cos_gilded_boots','cos_hellfire_helm','cos_chainbreaker_plate'] };
+      skins: { owned: ['skin_penitent', 'skin_hollow_warden', 'skin_ash_lord'], equipped: 'skin_hollow_warden' } };
   `);
   await page.click('[data-testid=tab-character]'); await page.click('[data-testid=tab-stash]'); await wait(500);
   if (want('g-equipo')) await record('g-equipo', async () => {
@@ -169,9 +169,9 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
       await page.click('[data-testid=merc-hire]'); await wait(1200);
     });
   }
-  // Vestuario
+  // Tienda de atuendos
   if (want('x-vestuario')) {
-    await page.click('[data-testid=tab-wardrobe]'); await wait(400);
+    await page.click('[data-testid=tab-shop]'); await wait(400);
     await record('x-vestuario', async () => {
       await wait(400);
       for (const id of ['cos_ossuary_helm', 'cos_redclaw_mail', 'cos_umbral_blade', 'cos_gilded_boots', 'cos_spectral_shield']) {

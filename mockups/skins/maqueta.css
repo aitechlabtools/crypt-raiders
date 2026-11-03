@@ -1,0 +1,9 @@
+/* MAQUETA de skins: estilos propios (en el juego irían a game.css). */
+.slot.slot-skin{border-color:#6a3aa8;box-shadow:inset 0 0 0 1px #07060a,inset 0 0 12px #a35ae044;cursor:pointer;overflow:visible}
+.slot.slot-skin:hover{border-color:#c79bff}
+.slot-skin-gem{position:absolute;right:-5px;top:-7px;font-size:11px;color:#c79bff;text-shadow:0 0 6px #a35ae0}
+.skin-tile{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px;min-width:44px;min-height:44px;border:2px solid #3a3741;background:#0d0c11;cursor:pointer}
+.skin-tile.on{border-color:#e8b33a;box-shadow:0 0 0 1px #07060a,0 0 16px #e8b33a55}
+.skin-tile:hover{filter:brightness(1.2)}
+.price{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-display);color:var(--color-gold)}
+.rar-rare{color:#4f8cff}.rar-epic{color:#b07aff}.rar-legendary{color:#ff9a3a}

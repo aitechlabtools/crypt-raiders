@@ -5,11 +5,11 @@ import { PAL } from '../../shared/palette';
 import type { Appearance, ClassId, Equipment } from '../../core/types';
 
 /** Texturas del héroe según su equipo. Cada versión usa claves nuevas (hero{v}_0…3) para no tocar las que están en uso. */
-export function registerHeroTextures(scene: Phaser.Scene, version: number, hero: { classId: ClassId; appearance: Appearance; equipment: Equipment }) {
+export function registerHeroTextures(scene: Phaser.Scene, version: number, hero: { classId: ClassId; appearance: Appearance; equipment: Equipment; skin?: string | null }) {
   for (let f = 0; f < 4; f++) {
     const key = `hero${version}_${f}`;
     if (scene.textures.exists(key)) scene.textures.remove(key);
-    scene.textures.addCanvas(key, Art.drawHumanoid(Art.heroSpec(hero.classId, hero.appearance, hero.equipment), f));
+    scene.textures.addCanvas(key, Art.drawHumanoid(Art.heroSpec(hero.classId, hero.appearance, hero.equipment, hero.skin), f));
   }
   // Libera la versión anterior
   for (let f = 0; f < 4; f++) {

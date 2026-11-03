@@ -47,11 +47,11 @@ fs.mkdirSync(OUT, { recursive: true });
   await step('El aspecto cambia al equiparse un yelmo', async () => {
     await page.click('[data-testid=buy-leather_hood]');
     await page.click('[data-testid=tab-stash]');
-    const before = await page.$eval('[data-testid=equipment] [data-testid=hero-sprite]', (i) => i.src);
+    const before = await page.$eval('[data-testid=alijo-hero] [data-testid=hero-sprite]', (i) => i.src);
     await page.dblclick('[data-testid^=slot-backpack][data-item=leather_hood]');
     await page.waitForSelector('[data-testid=slot-equip-helmet][data-item=leather_hood]');
     await page.waitForTimeout(300);
-    const after = await page.$eval('[data-testid=equipment] [data-testid=hero-sprite]', (i) => i.src);
+    const after = await page.$eval('[data-testid=alijo-hero] [data-testid=hero-sprite]', (i) => i.src);
     if (before === after) throw new Error('el retrato no cambió al equipar el yelmo');
   });
   await step('Equipo e inventario', async () => {

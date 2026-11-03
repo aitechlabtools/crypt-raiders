@@ -1,12 +1,6 @@
 import { useState } from 'react';
 import { actions, useGame } from '../state/store';
-import { CLASSES } from '../../core/data/classes';
-import type { ClassId } from '../../core/types';
-import { CLOAK_COLORS, CLOAK_NAMES, SKIN_COLORS, SKIN_NAMES } from '../../shared/palette';
-import { HeroSprite, MonsterSprite, Modal, LoadoutPanel } from './common';
-import { starterEquipment } from '../../shared/gearLook';
-import { StatsList } from './inventory';
-import { baseStats } from '../../core/stats';
+import { MonsterSprite, Modal } from './common';
 import { sfx, startMusic } from '../audio';
 import { isTouch } from '../../shared/device';
 import { canFullscreen, enterFullscreen, isFullscreen } from '../../shared/fullscreen';
@@ -115,90 +109,5 @@ export function TitleScreen() {
   );
 }
 
-export function CreateScreen() {
-  const [name, setName] = useState('');
-  const [cls, setCls] = useState<ClassId>('warrior');
-  const [cloak, setCloak] = useState(0);
-  const [skin, setSkin] = useState(0);
-  const def = CLASSES[cls];
-  const ap = { cloak, skin };
-  const valid = name.trim().length >= 2;
-  return (
-    <div className="h-full overflow-y-auto scroll-thin" style={{ background: 'radial-gradient(ellipse at 50% 30%, #1a1520 0%, #07060a 70%)' }}>
-      <div className="max-w-6xl mx-auto p-4 md:p-8 fade-in">
-        <h2 className="panel-title text-2xl md:text-3xl text-center mb-1">Forja a tu aventurero</h2>
-        <p className="text-center font-body italic text-stone-300 text-lg mb-6">Las criptas no recuerdan nombres. Tú sí.</p>
-        <div className="grid md:grid-cols-[1fr_320px] gap-6">
-          <div className="space-y-6">
-            <section>
-              <h3 className="text-sm uppercase tracking-widest text-stone-300 mb-2">Clase</h3>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {(Object.keys(CLASSES) as ClassId[]).map((id) => {
-                  const c = CLASSES[id];
-                  const active = id === cls;
-                  return (
-                    <button
-                      key={id}
-                      data-testid={`class-${id}`}
-                      disabled={!c.playable}
-                      onClick={() => { setCls(id); sfx('click'); }}
-                      className={`panel p-3 text-left transition relative ${active ? 'pulse-gold' : ''} ${c.playable ? 'hover:brightness-125 cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
-                      style={active ? { borderColor: '#e8b33a' } : undefined}
-                    >
-                      <div className="flex justify-center h-28 items-end"><HeroSprite classId={id} appearance={ap} scale={4} animate={active} /></div>
-                      <div className="font-display text-lg mt-2" style={{ color: c.color }}>{c.name}</div>
-                      <div className="font-body italic text-sm text-stone-300">{c.tagline}</div>
-                      {!c.playable && <span className="absolute top-2 right-2 text-[10px] bg-stone-700 px-1.5 py-0.5 uppercase tracking-wider">Próximamente</span>}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-            <section className="grid sm:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-sm uppercase tracking-widest text-stone-300 mb-2">Nombre</h3>
-                <input
-                  data-testid="name-input"
-                  value={name}
-                  maxLength={18}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Escribe un nombre"
-                  className="w-full bg-[#0d0c11] border-2 border-stone-600 px-3 py-2 text-lg font-pixel focus:outline-none focus:border-gold"
-                />
-              </div>
-              <div>
-                <h3 className="text-sm uppercase tracking-widest text-stone-300 mb-2">Capa: {CLOAK_NAMES[cloak]}</h3>
-                <div className="flex gap-2">
-                  {CLOAK_COLORS.map((c, i) => (
-                    <button key={c} aria-label={CLOAK_NAMES[i]} onClick={() => setCloak(i)} className={`w-9 h-9 border-2 ${cloak === i ? 'border-gold' : 'border-stone-700'}`} style={{ background: c }} />
-                  ))}
-                </div>
-                <h3 className="text-sm uppercase tracking-widest text-stone-300 mb-2 mt-3">Piel: {SKIN_NAMES[skin]}</h3>
-                <div className="flex gap-2">
-                  {SKIN_COLORS.map((c, i) => (
-                    <button key={c} aria-label={SKIN_NAMES[i]} onClick={() => setSkin(i)} className={`w-9 h-9 border-2 ${skin === i ? 'border-gold' : 'border-stone-700'}`} style={{ background: c }} />
-                  ))}
-                </div>
-              </div>
-            </section>
-          </div>
-          <aside className="panel panel-gold p-4 flex flex-col">
-            <div className="flex justify-center h-44 items-end"><HeroSprite classId={cls} appearance={ap} scale={7} /></div>
-            <div className="font-display text-2xl text-center mt-2" style={{ color: def.color }}>{name.trim() || def.name}</div>
-            <p className="font-body text-base text-stone-300 my-3 leading-snug">{def.description}</p>
-            <StatsList stats={baseStats(cls, 1)} resourceName={def.resourceName} />
-            <div className="mt-3 text-sm">
-              <div className="text-xs text-stone-400 mb-2">Armas: {def.weapons}</div>
-              <LoadoutPanel classId={cls} equipment={starterEquipment(cls)} compact />
-            </div>
-            <button className="btn btn-gold mt-4 py-3 text-lg" disabled={!valid} data-testid="btn-create" onClick={() => { sfx('equip'); void actions.createCharacter(name, cls, ap); }}>
-              Comenzar
-            </button>
-            {!valid && <span className="text-xs text-stone-400 mt-1 text-center">Escribe un nombre (mín. 2 letras)</span>}
-            <button className="btn mt-2 text-sm" onClick={() => actions.goto('title')}>Volver</button>
-          </aside>
-        </div>
-      </div>
-    </div>
-  );
-}
+/** Crear personaje: la pantalla vive en screens/CrearPersonaje.tsx (opción D, tres columnas). */
+export { CrearPersonaje as CreateScreen } from './screens/CrearPersonaje';

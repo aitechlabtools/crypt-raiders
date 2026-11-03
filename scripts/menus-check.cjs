@@ -20,8 +20,9 @@ const SIZES = [
 // Pestaña y, opcionalmente, pasos dentro de ella (testids que se pulsan en orden) para capturar vistas internas.
 const VIEWS = [
   { name: 'jugar', tab: 'play' },
-  { name: 'jugar-mapa', tab: 'play', steps: ['btn-zone-map'], close: true, optional: true },
+  { name: 'jugar-mapa', tab: 'play', steps: ['btn-zone-map'], close: true },
   { name: 'personaje', tab: 'character' },
+  { name: 'personaje-ficha', tab: 'character', steps: ['arc-basic'] },
   { name: 'personaje-atributos', tab: 'character', steps: ['seg-attrs'], optional: true },
   { name: 'alijo', tab: 'stash' },
   { name: 'alijo-almacen', tab: 'stash', steps: ['seg-storage'], optional: true },
@@ -32,7 +33,7 @@ const VIEWS = [
   { name: 'mercader-contratos', tab: 'merchants', steps: ['vendor-garra', 'vendor-view-contracts'] },
   { name: 'misiones', tab: 'quests' },
   { name: 'bestiario', tab: 'bestiary' },
-  { name: 'vestuario', tab: 'wardrobe' },
+  { name: 'alijo-atuendo', tab: 'stash', steps: ['slot-skin'], close: true },
   { name: 'tienda', tab: 'shop' },
 ];
 
@@ -55,7 +56,7 @@ async function run(s) {
   await act('btn-create');
   await act('btn-tutorial-ok');
   // Un poco de todo para que las pantallas no salgan vacías
-  await p.evaluate(() => { const G = window.__CRYPTRAIDERS__; const pr = G.getState().profile; pr.gold = 4860; G.setState({ profile: { ...pr } }); });
+  await p.evaluate(() => { const G = window.__CRYPTRAIDERS__; const pr = G.getState().profile; pr.gold = 4860; pr.stats.expeditions = 3; G.setState({ profile: { ...pr } }); });
   for (const v of VIEWS) {
     try {
       await act(`tab-${v.tab}`);
@@ -80,8 +81,10 @@ async function run(s) {
         return out;
       }, s.touch);
       for (const x of [...new Set(r)].slice(0, 6)) fails.push(`${v.name}: ${x}`);
+      if (await p.$('[data-testid=vendor-back]')) await act('vendor-back'); // volver a las tarjetas de mercaderes
       if (v.close) await p.keyboard.press('Escape').catch(() => {});
       if (v.close && (await p.$('[data-testid=zone-map]'))) await act('btn-zone-map-close');
+      if (v.close && (await p.$('[data-testid=skin-picker]'))) await act('pick-none');
     } catch (e) { if (e.message !== 'skip') fails.push(`${v.name}: ${e.message.split('\n')[0]}`); }
   }
   await b.close();

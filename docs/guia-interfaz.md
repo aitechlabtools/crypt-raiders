@@ -39,6 +39,7 @@ Todo está en un sitio: `src/config/ui.ts` (para el código) y el bloque «Base 
 | `Card` | Tarjeta con arco para retratos (mercaderes). |
 | `ItemSlot`, `GridView` | Casilla e inventario (miden `var(--slot)`). |
 | `ItemCard` | Ficha del objeto seleccionado con sus acciones (`screens/ItemCard.tsx`). |
+| `SkinSlot`, `SkinPicker`, `Tienda` | Atuendos (`screens/Atuendos.tsx`): ranura cosmética violeta con rombo (no admite objetos; al tocarla abre el selector), selector y Tienda. |
 | Clases CSS | `.cta` botón principal, `.icon-btn` botón de icono de 44 px, `.ui-tag` etiqueta, `.pill`. |
 
 ## Montar una pantalla nueva
@@ -52,3 +53,11 @@ Todo está en un sitio: `src/config/ui.ts` (para el código) y el bloque «Base 
 6. Textos visibles en español. Nada de funciones falsas: lo que no existe, no se enseña (o «Próximamente» si se ha decidido así).
 7. Prueba en los tres formatos: `scripts/menus-check.cjs` hace capturas de todas las pestañas en 1920×1080,
    1180×820 y 844×390 y avisa si algo se sale de la pantalla o mide menos de 44 px en táctil.
+
+## Atuendos (skins)
+
+- Un atuendo es un traje completo y solo estético. El arma y la secundaria equipadas se siguen dibujando encima.
+- Para dibujar al héroe con su atuendo: `<HeroSprite … skin={id}/>` o `PlayerSprite` (usa el que lleva puesto: `wornSkin(profile)`).
+- Añadir uno: entrada en `SKINS` (`src/core/data/skins.ts`) con `order`, `price: { currency: 'gold', amount }` y `body`.
+  Con arte final: `sprites.sheet` apuntando a `public/skins/<id>.png` (los tonos #FF00FF/#B000B0 se cambian por la piel del jugador).
+- Comprar exige confirmación; los botones miden `var(--btn-h)` (44 px o más en táctil).

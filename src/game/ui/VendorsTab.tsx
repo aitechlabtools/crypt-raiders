@@ -1,18 +1,12 @@
-// Vendedores del refugio: tienda con precios según tu reputación, sus misiones y (con Orvel) la venta.
-import { useState } from 'react';
+// Piezas de los mercaderes (las usa screens/Mercaderes.tsx y screens/Misiones.tsx): barra de reputación,
+// mercancía con precio según tu reputación y lista de encargos.
 import { actions, useGame } from '../state/store';
-import { VENDORS, VENDOR_ORDER, type VendorId } from '../../core/data/vendors';
+import { VENDORS, type VendorId } from '../../core/data/vendors';
 import { getItem, RARITY_INFO } from '../../core/data/items';
 import { buyPrice } from '../../core/economy';
 import { REP_RANKS, rankOf } from '../../config/reputation';
 import { offeredQuests, questDef, questProgress } from '../../core/quests';
-import { monsterUrl } from '../../shared/art';
 import { Bar, ItemIcon } from './inventory';
-import { GoldAmount } from './common';
-import type { ReactNode } from 'react';
-import { ForgePanel } from './ForgePanel';
-import { COSMETICS, QUEST_COSMETICS } from '../../core/data/cosmetics';
-import { ContractsPanel } from './ContractsPanel';
 
 export function RepBar({ rep }: { rep: number }) {
   const r = rankOf(rep);
@@ -26,55 +20,18 @@ export function RepBar({ rep }: { rep: number }) {
   );
 }
 
-export function VendorsTab({ sellPanel }: { sellPanel: ReactNode }) {
+export type VendorView = 'shop' | 'quests' | 'sell' | 'forge' | 'contracts';
+export interface VendorTarget { vendor: VendorId; view: VendorView }
+
+/** Mercancía de un mercader, con el precio según tu reputación y lo que está bloqueado por rango. */
+export function ShopStock({ vid, cols = 'grid sm:grid-cols-2 xl:grid-cols-3 gap-2' }: { vid: VendorId; cols?: string }) {
   const profile = useGame((s) => s.profile)!;
-  const [vid, setVid] = useState<VendorId>('orvel');
-  const [view, setView] = useState<'shop' | 'quests' | 'sell' | 'forge' | 'contracts'>('shop');
   const v = VENDORS[vid];
   const rep = profile.reputation[vid] ?? 0;
   const rank = rankOf(rep);
   const ch = profile.character;
   return (
-    <div className="space-y-4 max-w-6xl">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2" data-testid="vendor-list">
-        {VENDOR_ORDER.map((id) => {
-          const d = VENDORS[id];
-          const on = id === vid;
-          const ready = offeredQuests(profile, id).filter((q) => questProgress(q, profile) >= questDef(q.id).count).length;
-          return (
-            <button key={id} onClick={() => { setVid(id); setView('shop'); }} data-testid={`vendor-${id}`}
-              className={`panel p-2.5 flex items-center gap-3 text-left relative ${on ? 'pulse-gold border-gold' : 'hover:brightness-125'}`}>
-              <img src={monsterUrl(d.sprite, 3)} alt="" className="pixelated h-14 shrink-0" />
-              <div className="min-w-0 flex-1">
-                <div className="font-display text-parchment leading-tight truncate">{d.name}</div>
-                <div className="text-[11px] truncate" style={{ color: d.color }}>{d.role}</div>
-                <div className="mt-1"><RepBar rep={profile.reputation[id] ?? 0} /></div>
-              </div>
-              {ready > 0 && <span className="absolute top-1 right-1 text-[10px] bg-heal text-black px-1.5" title="Misiones listas para cobrar">{ready}</span>}
-            </button>
-          );
-        })}
-      </div>
-
-      <section className="panel p-4">
-        <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
-          <div className="min-w-0">
-            <h2 className="font-display text-2xl text-parchment">{v.name}</h2>
-            <p className="font-body text-base text-stone-300 italic max-w-2xl">«{v.blurb}»</p>
-            <p className="text-xs text-stone-400 mt-1">Rango: <span className="text-gold">{REP_RANKS[rank].name}</span>{REP_RANKS[rank].discount ? ` · ${Math.round(REP_RANKS[rank].discount * 100)}% de descuento` : ''}{REP_RANKS[rank + 1] ? ` · siguiente: ${REP_RANKS[rank + 1].name} (${REP_RANKS[rank + 1].rep})` : ''}</p>
-          </div>
-          <GoldAmount value={profile.gold} />
-        </div>
-        <div className="flex gap-2 mb-3 flex-wrap">
-          <button className={`btn py-2 px-4 ${view === 'shop' ? 'btn-gold' : ''}`} onClick={() => setView('shop')} data-testid="vendor-view-shop">Tienda</button>
-          <button className={`btn py-2 px-4 ${view === 'quests' ? 'btn-gold' : ''}`} onClick={() => setView('quests')} data-testid="vendor-view-quests">Misiones</button>
-          {vid === 'garra' && <button className={`btn py-2 px-4 ${view === 'contracts' ? 'btn-gold' : ''}`} onClick={() => setView('contracts')} data-testid="vendor-view-contracts">Contratos</button>}
-          {vid === 'brand' && <button className={`btn py-2 px-4 ${view === 'forge' ? 'btn-gold' : ''}`} onClick={() => setView('forge')} data-testid="vendor-view-forge">Forja</button>}
-          {v.buysItems && <button className={`btn py-2 px-4 ${view === 'sell' ? 'btn-gold' : ''}`} onClick={() => setView('sell')} data-testid="vendor-view-sell">Vender</button>}
-        </div>
-
-        {view === 'shop' && (
-          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-2" data-testid="merchant-stock">
+    <div className={cols} data-testid="merchant-stock">
             {v.stock.map(({ itemId, rank: need }) => {
               const d = getItem(itemId);
               const locked = rank < need;
@@ -100,14 +57,6 @@ export function VendorsTab({ sellPanel }: { sellPanel: ReactNode }) {
               );
             })}
           </div>
-        )}
-
-        {view === 'quests' && <VendorQuests vendor={vid} />}
-        {view === 'sell' && sellPanel}
-        {view === 'forge' && <ForgePanel />}
-        {view === 'contracts' && <ContractsPanel />}
-      </section>
-    </div>
   );
 }
 
@@ -132,7 +81,6 @@ export function VendorQuests({ vendor }: { vendor: VendorId }) {
               <div className="text-gold">+{q.reward.gold} oro</div>
               <div className="text-arcane">+{q.reward.xp} XP</div>
               <div style={{ color: VENDORS[vendor].color }}>+{q.reward.rep} reputación</div>
-              {QUEST_COSMETICS[q.id] && <div className="text-arcane">+ aspecto: {COSMETICS[QUEST_COSMETICS[q.id]].name}</div>}
               <button className="btn btn-gold mt-2 text-sm py-2 px-4" disabled={!done} onClick={() => actions.claimQuest(q.id)} data-testid={`claim-${q.id}`}>{q.type === 'deliver' ? 'Entregar' : 'Cobrar'}</button>
             </div>
           </div>

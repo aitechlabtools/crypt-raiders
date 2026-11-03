@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skins · maquetas</title>
+<style>
+:root{color-scheme:dark}
+body{margin:0;background:#0d0b11;color:#e9e1cc;font-family:Georgia,serif;padding:24px}
+h1{font-family:Cinzel,Georgia,serif;color:#e8b33a;letter-spacing:.08em;margin:0 0 4px}
+p{color:#b9b2a3;max-width:900px}
+h2{color:#e8b33a;font-size:18px;margin:28px 0 8px;letter-spacing:.06em;text-transform:uppercase}
+.row{display:grid;grid-template-columns:1.6fr 1.1fr .8fr;gap:14px;align-items:start}
+figure{margin:0}figure img{width:100%;border:1px solid #3a3741;display:block}
+figcaption{font-size:12px;color:#8c8693;margin-top:4px}
+@media (max-width:900px){.row{grid-template-columns:1fr}}
+</style></head><body>
+<h1>Skins de traje completo · maquetas</h1>
+<p>Arte provisional generado por código (tú diseñarás los sprites). Ábrelo con doble clic; para la versión que se mueve: <code>npx vite --port 5173</code> y <code>http://localhost:5173/mockups/skins/maqueta.html?vista=alijo</code> (vistas: alijo, selector, tienda, confirmar, capas).</p>
+<script>
+const V=[['alijo','Alijo con la ranura «Atuendo» (bajo Manos)'],['selector','Selector de atuendos abierto'],['tienda','Tienda con las 3 skins'],['confirmar','Confirmación de compra']];
+const S=[['escritorio','1920×1080'],['tableta','1180×820'],['movil','844×390']];
+for(const [v,t] of V){document.write(`<h2>${t}</h2><div class="row">`);for(const [s,d] of S)document.write(`<figure><a href="capturas/${v}_${s}.png"><img src="capturas/${v}_${s}.png" alt=""></a><figcaption>${s} · ${d}</figcaption></figure>`);document.write('</div>');}
+document.write('<h2>Capas: la misma skin con armas de cualquier clase</h2><figure><a href="capturas/capas_todas-las-clases.png"><img src="capturas/capas_todas-las-clases.png" alt="" style="max-width:1200px"></a></figure>');
+</script>
+</body></html>

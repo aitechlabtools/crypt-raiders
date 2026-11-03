@@ -172,10 +172,8 @@ export interface Profile {
   pocket: Grid;
   /** Jefes derrotados al menos una vez (abren el acceso a la zona siguiente). */
   bossesDefeated: string[];
-  /** Aspectos desbloqueados (solo cambian cómo se ve el equipo). */
-  cosmetics: string[];
-  /** Aspecto elegido para cada ranura. */
-  wardrobe: Partial<Record<'mainHand' | 'offHand' | 'helmet' | 'armor' | 'gloves' | 'boots', string>>;
+  /** Atuendos (skins): los comprados y el que llevas puesto. Fuera del inventario: morir no los toca. */
+  skins: { owned: string[]; equipped: string | null };
   /** Contrato de mercenario en vigor (máximo uno). */
   contract: Contract | null;
   /** Mercenarios rescatados de la mazmorra: ya se pueden contratar con Garra Roja. */

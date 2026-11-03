@@ -14,16 +14,16 @@ import { RARITY_INFO } from '../../core/data/items';
 import { combatLoadout } from '../../core/loadout';
 import { getSkill } from '../../core/data/skills';
 import { CLASSES } from '../../core/data/classes';
-import { dressed } from '../../core/cosmetics';
+import { wornSkin } from '../../core/skins';
 
-export function HeroSprite({ classId, appearance, equipment, scale = 6, animate = true, pose = 'idle' as 'idle' | 'attack' | 'hurt', className = '' }: { classId: ClassId; appearance: Appearance; equipment?: Equipment; scale?: number; animate?: boolean; pose?: 'idle' | 'attack' | 'hurt'; className?: string }) {
+export function HeroSprite({ classId, appearance, equipment, skin, scale = 6, animate = true, pose = 'idle' as 'idle' | 'attack' | 'hurt', className = '' }: { classId: ClassId; appearance: Appearance; equipment?: Equipment; skin?: string | null; scale?: number; animate?: boolean; pose?: 'idle' | 'attack' | 'hurt'; className?: string }) {
   const [f, setF] = useState(0);
   useEffect(() => {
     if (!animate) return;
     const t = setInterval(() => setF((x) => (x + 1) % 4), 220);
     return () => clearInterval(t);
   }, [animate]);
-  return <img src={heroUrl(classId, appearance, scale, animate ? f : 0, pose, equipment)} className={`pixelated ${className}`} alt="" draggable={false} data-testid="hero-sprite" />;
+  return <img src={heroUrl(classId, appearance, scale, animate ? f : 0, pose, equipment, skin)} className={`pixelated ${className}`} alt="" draggable={false} data-testid="hero-sprite" />;
 }
 
 /** El personaje del jugador con lo que lleva puesto ahora mismo (en la mazmorra, el equipo de la expedición). */
@@ -31,7 +31,7 @@ export function PlayerSprite(props: { scale?: number; animate?: boolean; pose?: 
   const profile = useGame((s) => s.profile);
   const expEquipment = useGame((s) => (s.screen === 'dungeon' ? s.expedition?.equipment : undefined));
   if (!profile) return null;
-  return <HeroSprite classId={profile.character.classId} appearance={profile.character.appearance} equipment={dressed(expEquipment ?? profile.equipment, profile.wardrobe)} {...props} />;
+  return <HeroSprite classId={profile.character.classId} appearance={profile.character.appearance} equipment={expEquipment ?? profile.equipment} skin={wornSkin(profile)} {...props} />;
 }
 
 export function MonsterSprite({ sprite, scale = 6, pose = 'idle', className = '' }: { sprite: string; scale?: number; pose?: 'idle' | 'attack' | 'hurt'; className?: string }) {
@@ -75,7 +75,7 @@ export function Toasts() {
 }
 
 /** Panel con las acciones disponibles para el objeto seleccionado. */
-export function ItemActions({ loc, mode, onClear, lootId }: { loc: Loc | null; mode: InvMode; onClear: () => void; lootId?: string }) {
+export function ItemActions({ loc, mode, onClear, lootId, buttonsOnly = false }: { loc: Loc | null; mode: InvMode; onClear: () => void; lootId?: string; buttonsOnly?: boolean }) {
   const s = useGame((x) => x);
   const touch = useIsTouch();
   if (!loc) return <div className="text-stone-400 text-sm italic font-body">{touch ? 'Toca un objeto para ver sus acciones.' : 'Selecciona un objeto para ver sus acciones. Doble clic: acción rápida · Clic derecho: mover · Arrastra para colocar.'}</div>;
@@ -100,6 +100,7 @@ export function ItemActions({ loc, mode, onClear, lootId }: { loc: Loc | null; m
   if ((mode === 'lobby' || mode === 'dungeon') && inGrid && loc.container === 'backpack' && canPocket(st.itemId)) btns.push(b('Al bolsillo seguro', () => { actions.quickMove(loc, 'pocket'); onClear(); }, '', 'act-pocket'));
   if (inGrid && loc.container === 'pocket') btns.push(b('A la mochila', () => { actions.quickMove(loc, 'backpack'); onClear(); }, '', 'act-unpocket'));
   if (mode === 'dungeon' && inGrid && loc.container === 'backpack') btns.push(b('Soltar', () => { actions.dropItem(loc); onClear(); }, 'btn-danger', 'act-drop'));
+  if (buttonsOnly) return <div className="flex gap-2 flex-wrap" data-testid="item-actions">{btns}</div>;
   return (
     <div className="flex items-center gap-3 flex-wrap">
       <ItemIcon itemId={st.itemId} size={32} />

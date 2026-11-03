@@ -24,7 +24,7 @@ const FEATURES = [
   { icon: 'gem_red', title: 'Todo o nada', text: 'Doce minutos para llegar al portal. Si caes, pierdes lo que llevabas encima. Lo que guardas en el almacén, nunca.' },
   { icon: 'amulet_heart', title: 'Cada bajada te hace más fuerte', text: 'Sube hasta el nivel 100, cumple encargos de cuatro vendedores y gana su confianza: mejores precios, mejor mercancía.' },
   { icon: 'shield_iron', title: 'Espadas de alquiler', text: 'Contrata mercenarios a Garra Roja o rompe las cadenas de los prisioneros que encuentres abajo. Si caen, el contrato se rompe.' },
-  { icon: 'pick', title: 'Pica, forja y luce', text: 'Saca mineral de las vetas con tu pico, llévaselo a Maese Brand para forjar tus armas y gana aspectos que cambian cómo te ves, nunca lo fuerte que eres.' },
+  { icon: 'pick', title: 'Pica, forja y luce', text: 'Saca mineral de las vetas con tu pico, llévaselo a Maese Brand para forjar tus armas y viste atuendos completos que cambian cómo te ves, nunca lo fuerte que eres.' },
 ];
 
 const SHOTS = [
@@ -232,7 +232,7 @@ export function App() {
                 <li>Bestiario que se completa a medida que luchas</li>
                 <li>Forja: fabrica tus propias armas con materiales de cada zona</li>
                 <li>Minería: pica vetas de cobre, hierro, plata, obsidiana y azufre con tu pico</li>
-                <li>Vestuario: aspectos que se ganan jugando (misiones, rango Leyenda, relicarios y élites) y no dan ventaja</li>
+                <li>Atuendos: 3 trajes completos que se compran en la Tienda con el oro del juego y no dan ventaja</li>
                 <li>9 mercenarios que contratar por expediciones, y prisioneros que puedes rescatar en la mazmorra</li>
                 <li>Un rival que decide por sí mismo si ayudarte o traicionarte, y si te traiciona, es a muerte</li>
 
@@ -242,7 +242,7 @@ export function App() {
               <h3 className="font-display text-xl text-stone-300 mb-3">En camino</h3>
               <ul className="space-y-1.5 text-stone-400">
                 <li>Multijugador con personas reales</li>
-                <li>Tienda de aspectos (solo estética, sin ventajas)</li>
+                <li>Arte definitivo de los atuendos</li>
                 <li>Pícaro y Clérigo</li>
                 <li>Arte y música definitivos</li>
                 <li>Versión para Windows</li>

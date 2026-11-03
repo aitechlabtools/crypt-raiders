@@ -8,6 +8,7 @@ import { PAL, shade, CLOAK_COLORS, SKIN_COLORS } from './palette';
 import type { Appearance, ClassId, Equipment } from '../core/types';
 import { EQUIP_SLOTS } from '../core/types';
 import { lookOf, lookSignature, starterEquipment } from './gearLook';
+import { SKINS, anchorFor, LAYER_ORDER, type View } from '../core/data/skins';
 
 export type Canvas = HTMLCanvasElement;
 
@@ -93,6 +94,73 @@ export interface HumanoidSpec {
   amulet?: string;
   ribs?: boolean;
   eye?: string;
+  /** Atuendo con sprites ya cargados: el cuerpo sale de su hoja (ver loadSkinSheets) en vez de dibujarse por código. */
+  sheet?: string;
+}
+
+// ── Atuendos con sprites del usuario ──────────────────────────────────
+// Hoja de 140×26: 7 fotogramas de 20×26 (frente: 4 de paso y ataque; espaldas: reposo y ataque). La piel de la cara va en
+// #FF00FF (luz) y #B000B0 (sombra) y se cambia por el tono del jugador. Anclajes: hoja aparte con un píxel #FF0000 en la
+// mano derecha y #0000FF en la izquierda de cada fotograma. Mientras no existan, el atuendo usa su marcador provisional.
+const SHEETS = new Map<string, { img: CanvasImageSource }>();
+const SHEET_FRAME: Record<View, (frame: number, pose: 'idle' | 'attack' | 'hurt') => number> = {
+  front: (f, pose) => (pose === 'attack' ? 4 : f % 4),
+  back: (_f, pose) => (pose === 'attack' ? 6 : 5),
+};
+/** Pinta el cuerpo desde la hoja de sprites del atuendo, cambiando la piel clave por la del jugador. */
+function drawSheetBody(p: Pix, s: HumanoidSpec, id: string, frame: number, pose: 'idle' | 'attack' | 'hurt', view: View) {
+  const sh = SHEETS.get(id);
+  if (!sh) return;
+  const i = SHEET_FRAME[view](frame, pose);
+  p.ctx.drawImage(sh.img, i * HUM_W, 0, HUM_W, HUM_H, 0, 0, HUM_W, HUM_H);
+  const img = p.ctx.getImageData(0, 0, HUM_W, HUM_H);
+  const light = hexRgb(s.skin), dark = hexRgb(shade(s.skin, -0.25));
+  for (let k = 0; k < img.data.length; k += 4) {
+    const [r, g, b] = [img.data[k], img.data[k + 1], img.data[k + 2]];
+    const to = r === 255 && g === 0 && b === 255 ? light : r === 176 && g === 0 && b === 176 ? dark : null;
+    if (to) [img.data[k], img.data[k + 1], img.data[k + 2]] = to;
+  }
+  p.ctx.putImageData(img, 0, 0);
+}
+function hexRgb(h: string): [number, number, number] {
+  const n = parseInt(h.replace('#', ''), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+/** Carga las hojas de los atuendos que tengan sprites (y sus anclajes). Sin sprites no hace nada. */
+export async function loadSkinSheets(base = './skins/'): Promise<void> {
+  if (typeof Image === 'undefined') return;
+  const load = (src: string) => new Promise<HTMLImageElement>((ok, ko) => { const im = new Image(); im.onload = () => ok(im); im.onerror = ko; im.src = src; });
+  await Promise.all(Object.values(SKINS).filter((d) => d.sprites).map(async (d) => {
+    try {
+      const img = await load(base + d.sprites!.sheet);
+      SHEETS.set(d.id, { img });
+      if (d.sprites!.anchors) readSkinAnchors(d.id, await load(base + d.sprites!.anchors));
+    } catch { /* sin hoja: se queda el marcador provisional */ }
+  }));
+}
+/** Anclaje propio del atuendo para este fotograma (si su hoja de anclajes lo marca); si no, el de por defecto. */
+function sheetAnchor(s: HumanoidSpec, view: View, frame: number, pose: 'idle' | 'attack' | 'hurt') {
+  const a = s.sheet ? SKIN_ANCHORS.get(s.sheet)?.[SHEET_FRAME[view](frame, pose)] : undefined;
+  if (!a) return null;
+  const def = anchorFor(view, frame, pose);
+  return { right: a.right ?? def.right, left: a.left ?? def.left };
+}
+/** Anclajes leídos de la hoja de anclajes del atuendo (fotograma → mano derecha/izquierda). */
+export const SKIN_ANCHORS = new Map<string, ({ right?: { x: number; y: number }; left?: { x: number; y: number } })[]>();
+function readSkinAnchors(id: string, img: HTMLImageElement) {
+  const [c, ctx] = canvas(HUM_W * 7, HUM_H);
+  ctx.drawImage(img, 0, 0);
+  const d = ctx.getImageData(0, 0, HUM_W * 7, HUM_H).data;
+  const out: ({ right?: { x: number; y: number }; left?: { x: number; y: number } })[] = Array.from({ length: 7 }, () => ({}));
+  for (let y = 0; y < HUM_H; y++) for (let x = 0; x < HUM_W * 7; x++) {
+    const k = (y * HUM_W * 7 + x) * 4;
+    if (d[k + 3] < 200) continue;
+    const f = Math.floor(x / HUM_W), lx = x % HUM_W;
+    if (d[k] === 255 && d[k + 1] === 0 && d[k + 2] === 0) out[f].right = { x: lx, y };
+    if (d[k] === 0 && d[k + 1] === 0 && d[k + 2] === 255) out[f].left = { x: lx, y };
+  }
+  void c;
+  SKIN_ANCHORS.set(id, out);
 }
 
 export const HUM_W = 20;
@@ -107,6 +175,10 @@ export function drawHumanoid(s: HumanoidSpec, frame = 0, pose: 'idle' | 'attack'
   const armSwing = frame === 1 ? 1 : frame === 3 ? -1 : 0;
   const y0 = bob;
   const skinShade = shade(s.skin, -0.25);
+  const anchor = sheetAnchor(s, 'front', frame, pose) ?? anchorFor('front', frame, pose);
+  const ar = anchor.right, al = anchor.left;
+  const layers: Record<'body' | 'offhand' | 'weapon', () => void> = {
+    body: () => {
 
   // Capa (detrás)
   if (s.cape) {
@@ -236,66 +308,75 @@ export function drawHumanoid(s: HumanoidSpec, frame = 0, pose: 'idle' | 'attack'
     case 'skull':
       break;
   }
+    },
+    weapon: () => {
   // Arma (mano derecha, x≈15)
-  const wy = 12 + y0 + armSwing + attackLift;
+  const wy = ar.y - 5; // la empuñadura queda en la mano derecha (ancla)
   switch (s.weapon) {
     case 'sword': {
       const blade = s.weaponColor ?? PAL.steel2;
-      p.rect(15, wy - 7, 1, 10, blade);
-      p.px(15, wy - 8, shade(blade, 0.4));
-      p.rect(14, wy + 3, 3, 1, PAL.gold1);
-      p.rect(15, wy + 4, 1, 2, PAL.earth1);
+      p.rect(ar.x + 1, wy - 7, 1, 10, blade);
+      p.px(ar.x + 1, wy - 8, shade(blade, 0.4));
+      p.rect(ar.x, wy + 3, 3, 1, PAL.gold1);
+      p.rect(ar.x + 1, wy + 4, 1, 2, PAL.earth1);
       break;
     }
     case 'axe': {
       const head = s.weaponColor ?? PAL.steel2;
-      p.rect(15, wy - 6, 1, 12, PAL.earth1);
-      p.rect(16, wy - 6, 2, 4, head);
-      p.rect(16, wy - 7, 1, 1, head);
-      p.rect(16, wy - 2, 1, 1, head);
-      p.px(17, wy - 5, shade(head, 0.4));
+      p.rect(ar.x + 1, wy - 6, 1, 12, PAL.earth1);
+      p.rect(ar.x + 2, wy - 6, 2, 4, head);
+      p.rect(ar.x + 2, wy - 7, 1, 1, head);
+      p.rect(ar.x + 2, wy - 2, 1, 1, head);
+      p.px(ar.x + 3, wy - 5, shade(head, 0.4));
       break;
     }
     case 'greatsword':
-      p.rect(15, wy - 10, 2, 13, PAL.bone1);
-      p.rect(15, wy - 10, 1, 13, PAL.bone2);
-      p.rect(13, wy + 3, 6, 1, PAL.magic1);
-      p.rect(15, wy + 4, 2, 2, PAL.earth0);
+      p.rect(ar.x + 1, wy - 10, 2, 13, PAL.bone1);
+      p.rect(ar.x + 1, wy - 10, 1, 13, PAL.bone2);
+      p.rect(ar.x - 1, wy + 3, 6, 1, PAL.magic1);
+      p.rect(ar.x + 1, wy + 4, 2, 2, PAL.earth0);
       break;
     case 'staff':
-      p.rect(15, wy - 9, 1, 19, s.weaponColor ?? PAL.earth2);
-      p.rect(14, wy - 12, 3, 3, s.orb ?? PAL.magic2);
-      p.px(14, wy - 12, PAL.bone3);
+      p.rect(ar.x + 1, wy - 9, 1, 19, s.weaponColor ?? PAL.earth2);
+      p.rect(ar.x, wy - 12, 3, 3, s.orb ?? PAL.magic2);
+      p.px(ar.x, wy - 12, PAL.bone3);
       break;
     case 'dagger':
-      p.rect(15, wy - 2, 1, 4, s.weaponColor ?? PAL.steel2);
-      p.px(15, wy - 3, shade(s.weaponColor ?? PAL.steel2, 0.4));
-      p.rect(14, wy + 2, 3, 1, PAL.earth1);
+      p.rect(ar.x + 1, wy - 2, 1, 4, s.weaponColor ?? PAL.steel2);
+      p.px(ar.x + 1, wy - 3, shade(s.weaponColor ?? PAL.steel2, 0.4));
+      p.rect(ar.x, wy + 2, 3, 1, PAL.earth1);
       break;
     case 'mace':
-      p.rect(15, wy - 3, 1, 8, PAL.earth2);
-      p.rect(14, wy - 6, 3, 3, PAL.gold2);
-      p.px(14, wy - 6, PAL.gold3);
+      p.rect(ar.x + 1, wy - 3, 1, 8, PAL.earth2);
+      p.rect(ar.x, wy - 6, 3, 3, PAL.gold2);
+      p.px(ar.x, wy - 6, PAL.gold3);
       break;
   }
+    },
+    offhand: () => {
   // Mano izquierda
   if (s.offhand === 'shield') {
     const sc = s.shieldColor ?? PAL.earth2;
-    p.rect(2, 12 + y0 - armSwing, 4, 6, sc);
-    p.rect(2, 12 + y0 - armSwing, 4, 1, s.shieldRim ?? PAL.steel1);
-    p.rect(3, 17 + y0 - armSwing, 2, 1, sc);
-    p.px(3, 14 + y0 - armSwing, s.shieldEmblem ?? PAL.gold2);
-    p.px(4, 14 + y0 - armSwing, s.shieldEmblem ?? PAL.gold2);
-    p.rect(2, 13 + y0 - armSwing, 1, 4, shade(sc, 0.2));
-    if (s.shieldRim) p.rect(5, 13 + y0 - armSwing, 1, 4, s.shieldRim);
+    p.rect(al.x - 3, (al.y - 5), 4, 6, sc);
+    p.rect(al.x - 3, (al.y - 5), 4, 1, s.shieldRim ?? PAL.steel1);
+    p.rect(al.x - 2, (al.y), 2, 1, sc);
+    p.px(al.x - 2, (al.y - 3), s.shieldEmblem ?? PAL.gold2);
+    p.px(al.x - 1, (al.y - 3), s.shieldEmblem ?? PAL.gold2);
+    p.rect(al.x - 3, (al.y - 4), 1, 4, shade(sc, 0.2));
+    if (s.shieldRim) p.rect(al.x, (al.y - 4), 1, 4, s.shieldRim);
   } else if (s.offhand === 'tome') {
     const tc = s.tomeColor ?? PAL.magic1;
-    p.rect(2, 14 + y0 - armSwing, 4, 4, tc);
-    p.rect(3, 14 + y0 - armSwing, 3, 1, PAL.bone3);
-    p.px(3, 16 + y0 - armSwing, PAL.gold2);
+    p.rect(al.x - 3, (al.y - 3), 4, 4, tc);
+    p.rect(al.x - 2, (al.y - 3), 3, 1, PAL.bone3);
+    p.px(al.x - 2, (al.y - 1), PAL.gold2);
   } else if (s.offhand === 'dagger') {
-    p.rect(4, 15 + y0 - armSwing, 1, 4, PAL.steel2);
+    p.rect(al.x - 1, (al.y - 2), 1, 4, PAL.steel2);
   }
+    },
+  };
+  // Cuerpo (armadura o atuendo) y, encima o debajo según la vista, la secundaria y el arma en sus anclajes
+  if (s.sheet) drawSheetBody(p, s, s.sheet, frame, pose, 'front');
+  for (const l of LAYER_ORDER.front) if (l !== 'body' || !s.sheet) layers[l]();
   if (pose === 'hurt') {
     const img = p.ctx.getImageData(0, 0, p.w, p.h);
     for (let i = 0; i < img.data.length; i += 4) {
@@ -314,17 +395,23 @@ export function drawHumanoid(s: HumanoidSpec, frame = 0, pose: 'idle' | 'attack'
 export function drawHumanoidBack(s: HumanoidSpec, pose: 'idle' | 'attack' | 'hurt' = 'idle'): Canvas {
   const p = new Pix(HUM_W, HUM_H);
   const attackLift = pose === 'attack' ? -3 : 0;
+  const anchor = sheetAnchor(s, 'back', 0, pose) ?? anchorFor('back', 0, pose);
+  const ar = anchor.right, al = anchor.left;
+  const layers: Record<'body' | 'offhand' | 'weapon', () => void> = {
+    weapon: () => {
   // Arma (sujeta en la mano derecha, que de espaldas queda a la derecha de la pantalla)
-  const wy = 12 + attackLift;
+  const wy = ar.y - 5;
   const blade = s.weaponColor ?? PAL.steel2;
   switch (s.weapon) {
-    case 'sword': p.rect(15, wy - 7, 1, 10, blade); p.px(15, wy - 8, shade(blade, 0.4)); p.rect(14, wy + 3, 3, 1, PAL.gold1); break;
-    case 'axe': p.rect(15, wy - 6, 1, 12, PAL.earth1); p.rect(16, wy - 6, 2, 4, shade(blade, -0.15)); break;
-    case 'greatsword': p.rect(15, wy - 10, 2, 13, PAL.bone2); p.rect(13, wy + 3, 6, 1, PAL.magic1); break;
-    case 'staff': p.rect(15, wy - 9, 1, 19, s.weaponColor ?? PAL.earth2); p.rect(14, wy - 12, 3, 3, s.orb ?? PAL.magic2); break;
-    case 'dagger': p.rect(15, wy - 2, 1, 4, blade); break;
-    case 'mace': p.rect(15, wy - 3, 1, 8, PAL.earth2); p.rect(14, wy - 6, 3, 3, PAL.gold2); break;
+    case 'sword': p.rect(ar.x + 1, wy - 7, 1, 10, blade); p.px(ar.x + 1, wy - 8, shade(blade, 0.4)); p.rect(ar.x, wy + 3, 3, 1, PAL.gold1); break;
+    case 'axe': p.rect(ar.x + 1, wy - 6, 1, 12, PAL.earth1); p.rect(ar.x + 2, wy - 6, 2, 4, shade(blade, -0.15)); break;
+    case 'greatsword': p.rect(ar.x + 1, wy - 10, 2, 13, PAL.bone2); p.rect(ar.x - 1, wy + 3, 6, 1, PAL.magic1); break;
+    case 'staff': p.rect(ar.x + 1, wy - 9, 1, 19, s.weaponColor ?? PAL.earth2); p.rect(ar.x, wy - 12, 3, 3, s.orb ?? PAL.magic2); break;
+    case 'dagger': p.rect(ar.x + 1, wy - 2, 1, 4, blade); break;
+    case 'mace': p.rect(ar.x + 1, wy - 3, 1, 8, PAL.earth2); p.rect(ar.x, wy - 6, 3, 3, PAL.gold2); break;
   }
+    },
+    body: () => {
   // Piernas y botas
   const legCol = s.ribs ? s.skin : s.legs;
   p.rect(7, 18, 2, 5, legCol); p.rect(11, 18, 2, 5, legCol);
@@ -372,16 +459,22 @@ export function drawHumanoidBack(s: HumanoidSpec, pose: 'idle' | 'attack' | 'hur
     default: // pelo
       p.rect(6, hy - 1, 8, 6, hc); p.rect(7, hy - 1, 5, 1, shade(hc, 0.25)); p.rect(13, hy, 1, 5, shade(hc, -0.3)); p.rect(8, hy + 5, 4, 1, hc);
   }
+    },
+    offhand: () => {
   // Escudo o tomo por detrás (en la mano izquierda)
   if (s.offhand === 'shield') {
     const sc = shade(s.shieldColor ?? PAL.earth2, -0.25);
-    p.rect(2, 12, 4, 6, sc); p.rect(2, 12, 4, 1, s.shieldRim ?? PAL.steel1); p.rect(3, 17, 2, 1, sc);
-    p.rect(3, 13, 2, 1, PAL.earth0); p.rect(3, 15, 2, 1, PAL.earth0); // correas
+    p.rect(al.x - 3, al.y - 5, 4, 6, sc); p.rect(al.x - 3, al.y - 5, 4, 1, s.shieldRim ?? PAL.steel1); p.rect(al.x - 2, al.y, 2, 1, sc);
+    p.rect(al.x - 2, al.y - 4, 2, 1, PAL.earth0); p.rect(al.x - 2, al.y - 2, 2, 1, PAL.earth0); // correas
   } else if (s.offhand === 'tome') {
-    p.rect(2, 14, 4, 4, shade(s.tomeColor ?? PAL.magic1, -0.2)); p.rect(2, 14, 1, 4, PAL.gold1);
+    p.rect(al.x - 3, al.y - 3, 4, 4, shade(s.tomeColor ?? PAL.magic1, -0.2)); p.rect(al.x - 3, al.y - 3, 1, 4, PAL.gold1);
   } else if (s.offhand === 'dagger') {
-    p.rect(4, 15, 1, 4, PAL.steel2);
+    p.rect(al.x - 1, al.y - 2, 1, 4, PAL.steel2);
   }
+    },
+  };
+  if (s.sheet) drawSheetBody(p, s, s.sheet, 0, pose, 'back');
+  for (const l of LAYER_ORDER.back) if (l !== 'body' || !s.sheet) layers[l]();
   if (pose === 'hurt') {
     const img = p.ctx.getImageData(0, 0, p.w, p.h);
     for (let i = 0; i < img.data.length; i += 4) {
@@ -401,7 +494,7 @@ const CLASS_HAIR: Record<ClassId, string> = { warrior: PAL.earth1, mage: PAL.bon
  * Sin equipo: camisa, pantalón, pelo al aire, manos vacías y sandalias.
  * Si no se indica equipo, se usa el equipo inicial de la clase.
  */
-export function heroSpec(classId: ClassId, ap: Appearance, equipment?: Equipment): HumanoidSpec {
+export function heroSpec(classId: ClassId, ap: Appearance, equipment?: Equipment, outfit?: string | null): HumanoidSpec {
   const eq = equipment ?? starterEquipment(classId);
   const cloak = CLOAK_COLORS[ap.cloak % CLOAK_COLORS.length];
   const skin = SKIN_COLORS[ap.skin % SKIN_COLORS.length];
@@ -444,6 +537,14 @@ export function heroSpec(classId: ClassId, ap: Appearance, equipment?: Equipment
         spec.amulet = look.color;
         break;
     }
+  }
+  // Atuendo: sustituye TODO el cuerpo (cabeza, torso, manos, piernas, pies y capa). Se quedan la piel del jugador,
+  // el arma y la secundaria, que se dibujan encima en sus anclajes.
+  const sk = outfit ? SKINS[outfit] : null;
+  if (sk) {
+    const b = sk.body;
+    Object.assign(spec, { torso: b.torso, trim: b.trim, legs: b.legs, boots: b.boots, cape: b.cape, head: b.head, headColor: b.headColor, hatTrim: b.hatTrim, torsoStyle: b.torsoStyle, hands: b.hands, amulet: b.amulet, eye: b.eye });
+    if (SHEETS.has(sk.id)) spec.sheet = sk.id;
   }
   return spec;
 }
@@ -982,15 +1083,15 @@ export function iconUrl(icon: string, scale = 3): string {
   return cachedUrl(`icon:${icon}`, () => drawIcon(icon), scale);
 }
 
-export function heroUrl(classId: ClassId, ap: Appearance, scale = 4, frame = 0, pose: 'idle' | 'attack' | 'hurt' = 'idle', equipment?: Equipment): string {
+export function heroUrl(classId: ClassId, ap: Appearance, scale = 4, frame = 0, pose: 'idle' | 'attack' | 'hurt' = 'idle', equipment?: Equipment, skin?: string | null): string {
   const eq = equipment ?? starterEquipment(classId);
-  return cachedUrl(`hero:${classId}:${ap.cloak}:${ap.skin}:${lookSignature(eq)}:${frame}:${pose}`, () => drawHumanoid(heroSpec(classId, ap, eq), frame, pose), scale);
+  return cachedUrl(`hero:${classId}:${ap.cloak}:${ap.skin}:${lookSignature(eq)}:${skin ?? ''}:${SHEETS.size}:${frame}:${pose}`, () => drawHumanoid(heroSpec(classId, ap, eq, skin), frame, pose), scale);
 }
 
 /** Héroe de espaldas (combate). */
-export function heroBackUrl(classId: ClassId, ap: Appearance, scale = 4, pose: 'idle' | 'attack' | 'hurt' = 'idle', equipment?: Equipment): string {
+export function heroBackUrl(classId: ClassId, ap: Appearance, scale = 4, pose: 'idle' | 'attack' | 'hurt' = 'idle', equipment?: Equipment, skin?: string | null): string {
   const eq = equipment ?? starterEquipment(classId);
-  return cachedUrl(`heroback:${classId}:${ap.cloak}:${ap.skin}:${lookSignature(eq)}:${pose}`, () => drawHumanoidBack(heroSpec(classId, ap, eq), pose), scale);
+  return cachedUrl(`heroback:${classId}:${ap.cloak}:${ap.skin}:${lookSignature(eq)}:${skin ?? ''}:${SHEETS.size}:${pose}`, () => drawHumanoidBack(heroSpec(classId, ap, eq, skin), pose), scale);
 }
 
 /** Kael de espaldas, cuando lucha a tu lado. */

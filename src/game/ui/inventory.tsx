@@ -106,9 +106,15 @@ interface SlotProps {
   onSelect?: (loc: Loc) => void;
   onQuick?: (loc: Loc, stack: ItemStack) => void;
   onAlt?: (loc: Loc, stack: ItemStack) => void;
+  /** Al tocar una casilla VACÍA (sirve para «toca el objeto y luego toca dónde va»). */
+  onEmpty?: (loc: Loc) => void;
+  /** Casilla grande (armas). */
+  big?: boolean;
+  /** Hay un objeto elegido esperando destino: las casillas vacías se marcan como posibles destinos. */
+  awaiting?: boolean;
 }
 
-export function ItemSlot({ stack, loc, lootId, equipment, mode, selected, placeholderIcon, label, onSelect, onQuick, onAlt }: SlotProps) {
+export function ItemSlot({ stack, loc, lootId, equipment, mode, selected, placeholderIcon, label, onSelect, onQuick, onAlt, onEmpty, big, awaiting }: SlotProps) {
   const [over, setOver] = useState(false);
   const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
   const rarity = stack ? RARITY_INFO[getItem(stack.itemId).rarity] : null;
@@ -121,7 +127,7 @@ export function ItemSlot({ stack, loc, lootId, equipment, mode, selected, placeh
     <div
       data-testid={testId}
       data-item={stack?.itemId ?? ''}
-      className={`slot ${over ? 'drag-over' : ''} ${selected ? 'selected' : ''}`}
+      className={`slot ${big ? 'slot-big' : ''} ${over ? 'drag-over' : ''} ${selected ? 'selected' : ''} ${awaiting && !stack ? 'slot-target' : ''}`}
       style={rarity ? { borderColor: rarity.color + 'aa', boxShadow: `inset 0 0 0 1px #07060a, inset 0 0 14px ${rarity.color}33` } : undefined}
       draggable={!!stack}
       onDragStart={(e) => {
@@ -144,21 +150,22 @@ export function ItemSlot({ stack, loc, lootId, equipment, mode, selected, placeh
         const data = JSON.parse(raw) as { loc: Loc; lootId?: string };
         actions.transfer(data.loc, loc, data.lootId ?? lootId);
       }}
-      onClick={() => stack && onSelect?.(loc)}
+      onClick={() => (stack ? onSelect?.(loc) : onEmpty?.(loc))}
       onDoubleClick={() => stack && onQuick?.(loc, stack)}
       onContextMenu={(e) => {
         e.preventDefault();
         if (stack) onAlt?.(loc, stack);
       }}
-      onMouseEnter={(e) => {
-        if (!stack) return;
+      onPointerEnter={(e) => {
+        // Solo con ratón: en táctil la ficha del objeto sustituye a esta ventanita
+        if (!stack || e.pointerType !== 'mouse') return;
         const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
         setTip({ x: r.right + 8, y: r.top });
       }}
-      onMouseLeave={() => setTip(null)}
+      onPointerLeave={() => setTip(null)}
       title={!stack && label ? label : undefined}
     >
-      {stack ? <ItemIcon itemId={stack.itemId} /> : placeholderIcon ? <img src={iconUrl(placeholderIcon, 3)} width={30} height={30} className="pixelated opacity-15" alt="" draggable={false} /> : null}
+      {stack ? <ItemIcon itemId={stack.itemId} size={big ? 48 : 36} /> : placeholderIcon ? <img src={iconUrl(placeholderIcon, 3)} width={30} height={30} className="pixelated opacity-15" alt="" draggable={false} /> : null}
       {stack && stack.qty > 1 && <span className="qty">{stack.qty}</span>}
       {stack && loc.kind === 'grid' && (tooHigh || wrongClass) && (
         <span className="absolute left-0.5 top-0 text-[10px] leading-none px-0.5 bg-black/80 text-blood" data-testid="slot-locked" title={wrongClass ? 'Tu clase no puede usarlo' : `Requiere nivel ${sdef!.levelReq}`}>
@@ -186,13 +193,14 @@ export function GridView(props: {
   onSelect?: (loc: Loc) => void;
   onQuick?: (loc: Loc, stack: ItemStack) => void;
   onAlt?: (loc: Loc, stack: ItemStack) => void;
+  onEmpty?: (loc: Loc) => void;
 }) {
   return (
     <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${props.cols}, var(--slot))` }} data-testid={`grid-${props.container}`}>
       {props.grid.map((s, i) => {
         const loc: Loc = { kind: 'grid', container: props.container, index: i };
         const sel = props.selected?.kind === 'grid' && props.selected.container === props.container && props.selected.index === i;
-        return <ItemSlot key={i} stack={s} loc={loc} lootId={props.lootId} equipment={props.equipment} mode={props.mode} selected={sel} onSelect={props.onSelect} onQuick={props.onQuick} onAlt={props.onAlt} />;
+        return <ItemSlot key={i} stack={s} loc={loc} lootId={props.lootId} equipment={props.equipment} mode={props.mode} selected={sel} onSelect={props.onSelect} onQuick={props.onQuick} onAlt={props.onAlt} onEmpty={props.onEmpty} awaiting={!!props.selected && !!props.onEmpty} />;
       })}
     </div>
   );

@@ -1,5 +1,5 @@
 import { getMerc } from '../../core/data/mercenaries';
-import { dressed } from '../../core/cosmetics';
+import { wornSkin } from '../../core/skins';
 import { bestPick, VEINS, type VeinId } from '../../core/mining';
 import { getZone } from '../../core/data/zones';
 import { chestType } from '../../core/data/chests';
@@ -122,8 +122,8 @@ export class DungeonScene extends Phaser.Scene {
     const ch = st.profile!.character;
     registerTextures(this);
     this.heroVersion = 0;
-    this.heroLook = lookSignature(dressed(st.expedition!.equipment, st.profile!.wardrobe));
-    const heroTex = registerHeroTextures(this, 0, { classId: ch.classId, appearance: ch.appearance, equipment: dressed(st.expedition!.equipment, st.profile!.wardrobe) });
+    this.heroLook = lookSignature(st.expedition!.equipment) + '|' + (wornSkin(st.profile) ?? '');
+    const heroTex = registerHeroTextures(this, 0, { classId: ch.classId, appearance: ch.appearance, equipment: st.expedition!.equipment, skin: wornSkin(st.profile) });
     this.def = st.dungeon ?? CRYPTS_OF_UMBRAVEL;
     this.dungeon = buildDungeon(this.def);
     this.zoneTint = getZone(this.def.zone).tint;
@@ -902,12 +902,12 @@ export class DungeonScene extends Phaser.Scene {
   refreshHeroLook() {
     const st = getState();
     if (!st.expedition || !st.profile || !this.player) return;
-    const sig = lookSignature(dressed(st.expedition.equipment, st.profile?.wardrobe));
+    const sig = lookSignature(st.expedition.equipment) + '|' + (wornSkin(st.profile) ?? '');
     if (sig === this.heroLook) return;
     this.heroLook = sig;
     this.heroVersion += 1;
     const ch = st.profile.character;
-    this.player.tex = registerHeroTextures(this, this.heroVersion, { classId: ch.classId, appearance: ch.appearance, equipment: dressed(st.expedition.equipment, st.profile?.wardrobe) });
+    this.player.tex = registerHeroTextures(this, this.heroVersion, { classId: ch.classId, appearance: ch.appearance, equipment: st.expedition.equipment, skin: wornSkin(st.profile) });
     this.player.sprite.setTexture(`${this.player.tex}0`);
   }
 

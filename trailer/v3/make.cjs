@@ -11,7 +11,7 @@ const cards = {
   zonas: low('3 ZONAS · NIVEL 100', 'la Mazmorra, la Cripta y el Infierno'),
   mercenarios: low('MERCENARIOS', 'contrátalos… o rompe sus cadenas', 'gold'),
   forja: low('PICA · FORJA · MEJORA', 'minerales de cada zona para tus propias armas'),
-  vestuario: low('VESTUARIO', 'aspectos que se ganan jugando, sin ventajas', 'gold'),
+  vestuario: low('ATUENDOS', 'trajes completos, sin ventajas', 'gold'),
   aliado: low('¿ALIADO…', 'Kael también busca el oro'),
   traidor: low('…O TRAIDOR?', 'si te traiciona, es a muerte', 'red'),
   sal: low('SAL CON VIDA', 'Si escapas, te lo quedas todo. Si caes, lo pierdes todo.'),

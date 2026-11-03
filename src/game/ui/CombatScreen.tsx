@@ -6,7 +6,7 @@ import { combatLoadout } from '../../core/loadout';
 import { getItem } from '../../core/data/items';
 import { STATUSES } from '../../core/statuses';
 import { countItem } from '../../core/inventory';
-import { dressed } from '../../core/cosmetics';
+import { wornSkin } from '../../core/skins';
 import { allyBackUrl, heroBackUrl, monsterUrl } from '../../shared/art';
 import type { Appearance, ClassId, Equipment } from '../../core/types';
 import { zoneBackdrop, zoneFor } from './combatZones';
@@ -185,7 +185,7 @@ export function CombatScreen() {
             active={actor?.id === c.id} selectable={playerTurn && c.hp > 0 && sideB.length > 1} selected={tgt?.id === c.id && sideB.length > 1} onSelect={() => setTarget(c.id)} fly={fly} />;
         })}
         {allies.map((c, i) => <StageFighter key={c.id} c={c} x={allies.length > 1 ? 36 + i * 13 : 39} bottom={allies.length > 1 ? 11 - i * 3 : 9} h={allies.length > 1 ? 37 : 40} shadowW={allies.length > 1 ? 11 : 12} shadowBottom={allies.length > 1 ? 11.5 - i * 3 : 9.5} anim={anim} floats={floats} active={actor?.id === c.id} dim />)}
-        <StageFighter c={player} x={playerX} bottom={4.5} h={52} shadowW={17} shadowBottom={5} anim={anim} floats={floats} active={actor?.id === player.id} hero={{ classId: profile.character.classId, appearance: profile.character.appearance, equipment: dressed(expedition?.equipment ?? profile.equipment, profile.wardrobe) }} />
+        <StageFighter c={player} x={playerX} bottom={4.5} h={52} shadowW={17} shadowBottom={5} anim={anim} floats={floats} active={actor?.id === player.id} hero={{ classId: profile.character.classId, appearance: profile.character.appearance, equipment: expedition?.equipment ?? profile.equipment, skin: wornSkin(profile) }} />
 
         <div className="absolute left-[3%] top-[5%] flex flex-col gap-2 info-stack">
           {sideB.map((c) => <InfoFrame key={c.id} c={c} level={c.id === 'rival' ? undefined : profile.character.level} />)}
@@ -304,7 +304,7 @@ function InfoFrame({ c, nums, sub, small, level }: { c: Combatant; nums?: boolea
 function StageFighter({ c, x, bottom, h, shadowW, shadowBottom, flip, anim, floats, active, selectable, selected, onSelect, hero, fly, dim }: {
   c: Combatant; x: number; bottom: number; h: number; shadowW: number; shadowBottom: number; flip?: boolean;
   anim: { step: number; actorId: string | null; hit: Set<string> }; floats: Float[]; active: boolean; selectable?: boolean; selected?: boolean; onSelect?: () => void;
-  hero?: { classId: ClassId; appearance: Appearance; equipment: Equipment }; fly?: boolean; dim?: boolean;
+  hero?: { classId: ClassId; appearance: Appearance; equipment: Equipment; skin: string | null }; fly?: boolean; dim?: boolean;
 }) {
   const dead = c.hp <= 0;
   const acting = anim.actorId === c.id;
@@ -312,7 +312,7 @@ function StageFighter({ c, x, bottom, h, shadowW, shadowBottom, flip, anim, floa
   const pose = hurt ? 'hurt' : acting ? 'attack' : 'idle';
   const motion = acting ? (flip ? 'lunge-left' : 'lunge-right') : hurt ? 'hit-shake' : '';
   // Tu grupo se ve de espaldas (primer plano); los enemigos, de frente
-  const src = hero ? heroBackUrl(hero.classId, hero.appearance, 8, pose, hero.equipment) : !flip ? allyBackUrl(c.sprite, 8, pose) : monsterUrl(c.sprite, 8, pose);
+  const src = hero ? heroBackUrl(hero.classId, hero.appearance, 8, pose, hero.equipment, hero.skin) : !flip ? allyBackUrl(c.sprite, 8, pose) : monsterUrl(c.sprite, 8, pose);
   return (
     <>
       <div className="fighter-shadow" style={{ left: `${x}%`, bottom: `${shadowBottom}%`, width: `${shadowW}%`, opacity: dead ? 0.3 : 1 }} />

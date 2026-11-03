@@ -9,9 +9,9 @@ Léelo junto con CLAUDE.md (reglas permanentes del proyecto).
   Estrategia de marca del usuario: en la web y redes, «Crypt Raiders»; en Steam, «Crypt Raiders: VarkHollow».
   VarkHollow es la región/atmósfera (el lore), no el nombre de la web. Aún no se ha metido VarkHollow en el juego ni en la web.
   Las partidas guardadas con el nombre antiguo se copian solas al nuevo (persistence/db.ts); borrar el personaje borra ambas.
-- Repositorio: aitechlabtools/dreadbound (GitHub; el usuario quiere renombrarlo). Web publicada con GitHub Pages.
+- Repositorio: aitechlabtools/crypt-raiders (antes dreadbound; GitHub redirige el enlace viejo). Web publicada con GitHub Pages en cryptraiders.es.
   OJO: cada push a `main` publica la web (workflow .github/workflows/deploy.yml).
-- Carpeta de trabajo en el ordenador: `Documents\GitHub\dreadbound`.
+- Carpeta de trabajo en el ordenador: `Documents\GitHub\crypt-raiders`.
 - Claude edita los archivos directamente en esa carpeta. El usuario hace el commit y el push con GitHub Desktop
   (Claude NO hace commits ni push). Al terminar cada fase, Claude da el texto del commit en español.
 - Se trabaja en dos ordenadores (casa y otro): push antes de cambiar de equipo, pull al llegar.
@@ -23,7 +23,7 @@ Léelo junto con CLAUDE.md (reglas permanentes del proyecto).
 
 ## Reglas permanentes del usuario
 - Nada de funciones falsas. Solo un jugador: nunca presentarlo como multijugador.
-- La descarga sigue en «Próximamente». La tienda de aspectos de pago es solo maqueta: sin pagos ni servicios externos.
+- La descarga sigue en «Próximamente». La Tienda de atuendos cobra solo oro del juego: sin pagos reales ni servicios externos (los datos admiten otra moneda para el futuro).
 - Siempre diseñar y probar en ordenador, móvil en horizontal y tableta.
 - Mantener al día la lista «Ya disponible» de la landing (src/landing/App.tsx).
 - Todo el texto visible en español. Un commit por fase, con mensaje en español.
@@ -74,14 +74,47 @@ Versión publicada: 0.1.5.
    La barra lateral se sustituye por la barra superior de píldoras (Jugar · Personaje · Alijo · Mercaderes · Misiones ·
    Bestiario · Vestuario · Tienda); «Salir al título» pasa a Ajustes. Pestañas nuevas: tab-play, tab-character, tab-stash,
    tab-merchants… (scripts actualizados). Las pantallas antiguas viven dentro hasta que cada fase las sustituya.
-5. Pantalla Jugar (opción D). 6. Crear personaje. 7. Alijo. 8. Personaje. 9. Mercaderes y resto. PENDIENTES.
+5. Pantalla Jugar (opción D) — HECHA (commit: «Fase 5: nueva pantalla Jugar»). screens/Jugar.tsx: héroe grande con haz de luz y
+   pedestal (escala entera 14/10/5), tarjeta de zona con ilustración provisional (fondo de combate de la zona) y «Mapa de zonas»
+   (ventana con las 3 zonas, niveles, jefe y bloqueo), panel Expedición con «Descender» (btn-enter-dungeon), anillo de nivel y
+   accesos rápidos (Misiones, Reputación, Bestiario, Contrato → contratos de Garra Roja). La pestaña Expedición desaparece.
+6. Crear personaje — HECHA (commit: «Fase 6: nueva pantalla de crear personaje»). screens/CrearPersonaje.tsx: tres columnas
+   (Clases + capa + piel · la clase en grande con su círculo, a la mayor escala entera que cabe · Sobre la clase con arma,
+   puntos fuertes y débiles —campos pros/cons en data/classes.ts—, habilidades iniciales y equipo inicial); abajo Volver,
+   nombre y Confirmar (btn-create). Retratos de clase provisionales (el sprite recortado).
+7. Alijo — HECHA (commit: «Fase 7: nuevo Alijo»). screens/Alijo.tsx + screens/ItemCard.tsx: Aventurero (retrato, atributos,
+   «Ver detalles» → Personaje) · Equipo (ranuras en 3 columnas con arma y secundaria grandes, Mochila, Bolsillo seguro y ficha
+   del objeto con sus acciones; la ficha de un arma muestra las habilidades que daría) · Almacén (8/5/6 columnas, Ordenar y
+   Ampliar). Mover: arrastrar, o tocar un objeto y después una casilla libre (las libres se marcan). En móvil, segmentos
+   Equipo/Almacén y la ficha sale abajo. La ventanita del ratón ya no aparece en táctil.
+8. Personaje — HECHA (commit: «Fase 8: nueva pantalla Personaje»). screens/Personaje.tsx: Atributos (nivel, XP, atributos con lo
+   que suma el equipo, desglose base/equipo y trayectoria) · héroe con sus habilidades en herradura (máx. 8; ataque básico,
+   clase, arma y secundaria con colores por origen) · lista de habilidades por origen con coste y descripción. Tocar o pasar
+   el ratón por una habilidad la resalta en las dos partes. Solo informa (sin talentos). En móvil, segmentos Atributos/Habilidades.
+9. Mercaderes, Misiones y Bestiario — HECHA (commit: «Fase 9: Mercaderes, Misiones y Bestiario»). screens/Mercaderes.tsx:
+   tarjetas (retrato, rango, reputación, misiones listas, servicios; Hablar) e interior en tres zonas (mercader y servicios ·
+   Tienda/Misiones/Vender/Forja/Contratos · tu mochila, tus materiales o la ficha del objeto a vender; en móvil, cajón a la
+   derecha). screens/Misiones.tsx: un panel por mercader, primero los que tienen misiones listas. Bestiario centrado (ya tenía
+   la estructura). Vestuario y Tienda NO se rehacen: los sustituirán las skins (docs/pendiente-skins.md).
+   Atuendos (skins) — HECHO (commit: «Atuendos: trajes completos y Tienda con oro (sustituye al Vestuario)»).
+   - Datos: src/core/data/skins.ts (3 atuendos: Sudario del Penitente 1.500, Guardián Hueco 4.000, Señor de la Ceniza 9.000;
+     precio {moneda, cantidad}: solo se acepta 'gold'; anclajes de manos por fotograma y orden de capas). Lógica: src/core/skins.ts.
+   - Partida: profile.skins {owned, equipped}, aparte del inventario; morir no lo quita. Las partidas con el Vestuario
+     antiguo cargan y se descartan sus aspectos (nadie los había comprado); misiones y Leyenda ya no dan aspectos.
+   - Dibujo (shared/art.ts): cuerpo · secundaria · arma por capas en anclajes. Sin hojas de sprites todavía: cada atuendo usa
+     una «ficha» procedural (arte provisional, se indica en la Tienda). Para el arte final: PNG en public/skins/<id>.png
+     (tonos #FF00FF/#B000B0 = piel del jugador) y sprites.sheet en los datos; loadSkinSheets() las carga.
+   - Interfaz: ranura «Atuendo» bajo Manos en el Alijo → selector (con «Sin atuendo» e «Ir a la Tienda»); pestaña Tienda
+     (screens/Atuendos.tsx) con confirmación y «¡Es tuyo!» → Ponérmelo. Pestaña Vestuario eliminada.
+   - Prueba: node scripts/e2e-skins.cjs http://localhost:5173/play/ <carpeta> [dispositivo] y tests/skins.test.ts.
+   - Tráiler: rótulo cambiado a «ATUENDOS» (trailer/v3/vestuario.png); el vídeo publicado aún no está remontado.
 10. Cierre: landing, «Ya disponible», pruebas completas. PENDIENTE.
 Cada fase termina con: pruebas automáticas, capturas en 1920×1080, 1180×820 y 844×390, explicación de cómo probarlo
 (DevTools en modo dispositivo + recargar; en el móvil real: `npm run dev -- --host`, mirar la IP con `ipconfig`
 y abrir `http://IP:5173/play/` con el móvil en la misma Wi-Fi), texto del commit y esperar el visto bueno del usuario.
 
 ## Siguiente paso
-Fase 5: pantalla Jugar (opción D). Después, fases 6 a 10 seguidas.
+Fase 10: cierre según docs/pendiente-landing.md. Primero propuesta con maquetas y textos; esperar aprobación.
 Cambio de nombre a Crypt Raiders: HECHO (código, landing, app instalable, tráiler y póster).
 Idea aceptada para la Fase 7 (Alijo): la ficha de un arma muestra las habilidades que daría antes de equiparla.
 Nota: en el PC del trabajo (pci-pau) Claude no tiene terminal; prueba en una copia en la nube (GitHub + cambios)
@@ -89,3 +122,7 @@ y copia los archivos a la carpeta.
 
 Texto de commit sugerido para lo entregado (si se sube todo junto):
 «Maquetas de menús (opción D), Fase 1: controles táctiles fiables y Fase 2: pantalla completa, horizontal y app instalable»
+
+## Encargos guardados
+- Skins de traje completo: HECHO (docs/plan-skins.md, maquetas en mockups/skins).
+- Fase 10 (cierre): docs/pendiente-landing.md (landing con VarkHollow, capturas nuevas y hoja de ruta). Va después de las skins.

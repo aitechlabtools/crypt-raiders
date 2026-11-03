@@ -30,7 +30,7 @@ export const UI = {
   ctaH: { desktop: 72, tablet: 64, phone: 52 },
   /** Escalas enteras del pixel art. */
   scale: {
-    hero: { desktop: 10, tablet: 8, phone: 5 },     // héroe en Jugar y Crear personaje
+    hero: { desktop: 14, tablet: 10, phone: 5 },    // héroe en Jugar y Crear personaje
     heroSm: { desktop: 6, tablet: 5, phone: 3 },     // héroe en Alijo y Personaje
     portrait: { desktop: 4, tablet: 3, phone: 2 },   // retratos de clase
     vendor: { desktop: 6, tablet: 5, phone: 3 },     // mercaderes en sus tarjetas

@@ -121,7 +121,8 @@ Cada fase termina con: pruebas automáticas, capturas en 1920×1080, 1180×820 y
 y abrir `http://IP:5173/play/` con el móvil en la misma Wi-Fi), texto del commit y esperar el visto bueno del usuario.
 
 ## Siguiente paso
-Botón «Apoyar» (donaciones con Stripe): PREPARADO y oculto. Se activa poniendo el Payment Link de Stripe en DONATE_URL
+Botón «Apoyar» (donaciones con Stripe): ACTIVO con el enlace real desde el 3/11 (DONATE_LINK en src/landing/site.tsx).
+Si se pone un enlace «test_», el botón solo sale en desarrollo. Antes: Se activa poniendo el Payment Link de Stripe en DONATE_URL
 (src/landing/site.tsx): entonces aparece junto a «Jugar» en la cabecera, en el pie, en el Aviso legal y como apartado
 «Si apoyas el proyecto» en la Política de privacidad (y una frase en la de cookies). Es un enlace externo: la web no carga Stripe.
 Páginas legales (paso 7) y revisión de calidad (paso 8): HECHAS el 3/11 (commit pendiente del usuario:

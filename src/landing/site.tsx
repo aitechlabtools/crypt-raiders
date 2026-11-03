@@ -9,7 +9,11 @@ export const PLAY_URL = './play/';
  * y la frase sobre las aportaciones del Aviso legal.
  * Es un enlace a la página de pago de Stripe: esta web no carga nada de Stripe ni guarda datos de pago.
  */
-export const DONATE_URL: string | null = null;
+const DONATE_LINK: string | null = 'https://donate.stripe.com/5kQ4gBcm6fUBdK47kS6J200';
+/** Un enlace de prueba de Stripe (lleva «/test_») solo se usa en desarrollo: en la web publicada el botón no aparece
+ *  hasta poner el enlace real. Así se puede subir el código sin publicar un pago de prueba. */
+export const DONATE_URL: string | null =
+  DONATE_LINK && (!DONATE_LINK.includes('/test_') || import.meta.env.DEV) ? DONATE_LINK : null;
 
 export function DonateButton({ className = '' }: { className?: string }) {
   if (!DONATE_URL) return null;

@@ -13,12 +13,14 @@ import { PlayerSprite, MonsterSprite, Modal, formatTime, ItemActions, GoldAmount
 import { SettingsModal } from './TitleScreen';
 import { chestType } from '../../core/data/chests';
 import { TouchControls } from './TouchControls';
-import { isTouch } from '../../shared/device';
+import { useIsTouch } from '../../shared/device';
+import { FullscreenButton } from './FullscreenButton';
 import { getMerc } from '../../core/data/mercenaries';
 import { mercBaseStats, STANCE_DESC, STANCE_NAME } from '../../core/mercenaries';
 
 export function DungeonScreen() {
   const host = useRef<HTMLDivElement>(null);
+  const touch = useIsTouch();
   const modal = useGame((s) => s.modal);
   const combat = useGame((s) => s.combat);
   const profile = useGame((s) => s.profile)!;
@@ -84,7 +86,7 @@ export function DungeonScreen() {
       <div ref={host} className="absolute inset-0" data-testid="game-canvas" />
       <div className="vignette" />
       <Hud />
-      {isTouch() && <TouchControls />}
+      {touch && <TouchControls />}
       {modal?.type === 'loot' && <LootModal />}
       {modal?.type === 'rival' && <RivalModal />}
       {modal?.type === 'confirmBetray' && <ConfirmBetray />}
@@ -138,6 +140,7 @@ function Hud() {
         <div className="flex gap-2">
           <button className="btn text-sm" onClick={() => actions.openModal({ type: 'inventory' })} data-testid="btn-inventory">Inventario <kbd className="opacity-60">I</kbd></button>
           <button className="btn text-sm" onClick={() => actions.openModal({ type: 'pause' })}>Menú <kbd className="opacity-60">Esc</kbd></button>
+          <FullscreenButton />
         </div>
         {s.rival.disposition === 'allied' && (
           <div className="panel p-2 w-52 border-heal" data-testid="hud-ally">

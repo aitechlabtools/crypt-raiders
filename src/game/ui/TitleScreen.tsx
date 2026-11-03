@@ -8,6 +8,9 @@ import { starterEquipment } from '../../shared/gearLook';
 import { StatsList } from './inventory';
 import { baseStats } from '../../core/stats';
 import { sfx, startMusic } from '../audio';
+import { isTouch } from '../../shared/device';
+import { canFullscreen, enterFullscreen, isFullscreen } from '../../shared/fullscreen';
+import { FullscreenButton } from './FullscreenButton';
 
 export function Logo({ size = 'text-6xl md:text-8xl' }: { size?: string }) {
   return (
@@ -63,11 +66,14 @@ export function TitleScreen() {
   const [confirmNew, setConfirmNew] = useState(false);
   const start = () => {
     sfx('click');
+    // En táctil, «Jugar» pone el juego a pantalla completa y en horizontal (Android). El botón ⛶ lo quita.
+    if (isTouch() && canFullscreen() && !isFullscreen()) void enterFullscreen();
     if (profile?.settings.music !== false) startMusic('lobby');
     actions.goto(profile ? 'lobby' : 'create');
   };
   return (
     <div className="relative h-full flex flex-col items-center justify-center overflow-hidden" style={{ background: 'radial-gradient(ellipse at 50% 60%, #1d1424 0%, #0b0910 55%, #050407 100%)' }}>
+      <div className="absolute top-3 right-3 z-10"><FullscreenButton /></div>
       <div className="absolute inset-0 opacity-40" style={{ background: 'radial-gradient(circle at 50% 110%, rgba(196,40,59,0.35), transparent 50%)' }} />
       <div className="absolute bottom-[12%] left-[8%] hidden md:block opacity-80 breathe"><MonsterSprite sprite="skeleton" scale={7} /></div>
       <div className="absolute bottom-[12%] right-[8%] hidden md:block opacity-80 breathe" style={{ animationDelay: '0.8s' }}><MonsterSprite sprite="rival" scale={7} className="-scale-x-100" /></div>

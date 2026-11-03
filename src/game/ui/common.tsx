@@ -1,5 +1,5 @@
 import { canPocket } from '../../core/inventory';
-import { isTouch } from '../../shared/device';
+import { useIsTouch } from '../../shared/device';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Loc } from '../../core/inventory';
 import { stackAt } from '../../core/inventory';
@@ -58,9 +58,12 @@ export function Modal({ children, onClose, wide = false, testId }: { children: R
 export function Toasts() {
   const toasts = useGame((s) => s.toasts);
   const inCombat = useGame((s) => !!s.combat);
+  const touch = useIsTouch();
+  // En táctil, abajo a la derecha están los botones de poción y «Usar»: los avisos van arriba, bajo Inventario/Menú.
+  const place = inCombat ? 'top-4' : touch ? 'top-16' : 'bottom-4';
   const color = { loot: 'border-gold text-gold', info: 'border-stone-500', danger: 'border-blood text-[#ff8a7a]', social: 'border-heal text-heal', good: 'border-heal' };
   return (
-    <div className={`absolute right-4 ${inCombat ? 'top-4' : 'bottom-4'} z-[60] flex flex-col gap-2 w-80 pointer-events-none`} aria-live="polite">
+    <div className={`absolute right-4 ${place} z-[60] flex flex-col gap-2 w-80 max-w-[45vw] pointer-events-none`} aria-live="polite">
       {toasts.map((t) => (
         <div key={t.id} className={`panel px-3 py-2 text-sm fade-in border-l-4 ${color[t.kind]} flex items-center gap-2`}>
           {t.icon && <img src={iconUrl(t.icon, 2)} width={24} height={24} className="pixelated" alt="" />}
@@ -74,7 +77,8 @@ export function Toasts() {
 /** Panel con las acciones disponibles para el objeto seleccionado. */
 export function ItemActions({ loc, mode, onClear, lootId }: { loc: Loc | null; mode: InvMode; onClear: () => void; lootId?: string }) {
   const s = useGame((x) => x);
-  if (!loc) return <div className="text-stone-400 text-sm italic font-body">{isTouch() ? 'Toca un objeto para ver sus acciones.' : 'Selecciona un objeto para ver sus acciones. Doble clic: acción rápida · Clic derecho: mover · Arrastra para colocar.'}</div>;
+  const touch = useIsTouch();
+  if (!loc) return <div className="text-stone-400 text-sm italic font-body">{touch ? 'Toca un objeto para ver sus acciones.' : 'Selecciona un objeto para ver sus acciones. Doble clic: acción rápida · Clic derecho: mover · Arrastra para colocar.'}</div>;
   const c = containersFor(s, lootId);
   const st = c ? stackAt(c, loc) : null;
   if (!st) return <div className="text-stone-400 text-sm italic font-body">Selecciona un objeto.</div>;

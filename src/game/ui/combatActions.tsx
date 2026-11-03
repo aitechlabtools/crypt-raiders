@@ -1,10 +1,36 @@
 // Barra de acciones del combate: ataque, habilidades, objetos y acciones generales en una sola vista,
 // con iconos y una ficha al pasar el ratón (o al enfocar con el teclado).
-import { useEffect, useState, type ReactNode } from 'react';
-import { isTouch } from '../../shared/device';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useIsTouch } from '../../shared/device';
+import { TOUCH_CFG } from '../../config/touch';
 
-// En pantallas táctiles no existe «pasar el ratón»: el primer toque enseña la ficha y el segundo ejecuta.
-const TOUCH = isTouch();
+// En pantallas táctiles no existe «pasar el ratón»: un toque ejecuta y mantener pulsado enseña la ficha.
+/** Mantener pulsado (táctil): abre la ficha y anula el clic que llega al soltar. */
+export function useLongPress(onLong: () => void, onEnd?: () => void) {
+  const timer = useRef<number | null>(null);
+  const fired = useRef(false);
+  const start = useRef<{ x: number; y: number } | null>(null);
+  const clear = () => { if (timer.current !== null) { window.clearTimeout(timer.current); timer.current = null; } };
+  useEffect(() => clear, []);
+  return {
+    /** true si el último toque fue una pulsación larga (el clic de después no debe ejecutar). */
+    consume: () => { const f = fired.current; fired.current = false; return f; },
+    handlers: {
+      onPointerDown: (e: React.PointerEvent) => {
+        if (e.pointerType !== 'touch') return;
+        fired.current = false; start.current = { x: e.clientX, y: e.clientY }; clear();
+        timer.current = window.setTimeout(() => { fired.current = true; timer.current = null; onLong(); }, TOUCH_CFG.longPressMs);
+      },
+      onPointerMove: (e: React.PointerEvent) => {
+        if (!start.current || timer.current === null) return;
+        if (Math.hypot(e.clientX - start.current.x, e.clientY - start.current.y) > TOUCH_CFG.longPressSlop) clear();
+      },
+      onPointerUp: () => { clear(); start.current = null; if (fired.current) onEnd?.(); },
+      onPointerCancel: () => { clear(); start.current = null; if (fired.current) onEnd?.(); },
+      onContextMenu: (e: React.MouseEvent) => { if (fired.current || timer.current !== null) e.preventDefault(); },
+    },
+  };
+}
 function useOpenTip(id: string) {
   const [open, setOpen] = useState(false);
   useEffect(() => {
@@ -81,7 +107,6 @@ export interface Slot {
   cost: number; disabled: boolean; reason?: string; desc: string; lines: string[]; onUse: () => void; testId: string; itemId?: string;
 }
 
-export { TOUCH };
 
 export function skillSlot(id: string, key: string, source: Source, sourceLabel: string, player: Combatant, onUse: () => void): Slot {
   const sk = getSkill(id);
@@ -115,13 +140,15 @@ function Tooltip({ s, res }: { s: Slot; res: string }) {
 export function SlotTile({ s, res }: { s: Slot; res: string }) {
   const tip = useOpenTip(s.id); const hover = tip.open;
   const setHover = (v: boolean) => (v ? tip.show() : tip.hide());
-  const onTap = () => { if (TOUCH && !hover) { setHover(true); return; } tip.hide(); if (!s.disabled) s.onUse(); };
+  const TOUCH = useIsTouch();
+  const lp = useLongPress(() => setHover(true), () => setHover(false));
+  const onTap = () => { if (lp.consume()) return; if (s.disabled) { if (TOUCH) setHover(!hover); return; } tip.hide(); s.onUse(); };
   const src = SOURCE[s.source];
   return (
     <div className="relative" onMouseEnter={() => !TOUCH && setHover(true)} onMouseLeave={() => !TOUCH && setHover(false)}>
       <button
         className={`action-tile ${s.disabled ? 'is-off' : ''} ${hover && TOUCH ? 'is-armed' : ''}`} style={{ ['--src' as string]: src.color }}
-        onClick={onTap} disabled={s.disabled && !TOUCH} aria-disabled={s.disabled} onFocus={() => !TOUCH && setHover(true)} onBlur={() => !TOUCH && setHover(false)}
+        {...lp.handlers} onClick={onTap} disabled={s.disabled && !TOUCH} aria-disabled={s.disabled} onFocus={() => !TOUCH && setHover(true)} onBlur={() => !TOUCH && setHover(false)}
         aria-label={`${s.name}. ${s.desc}`} data-testid={s.testId}
       >
         <kbd className="absolute top-1 left-1 text-[10px] bg-black/50 px-1 leading-4">{s.key}</kbd>
@@ -130,7 +157,6 @@ export function SlotTile({ s, res }: { s: Slot; res: string }) {
         <span className="text-[11px] leading-tight text-center mt-1 line-clamp-2">{s.name}</span>
       </button>
       {hover && <Tooltip s={s} res={res} />}
-      {hover && TOUCH && !s.disabled && <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 translate-y-full text-[10px] text-gold whitespace-nowrap">Toca otra vez</div>}
     </div>
   );
 }
@@ -141,10 +167,12 @@ export function UtilBtn({ k, label, sub, icon, onClick, disabled, danger, tip, t
 }) {
   const tipState = useOpenTip(testId); const hover = tipState.open;
   const setHover = (v: boolean) => (v ? tipState.show() : tipState.hide());
-  const onTap = () => { if (TOUCH && !hover) { setHover(true); return; } tipState.hide(); onClick(); };
+  const TOUCH = useIsTouch();
+  const lp = useLongPress(() => setHover(true), () => setHover(false));
+  const onTap = () => { if (lp.consume()) return; tipState.hide(); onClick(); };
   return (
     <div className="relative" onMouseEnter={() => !TOUCH && setHover(true)} onMouseLeave={() => !TOUCH && setHover(false)}>
-      <button className={`btn w-full flex items-center gap-2 text-left py-1.5 ${danger ? 'btn-danger' : ''} ${hover && TOUCH ? 'is-armed' : ''}`} onClick={onTap} disabled={disabled} onFocus={() => !TOUCH && setHover(true)} onBlur={() => !TOUCH && setHover(false)} data-testid={testId}>
+      <button className={`btn w-full flex items-center gap-2 text-left py-1.5 ${danger ? 'btn-danger' : ''} ${hover && TOUCH ? 'is-armed' : ''}`} {...lp.handlers} onClick={onTap} disabled={disabled} onFocus={() => !TOUCH && setHover(true)} onBlur={() => !TOUCH && setHover(false)} data-testid={testId}>
         <kbd className="text-[10px] bg-black/40 px-1">{k}</kbd>
         {itemId ? <ItemIcon itemId={itemId} size={20} /> : <ActionIcon fx={icon ?? 'shield'} size={20} color={danger ? '#ffb3a8' : undefined} />}
         <span className="flex flex-col leading-tight"><span className="text-sm whitespace-nowrap">{label}</span><span className="text-[10px] opacity-70">{sub}</span></span>

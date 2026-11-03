@@ -21,6 +21,7 @@ import { PlayerSprite, GoldAmount, ItemActions, Modal, LoadoutPanel } from './co
 import { SettingsModal } from './TitleScreen';
 import { sfx, startMusic } from '../audio';
 import type { ItemStack } from '../../core/types';
+import { FullscreenButton } from './FullscreenButton';
 
 type Tab = 'hero' | 'gear' | 'stash' | 'merchant' | 'quests' | 'bestiary' | 'wardrobe' | 'shop' | 'expedition';
 
@@ -61,6 +62,7 @@ export function Lobby() {
         <div className="flex-1" />
         <GoldAmount value={profile.gold} className="text-lg" />
         <button className="btn text-sm" onClick={() => setSettings(true)}>Ajustes</button>
+        <FullscreenButton />
         <button className="btn text-sm" onClick={() => actions.goto('title')}>Salir</button>
       </header>
 

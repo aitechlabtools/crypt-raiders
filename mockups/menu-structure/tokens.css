@@ -1,0 +1,38 @@
+/* ════════════════════════════════════════════════════════════════════
+   MAQUETAS · Tokens de la interfaz (tamaños, espaciados y puntos de corte).
+   Si se aprueba una opción, estos valores pasan tal cual a la guía y al juego.
+   Puntos de corte:
+     · Escritorio  → ancho ≥ 1280 px
+     · Tableta     → ancho < 1280 px y alto > 520 px
+     · Móvil       → alto ≤ 520 px (móvil en horizontal)
+   Escalas de pixel art: siempre múltiplos enteros (--s-*).
+   ════════════════════════════════════════════════════════════════════ */
+:root {
+  --nav-h: 68px;          /* alto de la barra de navegación */
+  --pad: 24px;            /* margen exterior */
+  --gap: 16px;            /* separación entre paneles */
+  --slot: 52px;           /* casilla de inventario */
+  --slot-big: 76px;       /* casilla de arma */
+  --touch: 44px;          /* tamaño táctil mínimo */
+  --btn-h: 48px;          /* botón normal */
+  --cta-h: 72px;          /* botón principal (Descender, Confirmar) */
+  --fs-tab: 18px;         /* texto de pestañas */
+  --fs-body: 18px;
+  --fs-small: 13px;
+  --rail-w: 72px;         /* barra lateral de iconos (opción B en móvil) */
+  /* Escalas de pixel art */
+  --s-hero: 10; --s-hero-sm: 6; --s-icon: 3; --s-portrait: 4; --s-vendor: 6; --s-nav: 2; --s-scene: 6;
+}
+@media (max-width: 1279px) and (min-height: 521px) {
+  :root {
+    --nav-h: 60px; --pad: 18px; --gap: 12px; --slot: 52px; --slot-big: 72px; --fs-tab: 16px; --fs-body: 17px;
+    --s-hero: 8; --s-hero-sm: 5; --s-icon: 3; --s-portrait: 3; --s-vendor: 5; --s-nav: 2; --s-scene: 4;
+  }
+}
+@media (max-height: 520px) {
+  :root {
+    --nav-h: 48px; --pad: 10px; --gap: 8px; --slot: 44px; --slot-big: 56px; --btn-h: 44px; --cta-h: 52px;
+    --fs-tab: 12px; --fs-body: 14px; --fs-small: 11px; --rail-w: 64px;
+    --s-hero: 5; --s-hero-sm: 3; --s-icon: 2; --s-portrait: 2; --s-vendor: 3; --s-nav: 2; --s-scene: 3;
+  }
+}

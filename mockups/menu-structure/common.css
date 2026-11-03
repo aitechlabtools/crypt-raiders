@@ -1,0 +1,117 @@
+/* MAQUETAS · Estilos comunes. Mismo lenguaje visual que el juego (paneles de piedra y oro, Cinzel, Crimson Pro, Pixelify Sans). */
+@font-face { font-family: Cinzel; font-weight: 600; src: url(assets/fonts/cinzel-latin-600-normal.woff2) format('woff2'); }
+@font-face { font-family: Cinzel; font-weight: 800; src: url(assets/fonts/cinzel-latin-800-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Crimson Pro'; font-weight: 400; src: url(assets/fonts/crimson-pro-latin-400-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Crimson Pro'; font-weight: 400; font-style: italic; src: url(assets/fonts/crimson-pro-latin-400-italic.woff2) format('woff2'); }
+@font-face { font-family: 'Crimson Pro'; font-weight: 600; src: url(assets/fonts/crimson-pro-latin-600-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Pixelify Sans'; font-weight: 400; src: url(assets/fonts/pixelify-sans-latin-400-normal.woff2) format('woff2'); }
+@font-face { font-family: 'Pixelify Sans'; font-weight: 600; src: url(assets/fonts/pixelify-sans-latin-600-normal.woff2) format('woff2'); }
+
+:root {
+  --void: #07060a; --crypt: #0f0d14; --st9: #15131a; --st8: #1c1b22; --st7: #2a2830; --st6: #3a3741; --st5: #4d4954; --st4: #625d69; --st3: #8c8693;
+  --bone: #d9d3c1; --parch: #e9e1cc; --gold: #e8b33a; --gold-d: #9a6b1a; --gold-dd: #6b4a12; --ember: #e8752b; --blood: #c4283b; --arcane: #a35ae0; --heal: #5fd19a; --frost: #9fe3ff;
+  --f-display: Cinzel, serif; --f-body: 'Crimson Pro', Georgia, serif; --f-pixel: 'Pixelify Sans', monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--void); color: var(--parch); font-family: var(--f-pixel); overflow: hidden; -webkit-font-smoothing: antialiased; user-select: none; -webkit-touch-callout: none; }
+button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
+.px { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
+.app { position: fixed; inset: 0; display: flex; flex-direction: column; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  background: radial-gradient(ellipse at 50% 0%, #1d1820 0%, #0d0b11 55%, #07060a 100%); }
+.view { position: relative; flex: 1; min-height: 0; }
+
+/* ── Paneles (marco de piedra; variante dorada) ── */
+.panel { position: relative; background: linear-gradient(180deg, #1b1920 0%, #131118 100%); border: 2px solid var(--st6);
+  box-shadow: inset 0 0 0 1px #07060a, inset 0 0 0 3px #26232c, 0 0 0 1px #07060a, 0 10px 30px rgba(0,0,0,.6); }
+.panel.gold { border-color: var(--gold-dd); box-shadow: inset 0 0 0 1px #07060a, inset 0 0 0 3px #2a2116, 0 0 0 1px #07060a, 0 10px 40px rgba(0,0,0,.7); }
+/* Remaches en las esquinas: marcador provisional de «esquina de panel» */
+.panel.rivets::before, .panel.rivets::after { content: ''; position: absolute; width: 6px; height: 6px; background: var(--gold-d); box-shadow: 0 0 0 1px #07060a; top: -4px; left: -4px; }
+.panel.rivets::after { left: auto; right: -4px; }
+.ptitle { font-family: var(--f-display); font-weight: 600; letter-spacing: .1em; color: var(--gold); text-transform: uppercase; font-size: calc(var(--fs-body) * .9); display: flex; align-items: center; justify-content: center; gap: 10px; padding: 10px 12px 8px; border-bottom: 2px solid #26232c; }
+.ptitle::before, .ptitle::after { content: '◆'; color: var(--gold-d); font-size: .6em; }
+.scroll { overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--st5) transparent; -webkit-overflow-scrolling: touch; }
+
+/* ── Botones ── */
+.btn { min-height: var(--btn-h); min-width: var(--touch); padding: 0 16px; background: linear-gradient(180deg, #2a2731, #1a1820); border: 2px solid var(--st5); box-shadow: inset 0 1px 0 #ffffff14, 0 2px 0 #000;
+  font-family: var(--f-display); font-weight: 600; letter-spacing: .06em; font-size: calc(var(--fs-body) * .85); color: var(--bone); display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.btn:hover { border-color: var(--st4); }
+.btn.gold { background: linear-gradient(180deg, #e8b33a, #9a6b1a); border-color: #f5d27a; color: #1a1205; text-shadow: 0 1px 0 #f5d27a88; }
+.btn.cta { min-height: var(--cta-h); font-size: calc(var(--fs-body) * 1.3); letter-spacing: .14em; text-transform: uppercase; font-weight: 800; }
+.btn.ghost { background: #0b0a0e; }
+.btn[disabled] { opacity: .45; cursor: default; }
+.btn.sq { padding: 0; width: var(--touch); }
+
+/* ── Casillas de inventario ── */
+.slot { width: var(--slot); height: var(--slot); background: #0b0a0e; border: 2px solid var(--st7); box-shadow: inset 0 0 0 1px #000, inset 0 0 12px #000; position: relative; display: flex; align-items: center; justify-content: center; }
+.slot.big { width: var(--slot-big); height: calc(var(--slot-big) * 1.5); }
+.slot .qty { position: absolute; right: 2px; bottom: 0; font-size: 11px; color: var(--bone); text-shadow: 1px 1px 0 #000; }
+.slot .lbl { position: absolute; bottom: -15px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--st3); letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+.slot.sel { border-color: var(--gold); box-shadow: inset 0 0 0 1px #000, 0 0 12px #e8b33a66; }
+.slot.empty .ghost { opacity: .18; filter: grayscale(1); }
+.r-common { border-color: #8c869366; } .r-uncommon { border-color: #5fbf4a88; } .r-rare { border-color: #4a8fe0aa; } .r-epic { border-color: #a35ae0aa; } .r-legendary { border-color: #e8913aaa; }
+.grid { display: grid; gap: 3px; }
+
+/* ── Barras ── */
+.bar { height: 8px; background: #0b0a0e; border: 1px solid var(--st6); position: relative; }
+.bar > i { position: absolute; inset: 0 auto 0 0; background: var(--gold); }
+.muted { color: var(--st3); } .gold-t { color: var(--gold); } .heal-t { color: var(--heal); } .blood-t { color: var(--blood); } .arc-t { color: var(--arcane); }
+.body { font-family: var(--f-body); font-size: var(--fs-body); line-height: 1.35; }
+.disp { font-family: var(--f-display); }
+.tag { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; padding: 2px 6px; border: 1px solid var(--st6); color: var(--st3); }
+.tag.gold { border-color: var(--gold-d); color: var(--gold); }
+.badge { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 4px; background: var(--heal); color: #000; font-size: 11px; display: flex; align-items: center; justify-content: center; }
+.placeholder { outline: 1px dashed #e8b33a66; outline-offset: 2px; }
+.ph-note { position: absolute; font-size: 9px; color: #e8b33a88; letter-spacing: .08em; text-transform: uppercase; }
+
+/* ── Barra de navegación superior (común) ── */
+.topnav { height: var(--nav-h); flex: 0 0 auto; display: flex; align-items: stretch; position: relative; z-index: 20;
+  background: linear-gradient(180deg, #0b0a0f 0%, #121017 100%); border-bottom: 2px solid var(--gold-dd); box-shadow: 0 2px 0 #000, 0 8px 24px #000a; }
+.topnav .left, .topnav .right { display: flex; align-items: center; gap: 10px; padding: 0 var(--pad); flex: 0 0 auto; }
+.topnav .tabs { flex: 1; display: flex; justify-content: center; align-items: stretch; gap: 4px; min-width: 0; }
+.tab { text-decoration: none; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; padding: 0 14px; background: none; border: 0;
+  font-family: var(--f-display); font-weight: 600; font-size: var(--fs-tab); letter-spacing: .06em; color: var(--st3); white-space: nowrap; min-width: var(--touch); }
+.tab:hover { color: var(--bone); }
+.tab .ico { display: none; }
+.tab.on { color: var(--parch); text-shadow: 0 0 16px #e8b33a88; }
+/* Adorno encima de la pestaña activa y marcador bajo la línea (marcadores provisionales) */
+.tab.on::before { content: ''; position: absolute; top: 4px; left: 50%; transform: translateX(-50%); width: 46px; height: 6px;
+  background: linear-gradient(90deg, transparent, var(--gold-d) 20%, var(--gold) 50%, var(--gold-d) 80%, transparent); clip-path: polygon(0 0, 100% 0, 60% 100%, 40% 100%); }
+.tab.on::after { content: ''; position: absolute; bottom: -7px; left: 50%; width: 10px; height: 10px; background: var(--gold); transform: translateX(-50%) rotate(45deg); box-shadow: 0 0 10px var(--gold); z-index: 2; }
+.tab.off { opacity: .5; }
+.chip { display: flex; align-items: center; gap: 8px; }
+.chip .pt { width: 40px; height: 40px; border: 2px solid var(--st6); background: #0b0a0e; overflow: hidden; display: flex; align-items: flex-end; justify-content: center; }
+.chip .nm { font-family: var(--f-display); font-size: 15px; line-height: 1.1; }
+.gold-amt { display: flex; align-items: center; gap: 6px; color: var(--gold); font-size: calc(var(--fs-body) * 1.05); }
+.iconbtn { width: var(--touch); height: var(--touch); display: flex; align-items: center; justify-content: center; background: #0b0a0e; border: 2px solid var(--st6); color: var(--bone); font-size: 18px; }
+
+/* ── Escena del campamento ── */
+.scene { position: absolute; inset: 0; overflow: hidden; background: #08070c; }
+.scene img.bg { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.scene .hero { position: absolute; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; }
+.nametag { font-family: var(--f-display); font-size: calc(var(--fs-body) * .95); color: var(--parch); text-shadow: 0 2px 0 #000, 0 0 12px #000; white-space: nowrap; margin-bottom: 6px; display: flex; gap: 8px; align-items: center; }
+.nametag .lv { color: var(--gold); font-size: .85em; }
+
+/* ── Tarjeta de zona ── */
+.zonecard { width: 300px; }
+.zonecard .img { height: 110px; overflow: hidden; position: relative; border-bottom: 2px solid #26232c; }
+.zonecard .img img { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+.zonecard .info { padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.zonecard .name { font-family: var(--f-display); font-size: calc(var(--fs-body) * 1.05); color: var(--parch); }
+.qbtn { width: 76px; height: 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; position: relative; font-size: 11px; color: var(--bone); letter-spacing: .04em; }
+
+/* ── Tooltip / ficha de objeto ── */
+.itemcard { padding: 10px 12px; }
+.itemcard .nm { font-family: var(--f-display); font-size: calc(var(--fs-body) * 1); }
+.statrow { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border-bottom: 1px solid #ffffff0c; font-size: calc(var(--fs-body) * .82); }
+.statrow b { font-weight: 400; color: var(--parch); }
+.statrow .plus { color: var(--heal); }
+
+/* Utilidades */
+.row { display: flex; gap: var(--gap); } .col { display: flex; flex-direction: column; gap: var(--gap); } .center { align-items: center; justify-content: center; }
+.grow { flex: 1; min-width: 0; min-height: 0; } .wrap { flex-wrap: wrap; }
+.m-only { display: none !important; }
+@media (max-height: 520px) { .m-only { display: revert !important; } .m-hide { display: none !important; } }
+.d-only { }
+
+a { color: inherit; } a.btn { text-decoration: none; }
+.tab .nb { top: 6px; right: 0; }

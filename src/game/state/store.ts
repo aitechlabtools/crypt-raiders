@@ -106,6 +106,8 @@ export interface GameState {
   hud: DungeonHud;
   notice: string | null;
   now: number;
+  /** Pantalla en vertical en un móvil: la escena se congela hasta que se gire (el reloj sigue, como en el menú de pausa). */
+  suspended: boolean;
   /** Mensaje de error de inventario (p.ej. «Tu clase no puede usar este objeto»). */
   invError: string | null;
 }
@@ -118,6 +120,7 @@ const initial: GameState = {
   summary: null,
   combat: null,
   modal: null,
+  suspended: false,
   toasts: [],
   rival: initialRival(),
   rivalLine: null,
@@ -724,6 +727,10 @@ export const actions = {
 
   openModal(modal: Modal) {
     set({ modal });
+  },
+
+  setSuspended(v: boolean) {
+    if (state.suspended !== v) set({ suspended: v });
   },
 
   closeModal() {

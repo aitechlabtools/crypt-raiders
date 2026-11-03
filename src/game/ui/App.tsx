@@ -37,7 +37,7 @@ export function App() {
       {screen === 'dungeon' && <DungeonScreen />}
       {screen === 'summary' && <SummaryScreen />}
       <Toasts />
-      <RotateNotice />
+      <RotateNotice onChange={actions.setSuspended} />
     </div>
   );
 }

@@ -14,7 +14,7 @@ import { getZone } from '../../core/data/zones';
 import { getEnemy } from '../../core/data/enemies';
 import { Bar, ItemIcon } from './inventory';
 import { sfx } from '../audio';
-import { ActionIcon, skillSlot, TOUCH, FX_COLOR as FX_COLORS, type Slot } from './combatActions';
+import { ActionIcon, skillSlot, useLongPress, FX_COLOR as FX_COLORS, type Slot } from './combatActions';
 
 const FX_COLOR = FX_COLORS;
 const RANGED = new Set(['fire', 'frost', 'dark', 'holy']);
@@ -219,7 +219,7 @@ export function CombatScreen() {
                   {shown.map((e, i) => (
                     <Cmd key={e.id} k={i + 1} label={e.name} sub={e.itemId ? e.sourceLabel ?? '' : e.cost ? `${e.cost} ${res.toLowerCase()}` : 'sin coste'} color={SRC_COLOR[e.source]} icon={e.fx} itemId={e.itemId}
                       disabled={e.disabled} testId={e.testId} on={i === focus} onHover={() => setFocus(i)}
-                      onClick={() => { if (TOUCH && focus !== i) { setFocus(i); return; } useEntry(e); }} />
+                      onLong={() => setFocus(i)} onClick={() => useEntry(e)} />
                   ))}
                   <div className="col-span-2 flex items-center justify-between gap-2 text-xs text-stone-400">
                     <button className="btn py-1 px-3 text-xs" onClick={() => setMenu('main')} data-testid="btn-menu-back">◄ Volver <kbd className="opacity-60">Esc</kbd></button>
@@ -230,7 +230,7 @@ export function CombatScreen() {
                         <button className="btn py-1 px-2 text-xs" disabled={page >= pages - 1} onClick={() => { setPage(page + 1); setFocus(0); }} aria-label="Página siguiente" data-testid="btn-page-next">►</button>
                       </span>
                     )}
-                    {TOUCH && <span className="text-gold">Toca otra vez para usar</span>}
+                    <span className="touch-only text-stone-400">Mantén pulsado para ver la ficha</span>
                   </div>
                 </>
               )}
@@ -245,9 +245,11 @@ export function CombatScreen() {
 const SRC_COLOR: Record<string, string> = { basic: '#d9d3c1', class: '#e8b33a', weapon: '#a56bff', offhand: '#8fa8c8' };
 const CLASS_NAME: Record<string, string> = { warrior: 'Guerrero', mage: 'Mago', rogue: 'Pícaro', cleric: 'Clérigo' };
 
-function Cmd({ k, label, sub, color, icon, itemId, disabled, on, onClick, onHover, testId }: { k: number; label: string; sub: string; color: string; icon: string; itemId?: string; disabled?: boolean; on?: boolean; onClick?: () => void; onHover?: () => void; testId: string }) {
+function Cmd({ k, label, sub, color, icon, itemId, disabled, on, onClick, onHover, onLong, testId }: { k: number; label: string; sub: string; color: string; icon: string; itemId?: string; disabled?: boolean; on?: boolean; onClick?: () => void; onHover?: () => void; onLong?: () => void; testId: string }) {
+  const lp = useLongPress(() => onLong?.());
   return (
-    <button className={`cmd ${on && !disabled ? 'on' : ''}`} style={{ ['--c' as string]: color }} disabled={disabled} onClick={onClick} onMouseEnter={TOUCH ? undefined : onHover} data-testid={testId}>
+    <button className={`cmd ${on && !disabled ? 'on' : ''}`} style={{ ['--c' as string]: color }} disabled={disabled} {...(onLong ? lp.handlers : {})}
+      onClick={() => { if (lp.consume()) return; onClick?.(); }} onPointerEnter={(e) => { if (e.pointerType === 'mouse') onHover?.(); }} data-testid={testId}>
       <span className="cur">▶</span><kbd>{k}</kbd>
       {itemId ? <ItemIcon itemId={itemId} size={24} /> : <ActionIcon fx={icon} size={24} color={color} />}
       <span className="flex flex-col leading-tight min-w-0"><span className="cmd-label">{label}</span><span className="text-[11px] opacity-65 truncate">{sub}</span></span>

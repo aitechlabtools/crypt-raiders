@@ -5,6 +5,7 @@ import { getZone } from '../../core/data/zones';
 import { chestType } from '../../core/data/chests';
 import { getItem } from '../../core/data/items';
 import { touchStick } from './touchInput';
+import { TOUCH_CFG } from '../../config/touch';
 import Phaser from 'phaser';
 import { buildDungeon, CRYPTS_OF_UMBRAVEL, findPath, roomAt, type BuiltDungeon, type DungeonDef, type EntityDef } from '../../core/dungeon';
 import { getEnemy } from '../../core/data/enemies';
@@ -492,7 +493,7 @@ export class DungeonScene extends Phaser.Scene {
 
   paused() {
     const s = getState();
-    return !!s.combat || !!s.modal || s.screen !== 'dungeon' || !s.profile?.tutorialSeen.dungeon;
+    return !!s.combat || !!s.modal || s.suspended || s.screen !== 'dungeon' || !s.profile?.tutorialSeen.dungeon;
   }
 
   update(time: number, deltaMs: number) {
@@ -538,7 +539,7 @@ export class DungeonScene extends Phaser.Scene {
     if (k.D.isDown || k.RIGHT.isDown) sx += 1;
     // Joystick táctil: dirección analógica (empujar poco = andar más despacio)
     let mag = 1;
-    if (!sx && !sy && touchStick.active && Math.hypot(touchStick.x, touchStick.y) > 0.18) {
+    if (!sx && !sy && touchStick.active && Math.hypot(touchStick.x, touchStick.y) > TOUCH_CFG.stickDeadZone) {
       sx = touchStick.x; sy = touchStick.y; mag = Math.min(1, Math.hypot(sx, sy));
     }
     const p = this.player;

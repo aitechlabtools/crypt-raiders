@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Landing · maqueta</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #07060a; color: #d9d3c1; font-family: Georgia, serif; }
+  header { padding: 24px 16px; max-width: 1200px; margin: 0 auto; }
+  h1 { font-size: 28px; margin: 0 0 6px; color: #f2eee2; } h2 { color: #e8b33a; font-size: 20px; margin: 32px 0 12px; }
+  p { color: #a9a3b3; margin: 0; }
+  nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+  nav button { background: #15131a; color: #d9d3c1; border: 2px solid #3a3741; padding: 10px 14px; font: inherit; cursor: pointer; min-height: 44px; }
+  nav button[aria-pressed="true"] { border-color: #e8b33a; color: #e8b33a; }
+  main { max-width: 1200px; margin: 0 auto; padding: 0 16px 48px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  figure { margin: 0; } figcaption { font-size: 14px; color: #8c8693; margin-top: 6px; }
+  img { width: 100%; height: auto; display: block; border: 2px solid #2a2830; }
+  .full img { max-width: 100%; }
+  .full.movil img { max-width: 420px; margin: 0 auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Crypt Raiders · maqueta de la landing (Fase 10)</h1>
+  <p>Borrador sin aplicar. Elige un tamaño: arriba las secciones nuevas; abajo, la página entera.</p>
+  <nav aria-label="Tamaño">
+    <button data-s="escritorio-1920x1080" aria-pressed="true">Escritorio 1920×1080</button>
+    <button data-s="tableta-1180x820" aria-pressed="false">Tableta 1180×820</button>
+    <button data-s="movil-390x844" aria-pressed="false">Móvil 390×844</button>
+  </nav>
+</header>
+<main>
+  <h2>Secciones nuevas o cambiadas</h2>
+  <div class="grid" id="secciones"></div>
+  <h2>Página completa</h2>
+  <figure class="full" id="completa"></figure>
+</main>
+<script>
+  const PARTS = { 'escritorio-1920x1080': 2, 'tableta-1180x820': 2, 'movil-390x844': 4 };
+  const SEC = [['varkhollow', 'VarkHollow (nueva, tras la cabecera)'], ['capturas', 'Capturas en carrusel'], ['demo', 'Juega gratis ahora, con el móvil'], ['hoja-de-ruta', 'Hoja de ruta (nueva, al final)']];
+  function show(s) {
+    document.querySelectorAll('nav button').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.s === s)));
+    document.getElementById('secciones').innerHTML = SEC.map(([id, t]) => `<figure><a href="capturas/${s}-${id}.png" target="_blank"><img src="capturas/${s}-${id}.png" alt="${t}"></a><figcaption>${t}</figcaption></figure>`).join('');
+    const full = document.getElementById('completa');
+    full.className = 'full' + (s.startsWith('movil') ? ' movil' : '');
+    const n = PARTS[s];
+    full.innerHTML = Array.from({ length: n }, (_, k) => `<a href="capturas/${s}-completa-${k + 1}.png" target="_blank"><img src="capturas/${s}-completa-${k + 1}.png" alt="Página completa, parte ${k + 1}" style="border-top:0"></a>`).join('') + '<figcaption>Toca la imagen para verla a tamaño real.</figcaption>';
+  }
+  document.querySelectorAll('nav button').forEach((b) => b.onclick = () => show(b.dataset.s));
+  show('escritorio-1920x1080');
+</script>
+</body>
+</html>

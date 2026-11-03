@@ -121,6 +121,11 @@ Cada fase termina con: pruebas automáticas, capturas en 1920×1080, 1180×820 y
 y abrir `http://IP:5173/play/` con el móvil en la misma Wi-Fi), texto del commit y esperar el visto bueno del usuario.
 
 ## Siguiente paso
+Tráiler v4 (3/11, noche): 52 s, con los menús nuevos (crear, Jugar y mapa de zonas, Alijo, Personaje, Mercaderes con forja
+y contratos, Tienda de atuendos), el atuendo puesto en la mazmorra y el juego en el móvil. Rótulos sin cifras exactas.
+Cómo rehacerlo: node scripts/trailer4-capture.cjs <url>/play/ /tmp/claude-0/t3 (tomas nuevas; las de mazmorra y combate son
+del v3, scripts/trailer3-capture.cjs) → node trailer/v4/make.cjs (rótulos) → python3 trailer/v4/render.py → python3 trailer/v4/music.py
+→ ffmpeg (vídeo + música) → public/trailer/cryptraiders-trailer.mp4. El póster (cierre con el logo) no cambia.
 Botón «Apoyar» (donaciones con Stripe): ACTIVO con el enlace real desde el 3/11 (DONATE_LINK en src/landing/site.tsx).
 Si se pone un enlace «test_», el botón solo sale en desarrollo. Antes: Se activa poniendo el Payment Link de Stripe en DONATE_URL
 (src/landing/site.tsx): entonces aparece junto a «Jugar» en la cabecera, en el pie, en el Aviso legal y como apartado

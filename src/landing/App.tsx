@@ -64,7 +64,7 @@ export function App() {
     <div className="min-h-screen">
       <header className="fixed top-0 inset-x-0 z-30 site-nav">
         <nav className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-6" aria-label="Principal">
-          <a href="#top" className="font-display font-extrabold tracking-[0.14em] text-parchment">DREADBOUND</a>
+          <a href="#top" className="font-display font-extrabold tracking-[0.14em] text-parchment">CRYPT RAIDERS</a>
           <div className="hidden md:flex gap-5 text-stone-300 font-body text-lg">
             <a href="#trailer" className="hover:text-parchment">Tráiler</a>
             <a href="#juego" className="hover:text-parchment">El juego</a>
@@ -81,7 +81,7 @@ export function App() {
         <Diorama className="absolute inset-0" />
         <div className="absolute inset-0 hero-fade pointer-events-none" />
         <div className="relative z-10 h-full max-w-6xl mx-auto px-4 flex flex-col justify-end pb-16 md:pb-24">
-          <h1 className="hero-title font-display font-extrabold text-parchment">DREADBOUND</h1>
+          <h1 className="hero-title font-display font-extrabold text-parchment">CRYPT RAIDERS</h1>
           <p className="font-display text-xl md:text-3xl text-gold mt-3 tracking-wide">Confía en tu espada. En nadie más.</p>
           <p className="font-body text-xl md:text-2xl text-bone/90 mt-4 max-w-2xl leading-snug">Baja a las criptas, llena la mochila y encuentra la salida. Los monstruos son lo de menos: el peligro de verdad camina a tu lado.</p>
           <div className="flex flex-wrap gap-3 mt-8">
@@ -96,7 +96,7 @@ export function App() {
       <section id="trailer" className="max-w-5xl mx-auto px-4 pt-24">
         <h2 className="font-display text-3xl md:text-4xl text-parchment text-center mb-8">Tráiler</h2>
         <div className="panel overflow-hidden border border-stone-800 shadow-2xl">
-          <video className="w-full aspect-video block bg-black" src="./trailer/dreadbound-trailer.mp4" poster="./trailer/poster.jpg" controls preload="none" playsInline data-testid="trailer-video">
+          <video className="w-full aspect-video block bg-black" src="./trailer/cryptraiders-trailer.mp4" poster="./trailer/poster.jpg" controls preload="none" playsInline data-testid="trailer-video">
             Tu navegador no puede reproducir el vídeo.
           </video>
         </div>
@@ -264,7 +264,7 @@ export function App() {
       </section>
 
       <footer className="max-w-6xl mx-auto px-4 py-12 flex flex-col md:flex-row gap-4 md:items-center text-stone-400 font-body text-base">
-        <span className="font-display tracking-[0.14em] text-stone-300">DREADBOUND</span>
+        <span className="font-display tracking-[0.14em] text-stone-300">CRYPT RAIDERS</span>
         <span>Juego independiente en desarrollo. Demo 0.1. El arte y el sonido actuales son provisionales.</span>
         <div className="md:ml-auto flex gap-5">
           <a href={PLAY_URL} className="hover:text-parchment">Jugar</a>

@@ -9,7 +9,7 @@ export function MobileNotice({ onContinue, onClose, continueLabel = 'Intentarlo 
       <div className="w-full max-w-sm border-2 border-[#6b4a12] bg-[#131118] p-6 text-center shadow-2xl">
         <h2 id="mobile-notice-title" className="font-display text-2xl text-[#e8b33a]">Juega en un ordenador</h2>
         <p className="font-body text-lg text-[#d9d3c1] mt-3 leading-snug">
-          La demo de DREADBOUND se juega con <b>teclado y ratón</b>. Ábrela en un ordenador para disfrutarla como es debido.
+          La demo de Crypt Raiders se juega con <b>teclado y ratón</b>. Ábrela en un ordenador para disfrutarla como es debido.
         </p>
         <button className="btn-play w-full mt-5 px-4 py-3" onClick={async () => setMsg(await shareDemoLink())} data-testid="mobile-share">
           Enviarme el enlace

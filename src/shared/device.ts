@@ -58,7 +58,7 @@ export async function shareDemoLink(): Promise<string> {
   const url = playUrl();
   try {
     if (navigator.share) {
-      await navigator.share({ title: 'DREADBOUND · Demo', text: 'Juega la demo de DREADBOUND en el ordenador:', url });
+      await navigator.share({ title: 'Crypt Raiders · Demo', text: 'Juega la demo de Crypt Raiders en el ordenador:', url });
       return 'Enlace compartido.';
     }
     await navigator.clipboard.writeText(url);

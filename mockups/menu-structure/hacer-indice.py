@@ -30,7 +30,7 @@ for o, name, desc in OPTS:
 assets = ''.join(f'<li><span>{e(a)}</span><b>{e(m)}</b></li>' for a, m in ASSETS)
 page = f'''<!doctype html>
 <html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Menús de DREADBOUND</title>
+<title>Menús de Crypt Raiders</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* Una sola ambientación oscura, como el juego: piedra, oro y sangre. Cinzel para títulos, Crimson Pro para el texto. */
@@ -84,7 +84,7 @@ dialog button {{ position: absolute; top: 6px; right: 6px; min-width: 44px; min-
 @media (max-width: 760px) {{ .top {{ grid-template-columns: 1fr; }} .opt > header {{ grid-template-columns: auto 1fr; }} .go {{ grid-column: 1 / -1; text-align: center; }} .shots {{ grid-template-columns: 1fr; }} .assets li {{ flex-direction: column; gap: 0; }} }}
 </style></head>
 <body><div class="wrap">
-<div class="top"><div><h1>Menús de <span>DREADBOUND</span></h1><p>Tres opciones y mi propuesta (D) para la nueva estructura de menús, con tus gráficos reales del juego y texto de ejemplo. Seis pantallas por opción, en escritorio, tableta y móvil horizontal. Pulsa una captura para verla a tamaño completo o abre la maqueta navegable de cada opción.</p></div>
+<div class="top"><div><h1>Menús de <span>Crypt Raiders</span></h1><p>Tres opciones y mi propuesta (D) para la nueva estructura de menús, con tus gráficos reales del juego y texto de ejemplo. Seis pantallas por opción, en escritorio, tableta y móvil horizontal. Pulsa una captura para verla a tamaño completo o abre la maqueta navegable de cada opción.</p></div>
 <div class="devs" role="group" aria-label="Tamaño"><button aria-pressed="true" data-d="">Todos</button><button aria-pressed="false" data-d="escritorio">Escritorio</button><button aria-pressed="false" data-d="tableta">Tableta</button><button aria-pressed="false" data-d="movil">Móvil</button></div></div>
 <nav class="jump"><a href="#opcion-d">D · Mi propuesta</a><a href="#opcion-a">A · Estandarte</a><a href="#opcion-b">B · Grimorio</a><a href="#opcion-c">C · Atril</a><a href="#assets">Gráficos que faltan</a></nav>
 {"".join(cards)}

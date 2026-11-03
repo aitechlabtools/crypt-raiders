@@ -11,7 +11,7 @@ const cards = {
   aliado: low('¿ALIADO…', 'Kael también busca el oro'),
   traidor: low('…O TRAIDOR?', 'si te traiciona, es a muerte', 'red'),
   sal: low('SAL CON VIDA', 'Si escapas, te lo quedas todo. Si caes, lo pierdes todo.'),
-  final: '<div class="c"><div class="logo">DREADBOUND</div><div class="mid gold" style="font-size:34px;margin-top:18px">Confía en tu espada. En nadie más.</div><div class="sub" style="margin-top:34px">Juega gratis en dreadbound.es</div></div>',
+  final: '<div class="c"><div class="logo" style="font-size:96px">CRYPT RAIDERS</div><div class="mid gold" style="font-size:34px;margin-top:18px">Confía en tu espada. En nadie más.</div><div class="sub" style="margin-top:34px">Juega gratis en cryptraiders.es</div></div>',
 };
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1280, height: 720 } });

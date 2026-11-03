@@ -8,7 +8,7 @@ const cards = {
   'nadie': '<div class="c"><div class="mid red">No te fíes de nadie.</div></div>',
   'traicion': '<div class="c low"><div class="big red">TRAICIÓN</div></div>',
   'sal': '<div class="c low"><div class="big">SAL CON VIDA</div><div class="sub">Si escapas, te lo quedas todo. Si caes, lo pierdes todo.</div></div>',
-  'final': '<div class="c"><div class="logo">DREADBOUND</div><div class="mid gold" style="font-size:34px;margin-top:18px">Confía en tu espada. En nadie más.</div><div class="sub" style="margin-top:34px">Juega gratis en dreadbound.es</div></div>',
+  'final': '<div class="c"><div class="logo" style="font-size:96px">CRYPT RAIDERS</div><div class="mid gold" style="font-size:34px;margin-top:18px">Confía en tu espada. En nadie más.</div><div class="sub" style="margin-top:34px">Juega gratis en cryptraiders.es</div></div>',
 };
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1280, height: 720 } });

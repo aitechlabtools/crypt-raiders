@@ -6,9 +6,7 @@ import { activeScene } from '../engine/DungeonScene';
 import { actions, useGame } from '../state/store';
 import { countItem } from '../../core/inventory';
 import { ItemIcon } from './inventory';
-import { TOUCH_CFG } from '../../config/touch';
-
-const R = TOUCH_CFG.stickRadius;
+import { TOUCH_CFG, safe, useTouchSize } from '../../config/touch';
 
 /**
  * Botón de juego: con el dedo se activa al apoyarlo (pointerdown). Así responde al instante y funciona
@@ -31,6 +29,10 @@ export function TouchControls() {
   const potions = useGame((s) => (s.expedition ? countItem(s.expedition.backpack, 'health_potion') : 0));
   const [stick, setStick] = useState<{ ox: number; oy: number; dx: number; dy: number } | null>(null);
   const pid = useRef<number | null>(null);
+  // Medidas según el aparato: base del joystick de 120 px en móvil y 150 px en tableta
+  const size = useTouchSize();
+  const base = TOUCH_CFG.stickBase[size], knob = TOUCH_CFG.stickKnob[size], edge = TOUCH_CFG.edge[size];
+  const R = base / 2;
 
   const potionBtn = useGameButton(() => { if (potions) actions.drinkPotion(); });
   const actionBtn = useGameButton(() => { if (prompt) activeScene?.interact(); });
@@ -77,22 +79,22 @@ export function TouchControls() {
         onLostPointerCapture={(e) => e.pointerId === pid.current && release()}
       >
         {!stick && (
-          <div className="absolute left-[max(2rem,env(safe-area-inset-left))] bottom-8 rounded-full border-2 border-white/20 bg-white/5 pointer-events-none flex items-center justify-center"
-            style={{ width: R * 2, height: R * 2 }} data-testid="touch-stick-base">
-            <div className="w-12 h-12 rounded-full bg-white/15" />
+          <div className="absolute rounded-full border-2 border-white/20 bg-white/5 pointer-events-none flex items-center justify-center"
+            style={{ left: safe('left', edge + 8), bottom: safe('bottom', edge), width: base, height: base }} data-testid="touch-stick-base">
+            <div className="rounded-full bg-white/15" style={{ width: knob, height: knob }} />
           </div>
         )}
       </div>
       {stick && (
-        <div className="fixed z-30 pointer-events-none rounded-full border-2 border-white/30 bg-black/30" style={{ left: stick.ox - R, top: stick.oy - R, width: R * 2, height: R * 2 }} data-testid="touch-stick">
-          <div className="absolute w-12 h-12 rounded-full bg-gold/70 border-2 border-gold shadow-[0_0_16px_#e8b33a88]" style={{ left: R - 24 + stick.dx, top: R - 24 + stick.dy }} />
+        <div className="fixed z-30 pointer-events-none rounded-full border-2 border-white/30 bg-black/30" style={{ left: stick.ox - R, top: stick.oy - R, width: base, height: base }} data-testid="touch-stick">
+          <div className="absolute rounded-full bg-gold/70 border-2 border-gold shadow-[0_0_16px_#e8b33a88]" style={{ width: knob, height: knob, left: R - knob / 2 + stick.dx, top: R - knob / 2 + stick.dy }} />
         </div>
       )}
 
       {/* Botones de la derecha */}
-      <div className="absolute bottom-5 z-20 flex items-end gap-3 select-none" style={{ right: 'max(1rem, env(safe-area-inset-right))' }}>
+      <div className="absolute z-20 flex items-end select-none" style={{ right: safe('right', edge), bottom: safe('bottom', edge), gap: TOUCH_CFG.btnGap }} data-testid="touch-buttons">
         <button className={`touch-btn ${potions ? '' : 'is-idle'}`} style={{ width: TOUCH_CFG.potionBtn, height: TOUCH_CFG.potionBtn }} {...potionBtn} aria-disabled={!potions} aria-label={`Beber poción (${potions})`} data-testid="touch-potion">
-          <ItemIcon itemId="health_potion" size={28} />
+          <ItemIcon itemId="health_potion" size={26} />
           <span className="absolute -top-1 -right-1 text-[11px] bg-black/80 px-1 border border-stone-600">{potions}</span>
         </button>
         <button className={`touch-btn text-sm ${prompt ? 'is-ready' : 'is-idle'}`} style={{ width: TOUCH_CFG.actionBtn, height: TOUCH_CFG.actionBtn }}

@@ -21,7 +21,7 @@ const SLOT_HINT_ICON: Record<EquipSlot, string> = {
 
 export type InvMode = 'lobby' | 'merchant' | 'dungeon';
 
-const DRAG_MIME = 'application/x-dreadbound';
+const DRAG_MIME = 'application/x-cryptraiders';
 
 export function ItemIcon({ itemId, size = 36 }: { itemId: string; size?: number }) {
   const def = getItem(itemId);
@@ -188,7 +188,7 @@ export function GridView(props: {
   onAlt?: (loc: Loc, stack: ItemStack) => void;
 }) {
   return (
-    <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${props.cols}, 48px)` }} data-testid={`grid-${props.container}`}>
+    <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${props.cols}, var(--slot))` }} data-testid={`grid-${props.container}`}>
       {props.grid.map((s, i) => {
         const loc: Loc = { kind: 'grid', container: props.container, index: i };
         const sel = props.selected?.kind === 'grid' && props.selected.container === props.container && props.selected.index === i;

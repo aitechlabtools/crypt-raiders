@@ -15,12 +15,12 @@ import { FullscreenButton } from './FullscreenButton';
 export function Logo({ size = 'text-6xl md:text-8xl' }: { size?: string }) {
   return (
     <h1 className={`font-display font-extrabold ${size} tracking-[0.12em] text-parchment title-glow leading-none`}>
-      DREAD<span className="text-blood">BOUND</span>
+      CRYPT <span className="text-blood">RAIDERS</span>
     </h1>
   );
 }
 
-export function SettingsModal({ onClose }: { onClose: () => void }) {
+export function SettingsModal({ onClose, onExit }: { onClose: () => void; onExit?: () => void }) {
   const profile = useGame((s) => s.profile);
   const [confirmDelete, setConfirmDelete] = useState(false);
   return (
@@ -54,7 +54,10 @@ export function SettingsModal({ onClose }: { onClose: () => void }) {
         <p className="font-body text-lg">Crea un personaje para ajustar el sonido. El juego se guarda automáticamente en este navegador.</p>
       )}
       <div className="mt-5 text-xs text-stone-400 font-body text-base">Controles: WASD/flechas o clic para moverte · E interactuar · Q beber poción · I inventario · Esc menú · 1-5 acciones de combate.</div>
-      <button className="btn mt-4" onClick={onClose}>Cerrar</button>
+      <div className="flex gap-2 mt-4 flex-wrap">
+        <button className="btn" onClick={onClose}>Cerrar</button>
+        {onExit && <button className="btn" onClick={() => { onClose(); onExit(); }} data-testid="btn-exit-title">Salir al título</button>}
+      </div>
     </Modal>
   );
 }

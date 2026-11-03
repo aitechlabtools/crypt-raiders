@@ -17,7 +17,7 @@ require('fs').mkdirSync(OUT, { recursive: true });
   console.log('pantalla', vp);
 
   await p.goto(BASE + '?debug');
-  await p.evaluate(() => indexedDB.deleteDatabase('dreadbound'));
+  await p.evaluate(() => indexedDB.deleteDatabase('cryptraiders'));
   await p.reload();
   await shot('1-titulo');
   await p.tap('[data-testid=btn-play]');
@@ -26,14 +26,14 @@ require('fs').mkdirSync(OUT, { recursive: true });
   await p.tap('[data-testid=btn-create]');
   await p.tap('[data-testid=btn-tutorial-ok]');
   await shot('3-lobby');
-  await p.evaluate(() => { const s = window.__DREADBOUND__.getState(); s.profile.tutorialSeen.dungeon = true; });
-  await p.tap('[data-testid=tab-expedition]');
+  await p.evaluate(() => { const s = window.__CRYPTRAIDERS__.getState(); s.profile.tutorialSeen.dungeon = true; });
+  await p.tap('[data-testid=tab-play]');
   await p.tap('[data-testid=btn-enter-dungeon]');
   await p.waitForTimeout(1500);
-  await p.evaluate(() => { for (const e of window.__DREADBOUND__.scene().enemies) { e.dead = true; e.sprite.destroy(); e.shadow.destroy(); e.marker?.destroy(); } });
+  await p.evaluate(() => { for (const e of window.__CRYPTRAIDERS__.scene().enemies) { e.dead = true; e.sprite.destroy(); e.shadow.destroy(); e.marker?.destroy(); } });
   await shot('4-mazmorra');
   // Joystick: apoyar el pulgar y arrastrar a la derecha
-  const pos0 = await p.evaluate(() => { const pl = window.__DREADBOUND__.scene().player; return [pl.x, pl.y]; });
+  const pos0 = await p.evaluate(() => { const pl = window.__CRYPTRAIDERS__.scene().player; return [pl.x, pl.y]; });
   const x0 = 110, y0 = vp.height - 90;
   await touch('touchStart', x0, y0);
   for (let i = 1; i <= 6; i++) { await touch('touchMove', x0 + i * 9, y0); await p.waitForTimeout(30); }
@@ -41,33 +41,33 @@ require('fs').mkdirSync(OUT, { recursive: true });
   await shot('5-joystick');
   await p.waitForTimeout(900);
   await touch('touchEnd');
-  const pos1 = await p.evaluate(() => { const pl = window.__DREADBOUND__.scene().player; return [pl.x, pl.y]; });
+  const pos1 = await p.evaluate(() => { const pl = window.__CRYPTRAIDERS__.scene().player; return [pl.x, pl.y]; });
   console.log('joystick mueve:', pos0.map((v) => v.toFixed(2)), '→', pos1.map((v) => v.toFixed(2)), Math.hypot(pos1[0] - pos0[0], pos1[1] - pos0[1]) > 0.5 ? 'OK' : 'NO SE MUEVE');
   // Botón de acción junto a Kael
-  const r = await p.evaluate(() => { const r = window.__DREADBOUND__.scene().rival; return [r.x, r.y]; });
-  await p.evaluate(([x, y]) => window.__DREADBOUND__.scene().debugTeleport(x, y), [Math.floor(r[0]) + 1, Math.floor(r[1])]);
+  const r = await p.evaluate(() => { const r = window.__CRYPTRAIDERS__.scene().rival; return [r.x, r.y]; });
+  await p.evaluate(([x, y]) => window.__CRYPTRAIDERS__.scene().debugTeleport(x, y), [Math.floor(r[0]) + 1, Math.floor(r[1])]);
   await p.waitForTimeout(700);
   await shot('6-accion');
   const ready = await p.$('[data-testid=touch-action]:not([disabled])');
   console.log('botón de acción listo:', !!ready);
   if (ready) { await ready.tap(); await p.waitForTimeout(500); await shot('7-kael'); }
-  await p.evaluate(() => window.__DREADBOUND__.actions.closeModal());
+  await p.evaluate(() => window.__CRYPTRAIDERS__.actions.closeModal());
   // Combate: un toque ejecuta (mantener pulsado para la ficha se prueba en touch-check.cjs)
-  await p.evaluate(() => window.__DREADBOUND__.actions.startCombat('pve', 'e_bat_m', 'bat'));
+  await p.evaluate(() => window.__CRYPTRAIDERS__.actions.startCombat('pve', 'e_bat_m', 'bat'));
   for (let k = 0; k < 40 && !(await p.$('[data-testid=act-attack]:not([disabled])')); k++) await p.waitForTimeout(150);
   await p.waitForTimeout(300);
   await shot('8-combate');
   await p.tap('[data-testid=act-skills]'); await p.waitForTimeout(200);
   const sk = await p.$('[data-testid^=skill-]:not([disabled])');
   await shot('9-habilidades');
-  const log0 = await p.evaluate(() => window.__DREADBOUND__.getState().combat?.state.log.length);
+  const log0 = await p.evaluate(() => window.__CRYPTRAIDERS__.getState().combat?.state.log.length);
   if (sk) await sk.tap();
   await p.waitForTimeout(600);
-  const log1 = await p.evaluate(() => window.__DREADBOUND__.getState().combat?.state.log.length);
+  const log1 = await p.evaluate(() => window.__CRYPTRAIDERS__.getState().combat?.state.log.length);
   console.log('un toque ejecuta:', log1 > log0 ? 'OK' : 'NO');
   // Inventario en la mazmorra
-  await p.evaluate(() => { const s = window.__DREADBOUND__.getState(); const c = s.combat?.state.combatants.find((x) => x.id === 'e_bat_m'); if (c) c.hp = 1; });
-  for (let i = 0; i < 20; i++) { const o = await p.evaluate(() => { const s = window.__DREADBOUND__.getState(); return !s.combat || !!s.combat.state.outcome; }); if (o) break; const a = await p.$('[data-testid=act-attack]:not([disabled])'); if (a) await a.tap(); await p.waitForTimeout(400); }
+  await p.evaluate(() => { const s = window.__CRYPTRAIDERS__.getState(); const c = s.combat?.state.combatants.find((x) => x.id === 'e_bat_m'); if (c) c.hp = 1; });
+  for (let i = 0; i < 20; i++) { const o = await p.evaluate(() => { const s = window.__CRYPTRAIDERS__.getState(); return !s.combat || !!s.combat.state.outcome; }); if (o) break; const a = await p.$('[data-testid=act-attack]:not([disabled])'); if (a) await a.tap(); await p.waitForTimeout(400); }
   const cont = await p.$('[data-testid=btn-combat-continue]'); if (cont) await cont.tap();
   await p.waitForTimeout(300);
   await p.tap('[data-testid=btn-inventory]');

@@ -7,7 +7,7 @@ const BASE = process.argv[2] || 'http://localhost:5173/play/';
   const errors = [];
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()));
   page.on('pageerror', (e) => errors.push(e.message));
-  const S = () => page.evaluate(() => { const s = window.__DREADBOUND__.getState(); return { rival: s.rival.disposition, combat: s.combat?.kind, outcome: s.combat?.state.outcome, screen: s.screen, bags: Object.values(s.bags).map((x) => x.label) }; });
+  const S = () => page.evaluate(() => { const s = window.__CRYPTRAIDERS__.getState(); return { rival: s.rival.disposition, combat: s.combat?.kind, outcome: s.combat?.state.outcome, screen: s.screen, bags: Object.values(s.bags).map((x) => x.label) }; });
   const fight = async (prefer) => {
     for (let i = 0; i < 80; i++) {
       const s = await S();
@@ -21,7 +21,7 @@ const BASE = process.argv[2] || 'http://localhost:5173/play/';
     }
   };
   await page.goto(BASE + '?debug');
-  await page.evaluate(() => indexedDB.deleteDatabase('dreadbound'));
+  await page.evaluate(() => indexedDB.deleteDatabase('cryptraiders'));
   await page.reload();
   await page.click('[data-testid=btn-play]');
   if (await page.$('[data-testid=btn-tutorial-ok]')) await page.click('[data-testid=btn-tutorial-ok]');
@@ -30,11 +30,11 @@ const BASE = process.argv[2] || 'http://localhost:5173/play/';
   await page.click('[data-testid=class-mage]');
   await page.click('[data-testid=btn-create]');
   await page.click('[data-testid=btn-tutorial-ok]');
-  await page.click('[data-testid=tab-expedition]');
+  await page.click('[data-testid=tab-play]');
   await page.click('[data-testid=btn-enter-dungeon]');
   await page.click('[data-testid=btn-dungeon-tutorial-ok]');
-  const tp = (x, y) => page.evaluate(([x, y]) => window.__DREADBOUND__.scene().debugTeleport(x, y), [x, y]);
-  const r = await page.evaluate(() => { const r = window.__DREADBOUND__.scene().rival; return [r.x, r.y]; });
+  const tp = (x, y) => page.evaluate(([x, y]) => window.__CRYPTRAIDERS__.scene().debugTeleport(x, y), [x, y]);
+  const r = await page.evaluate(() => { const r = window.__CRYPTRAIDERS__.scene().rival; return [r.x, r.y]; });
   await tp(Math.floor(r[0]) + 1, Math.floor(r[1]));
   await page.waitForTimeout(300);
   // Duelo
@@ -62,7 +62,7 @@ const BASE = process.argv[2] || 'http://localhost:5173/play/';
   for (let i = 0; i < 80; i++) {
     const s = await S();
     if (s.outcome) break;
-    const hp = await page.evaluate(() => window.__DREADBOUND__.getState().expedition.hp);
+    const hp = await page.evaluate(() => window.__CRYPTRAIDERS__.getState().expedition.hp);
     if (await page.$('[data-testid=act-attack]:not([disabled])')) {
       if (hp < 30 && await page.$('[data-testid=act-bag]:not([disabled])')) { await page.click('[data-testid=act-bag]'); { const u = await page.$('[data-testid^=use-health]') ?? await page.$('[data-testid^=use-]'); if (u) await u.click(); else await page.keyboard.press('Escape'); } }
       else {
@@ -89,7 +89,7 @@ const BASE = process.argv[2] || 'http://localhost:5173/play/';
   }
   // Huida de un murciélago
   if ((await S()).screen === 'dungeon') {
-    await page.evaluate(() => window.__DREADBOUND__.actions.startCombat('pve', 'e_bat1', 'bat'));
+    await page.evaluate(() => window.__CRYPTRAIDERS__.actions.startCombat('pve', 'e_bat1', 'bat'));
     for (let i = 0; i < 20; i++) {
       const s = await S();
       if (s.outcome) break;

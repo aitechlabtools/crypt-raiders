@@ -1,4 +1,4 @@
-# DREADBOUND · Notas para trabajar en el proyecto
+# Crypt Raiders · Notas para trabajar en el proyecto
 
 ## Regla permanente: pensar siempre en móvil y tableta
 Cada cambio de interfaz o de mecánica debe funcionar en las tres formas de jugar:
@@ -19,3 +19,9 @@ Cómo se hace en este proyecto:
 - Prueba obligatoria tras cada cambio: `node scripts/touch-check.cjs <url>/play/` (toques reales, 5 dispositivos), `node scripts/mobile-check.cjs <url>/play/ <carpeta>` (móvil) y con
   `"iPad (gen 7) landscape"` como tercer argumento (tableta), además de scripts/e2e.cjs.
 - Mantener al día la lista «Ya disponible / En camino» y los textos de la landing (src/landing/App.tsx) cuando cambie el juego.
+
+## Regla permanente: menús con la base de interfaz
+- Toda pantalla de menú usa las piezas de `src/game/ui/kit` y las medidas de `src/config/ui.ts` (y sus variables CSS en game.css).
+- Guía para montar una pantalla nueva: `docs/guia-interfaz.md`. Estructura de la opción D de las maquetas (solo estructura, nunca gráficos).
+- Pixel art siempre a escala entera (`usePixelScale`). Objetivos táctiles de 44 px como mínimo.
+- Prueba de menús en los tres formatos: `node scripts/menus-check.cjs <url>/play/ <carpeta>`.

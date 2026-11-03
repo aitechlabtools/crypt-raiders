@@ -1,4 +1,4 @@
-# Arquitectura de DREADBOUND
+# Arquitectura de Crypt Raiders
 
 ## Decisiones técnicas
 

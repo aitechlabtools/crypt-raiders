@@ -61,6 +61,9 @@ export function CombatScreen() {
     }
     const actorC = act ? cs.combatants.find((c) => c.id === act.actorId) : null;
     setAnim({ step: cs.step, actorId: act?.actorId ?? null, hit, fx: act && RANGED.has(act.fx) ? act.fx : null, fromLeft: actorC?.side === 'A' });
+    // La pose de golpe y la de ataque duran un momento: si no, el personaje se quedaba rojo hasta el turno siguiente.
+    const step = cs.step;
+    setTimeout(() => setAnim((a) => (a.step === step ? { ...a, actorId: null, hit: new Set() } : a)), 650);
     setFloats((f) => [...f, ...nf]);
     const ids = new Set(nf.map((x) => x.id));
     setTimeout(() => setFloats((f) => f.filter((x) => !ids.has(x.id))), 1150);

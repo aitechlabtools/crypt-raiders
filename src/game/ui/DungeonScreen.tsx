@@ -15,6 +15,8 @@ import { chestType } from '../../core/data/chests';
 import { TouchControls } from './TouchControls';
 import { useIsTouch } from '../../shared/device';
 import { FullscreenButton } from './FullscreenButton';
+import { HudIcon } from './hudIcons';
+import { TOUCH_CFG, safe, useTouchSize } from '../../config/touch';
 import { getMerc } from '../../core/data/mercenaries';
 import { mercBaseStats, STANCE_DESC, STANCE_NAME } from '../../core/mercenaries';
 
@@ -104,6 +106,7 @@ export function DungeonScreen() {
 
 function Hud() {
   const s = useGame((x) => x);
+  const touch = useIsTouch();
   const exp = s.expedition;
   if (!exp || !s.profile) return null;
   const ch = s.profile.character;
@@ -113,68 +116,132 @@ function Hud() {
   const urgent = left < 120000;
   return (
     <>
-      <div className="absolute left-3 top-3 panel p-3 w-64 z-10" data-testid="hud-player">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="w-10 h-10 bg-[#0d0c11] border-2 border-stone-700 flex items-end justify-center overflow-hidden"><PlayerSprite scale={2} animate={false} /></div>
-          <div className="min-w-0">
-            <div className="truncate">{ch.name}</div>
-            <div className="text-xs text-stone-400">{CLASSES[ch.classId].name} · Nv {ch.level}</div>
-          </div>
-        </div>
-        <Bar value={exp.hp} max={stats.maxHp} color="#c4283b" label="Vida" testId="hud-hp" />
-        <div className="h-1" />
-        <Bar value={exp.mp} max={stats.maxMp} color="#3d7be0" label={CLASSES[ch.classId].resourceName} />
-        <div className="touch-only text-xs mt-1.5">Botín: <span className="text-gold">{gridValue(exp.backpack)}</span> · Oro: <GoldAmount value={exp.goldFound} /></div>
-        <button className="btn w-full mt-2 text-sm flex items-center justify-center gap-2 no-touch" onClick={() => actions.drinkPotion()} disabled={!potions}>
-          <ItemIcon itemId="health_potion" size={20} /> Poción ({potions}) <kbd className="text-xs opacity-60">Q</kbd>
-        </button>
-      </div>
-
-      <div className="absolute left-1/2 -translate-x-1/2 top-3 text-center z-10 pointer-events-none">
-        <div className={`panel px-5 py-1 font-display text-3xl ${urgent ? 'text-blood animate-pulse' : 'text-parchment'}`} data-testid="hud-timer">{formatTime(left)}</div>
-        <div className="mt-1 text-sm text-stone-300 tracking-widest uppercase font-display" data-testid="hud-room">{s.hud.room}</div>
-        {s.dungeon && <div className="text-[11px] text-stone-500 mt-0.5" data-testid="hud-dungeon">{s.dungeon.name}{s.dungeon.seed !== undefined ? ` · mapa ${s.dungeon.seed}` : ''}</div>}
-      </div>
-
-      <div className="absolute right-3 top-3 flex flex-col items-end gap-2 z-10">
-        <div className="flex gap-2">
-          <button className="btn text-sm" onClick={() => actions.openModal({ type: 'inventory' })} data-testid="btn-inventory">Inventario <kbd className="opacity-60">I</kbd></button>
-          <button className="btn text-sm" onClick={() => actions.openModal({ type: 'pause' })}>Menú <kbd className="opacity-60">Esc</kbd></button>
-          <FullscreenButton />
-        </div>
-        {s.rival.disposition === 'allied' && (
-          <div className="panel p-2 w-52 border-heal" data-testid="hud-ally">
-            <div className="text-xs text-heal mb-1">Aliado · Kael el Errante</div>
-            <Bar value={s.rival.hp} max={105} color="#5fd19a" />
-          </div>
-        )}
-        {s.merc?.alive && (() => {
-          const m = getMerc(s.merc.id);
-          return (
-            <button className="panel p-2 w-52 border-heal text-left" onClick={() => actions.interactMerc()} data-testid="hud-merc">
-              <div className="text-xs text-heal mb-1 flex justify-between gap-1"><span className="truncate">{s.merc.rescued ? 'Rescatado' : 'Mercenario'} · {m.name}</span><span className="text-stone-400 shrink-0">{STANCE_NAME[s.merc.stance]}</span></div>
-              <Bar value={s.merc.hp} max={mercBaseStats(m).maxHp} color="#5fd19a" />
+      {touch ? <TouchTopHud /> : (
+        <>
+          <div className="absolute left-3 top-3 panel p-3 w-64 z-10" data-testid="hud-player">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-10 h-10 bg-[#0d0c11] border-2 border-stone-700 flex items-end justify-center overflow-hidden"><PlayerSprite scale={2} animate={false} /></div>
+              <div className="min-w-0">
+                <div className="truncate">{ch.name}</div>
+                <div className="text-xs text-stone-400">{CLASSES[ch.classId].name} · Nv {ch.level}</div>
+              </div>
+            </div>
+            <Bar value={exp.hp} max={stats.maxHp} color="#c4283b" label="Vida" testId="hud-hp" />
+            <div className="h-1" />
+            <Bar value={exp.mp} max={stats.maxMp} color="#3d7be0" label={CLASSES[ch.classId].resourceName} />
+            <button className="btn w-full mt-2 text-sm flex items-center justify-center gap-2" onClick={() => actions.drinkPotion()} disabled={!potions}>
+              <ItemIcon itemId="health_potion" size={20} /> Poción ({potions}) <kbd className="text-xs opacity-60">Q</kbd>
             </button>
-          );
-        })()}
-        {s.rival.disposition === 'hostile' && <div className="panel px-3 py-1 text-sm text-blood border-blood">Kael es hostil</div>}
-      </div>
+          </div>
 
-      <div className="absolute left-3 bottom-3 panel px-3 py-2 text-sm z-10 flex items-center gap-4 hud-loot">
-        <span>Botín: <span className="text-gold" data-testid="hud-loot-value">{gridValue(exp.backpack)}</span></span>
-        <span className="flex items-center gap-1">Oro: <GoldAmount value={exp.goldFound} /></span>
-      </div>
+          <div className="absolute left-1/2 -translate-x-1/2 top-3 text-center z-10 pointer-events-none">
+            <div className={`panel px-5 py-1 font-display text-3xl ${urgent ? 'text-blood animate-pulse' : 'text-parchment'}`} data-testid="hud-timer">{formatTime(left)}</div>
+            <div className="mt-1 text-sm text-stone-300 tracking-widest uppercase font-display" data-testid="hud-room">{s.hud.room}</div>
+            {s.dungeon && <div className="text-[11px] text-stone-500 mt-0.5" data-testid="hud-dungeon">{s.dungeon.name}{s.dungeon.seed !== undefined ? ` · mapa ${s.dungeon.seed}` : ''}</div>}
+          </div>
 
-      <div className="absolute left-1/2 -translate-x-1/2 bottom-6 z-10 flex flex-col items-center gap-2 pointer-events-none">
+          <div className="absolute right-3 top-3 flex flex-col items-end gap-2 z-10">
+            <div className="flex gap-2">
+              <button className="btn text-sm" onClick={() => actions.openModal({ type: 'inventory' })} data-testid="btn-inventory">Inventario <kbd className="opacity-60">I</kbd></button>
+              <button className="btn text-sm" onClick={() => actions.openModal({ type: 'pause' })} data-testid="btn-menu">Menú <kbd className="opacity-60">Esc</kbd></button>
+            </div>
+            <Companions width="w-52" />
+          </div>
+
+          <div className="absolute left-3 bottom-3 panel px-3 py-2 text-sm z-10 flex items-center gap-4 hud-loot">
+            <span>Botín: <span className="text-gold" data-testid="hud-loot-value">{gridValue(exp.backpack)}</span></span>
+            <span className="flex items-center gap-1">Oro: <GoldAmount value={exp.goldFound} /></span>
+          </div>
+        </>
+      )}
+
+      {/* Centro abajo: canalización del portal y lo que se puede usar (en táctil, sin tecla y sobre los pulgares) */}
+      <div className="absolute left-1/2 -translate-x-1/2 z-10 flex flex-col items-center gap-2 pointer-events-none max-w-[44vw]"
+        style={{ bottom: touch ? safe('bottom', 16) : '1.5rem' }}>
         {s.hud.channel > 0 && (
-          <div className="panel p-2 w-72 text-center border-arcane" data-testid="hud-channel">
+          <div className="panel p-2 w-72 max-w-full text-center border-arcane" data-testid="hud-channel">
             <div className="text-arcane text-sm mb-1">{s.hud.channelLabel ?? 'Canalizando el portal… no te muevas'}</div>
             <div className="bar"><div style={{ width: `${s.hud.channel * 100}%`, background: '#a35ae0' }} /></div>
           </div>
         )}
         {s.hud.prompt && !s.modal && !s.combat && (
-          <div className="panel px-4 py-2 fade-in" data-testid="hud-prompt"><kbd className="bg-gold text-black px-1.5 mr-2">E</kbd>{s.hud.prompt}</div>
+          <div className="panel px-4 py-2 fade-in text-center" data-testid="hud-prompt"><kbd className="bg-gold text-black px-1.5 mr-2">E</kbd>{s.hud.prompt}</div>
         )}
+      </div>
+    </>
+  );
+}
+
+/** Aliado (Kael) y mercenario: barras pequeñas bajo los botones de la derecha. */
+function Companions({ width }: { width: string }) {
+  const rival = useGame((s) => s.rival);
+  const merc = useGame((s) => s.merc);
+  return (
+    <>
+      {rival.disposition === 'allied' && (
+        <div className={`panel p-2 ${width} border-heal`} data-testid="hud-ally">
+          <div className="text-xs text-heal mb-1 truncate">Aliado · Kael el Errante</div>
+          <Bar value={rival.hp} max={105} color="#5fd19a" />
+        </div>
+      )}
+      {merc?.alive && (() => {
+        const m = getMerc(merc.id);
+        return (
+          <button className={`panel p-2 ${width} border-heal text-left`} onClick={() => actions.interactMerc()} data-testid="hud-merc">
+            <div className="text-xs text-heal mb-1 flex justify-between gap-1"><span className="truncate">{merc.rescued ? 'Rescatado' : 'Mercenario'} · {m.name}</span><span className="text-stone-400 shrink-0">{STANCE_NAME[merc.stance]}</span></div>
+            <Bar value={merc.hp} max={mercBaseStats(m).maxHp} color="#5fd19a" />
+          </button>
+        );
+      })()}
+      {rival.disposition === 'hostile' && <div className="panel px-3 py-1 text-sm text-blood border-blood">Kael es hostil</div>}
+    </>
+  );
+}
+
+/**
+ * Barra superior en táctil: toda la información arriba y el centro libre para jugar.
+ * Izquierda: retrato, vida, recurso y botín. Centro: reloj y sala. Derecha: inventario, menú y
+ * pantalla completa (44 px) y, debajo, los aliados. Respeta la zona segura (notch, esquinas redondeadas).
+ */
+function TouchTopHud() {
+  const s = useGame((x) => x);
+  const size = useTouchSize();
+  const exp = s.expedition!;
+  const ch = s.profile!.character;
+  const stats = computeStats(ch.classId, ch.level, exp.equipment);
+  const left = timeLeft(exp, s.now);
+  const urgent = left < 120000;
+  const edge = TOUCH_CFG.edge[size];
+  const phone = size === 'phone';
+  const icon = TOUCH_CFG.hudIcon;
+  return (
+    <>
+      <div className={`absolute z-10 panel ${phone ? 'p-2 w-48' : 'p-3 w-60'}`} style={{ left: safe('left', edge), top: safe('top', edge) }} data-testid="hud-player">
+        <div className="flex items-center gap-2 mb-1.5">
+          <div className={`${phone ? 'w-7 h-7' : 'w-9 h-9'} bg-[#0d0c11] border-2 border-stone-700 flex items-end justify-center overflow-hidden shrink-0`}><PlayerSprite scale={phone ? 1 : 2} animate={false} /></div>
+          <div className="min-w-0 leading-tight">
+            <div className="truncate text-sm">{ch.name}</div>
+            <div className="text-[11px] text-stone-400">{CLASSES[ch.classId].name} · Nv {ch.level}</div>
+          </div>
+        </div>
+        <Bar value={exp.hp} max={stats.maxHp} color="#c4283b" label={phone ? undefined : 'Vida'} testId="hud-hp" />
+        <div className="h-1" />
+        <Bar value={exp.mp} max={stats.maxMp} color="#3d7be0" label={phone ? undefined : CLASSES[ch.classId].resourceName} />
+        <div className="text-[11px] mt-1.5 flex items-center gap-1 flex-wrap">Botín: <span className="text-gold" data-testid="hud-loot-value">{gridValue(exp.backpack)}</span> · Oro: <GoldAmount value={exp.goldFound} /></div>
+      </div>
+
+      <div className="absolute left-1/2 -translate-x-1/2 z-10 text-center pointer-events-none" style={{ top: safe('top', edge) }}>
+        <div className={`panel font-display ${phone ? 'px-3 text-xl' : 'px-4 py-0.5 text-2xl'} ${urgent ? 'text-blood animate-pulse' : 'text-parchment'}`} data-testid="hud-timer">{formatTime(left)}</div>
+        <div className={`mt-1 text-stone-300 tracking-widest uppercase font-display ${phone ? 'text-[10px]' : 'text-xs'}`} data-testid="hud-room">{s.hud.room}</div>
+      </div>
+
+      <div className="absolute z-10 flex flex-col items-end gap-2" style={{ right: safe('right', edge), top: safe('top', edge) }}>
+        <div className="flex gap-2">
+          <button className="btn flex items-center justify-center p-0" style={{ width: icon, height: icon, padding: 0 }} onClick={() => actions.openModal({ type: 'inventory' })} aria-label="Inventario" title="Inventario" data-testid="btn-inventory"><HudIcon name="bag" px={24} /></button>
+          <button className="btn flex items-center justify-center p-0" style={{ width: icon, height: icon, padding: 0 }} onClick={() => actions.openModal({ type: 'pause' })} aria-label="Menú" title="Menú" data-testid="btn-menu"><HudIcon name="menu" px={24} /></button>
+          <FullscreenButton />
+        </div>
+        <Companions width={phone ? 'w-40' : 'w-48'} />
       </div>
     </>
   );

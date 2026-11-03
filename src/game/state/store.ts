@@ -1005,6 +1005,6 @@ export const actions = {
 // Para pruebas automáticas (solo con ?debug en la URL)
 export function exposeDebug(extra: Record<string, unknown> = {}) {
   if (typeof window !== 'undefined' && /[?&]debug/.test(window.location.search)) {
-    (window as unknown as Record<string, unknown>).__DREADBOUND__ = { getState, actions, setState: (patch: Partial<GameState>) => set(patch), ...extra };
+    (window as unknown as Record<string, unknown>).__CRYPTRAIDERS__ = { getState, actions, setState: (patch: Partial<GameState>) => set(patch), ...extra };
   }
 }

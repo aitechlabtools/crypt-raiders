@@ -5,7 +5,7 @@ const OUT = process.argv[3] || 'public/screenshots';
 (async () => {
   const b = await chromium.launch();
   const page = await b.newPage({ viewport: { width: 1440, height: 900 } });
-  const tp = (x, y) => page.evaluate(([x, y]) => window.__DREADBOUND__.scene().debugTeleport(x, y), [x, y]);
+  const tp = (x, y) => page.evaluate(([x, y]) => window.__CRYPTRAIDERS__.scene().debugTeleport(x, y), [x, y]);
   await page.goto(BASE + '?debug');
   await page.click('[data-testid=btn-play]');
   await page.fill('[data-testid=name-input]', 'Aldric');
@@ -13,13 +13,14 @@ const OUT = process.argv[3] || 'public/screenshots';
   await page.click('[data-testid=btn-tutorial-ok]');
   // Algo de equipo para que el inventario luzca
   await page.evaluate(() => {
-    const s = window.__DREADBOUND__.getState();
+    const s = window.__CRYPTRAIDERS__.getState();
     s.profile.gold = 600;
     s.profile.character.level = 3;
   });
-  await page.click('[data-testid=tab-merchant]');
+  await page.click('[data-testid=tab-merchants]');
+  await page.click('[data-testid=vendor-orvel]');
   for (const id of ['iron_helm', 'gauntlets', 'chainmail', 'iron_sword', 'health_potion', 'copper_ring', 'antidote']) await page.click(`[data-testid=buy-${id}]`);
-  await page.click('[data-testid=tab-gear]');
+  await page.click('[data-testid=tab-stash]');
   for (const id of ['iron_helm', 'gauntlets', 'chainmail', 'iron_sword', 'copper_ring']) {
     const el = await page.$(`[data-testid^=slot-backpack][data-item=${id}]`);
     if (el) await el.dblclick();
@@ -27,10 +28,10 @@ const OUT = process.argv[3] || 'public/screenshots';
   await page.hover('[data-testid^=slot-backpack][data-item=rusty_sword]');
   await page.waitForTimeout(300);
   await page.screenshot({ path: `${OUT}/inventory.png` });
-  await page.click('[data-testid=tab-expedition]');
+  await page.click('[data-testid=tab-play]');
   await page.click('[data-testid=btn-enter-dungeon]');
   await page.click('[data-testid=btn-dungeon-tutorial-ok]');
-  const r = await page.evaluate(() => { const r = window.__DREADBOUND__.scene().rival; return [r.x, r.y]; });
+  const r = await page.evaluate(() => { const r = window.__CRYPTRAIDERS__.scene().rival; return [r.x, r.y]; });
   await tp(Math.floor(r[0]) + 1, Math.floor(r[1]));
   await page.waitForTimeout(500);
   await page.keyboard.press('e');
@@ -43,7 +44,7 @@ const OUT = process.argv[3] || 'public/screenshots';
   await page.waitForTimeout(2500);
   await page.screenshot({ path: `${OUT}/dungeon.png` });
   // Jefe
-  await page.evaluate(() => window.__DREADBOUND__.actions.startCombat('pve', 'e_boss', 'ossuary_lord'));
+  await page.evaluate(() => window.__CRYPTRAIDERS__.actions.startCombat('pve', 'e_boss', 'ossuary_lord'));
   for (let i = 0; i < 6; i++) {
     await page.waitForTimeout(1100);
     if (await page.$('[data-testid=act-attack]:not([disabled])')) {

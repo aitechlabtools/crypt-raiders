@@ -1,5 +1,5 @@
 @echo off
-title DREADBOUND - desarrollo
+title Crypt Raiders - desarrollo
 cd /d "%~dp0"
 where node >nul 2>nul || (echo No se encuentra Node.js. Instalalo desde https://nodejs.org & pause & exit /b 1)
 if not exist node_modules (

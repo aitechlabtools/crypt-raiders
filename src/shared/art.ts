@@ -1,5 +1,5 @@
 // ════════════════════════════════════════════════════════════════════
-// Generador de pixel art procedural de DREADBOUND.
+// Generador de pixel art procedural de Crypt Raiders.
 // Todo el arte de la demo se dibuja por código: es original, no depende de
 // archivos externos y se comparte entre el juego (Phaser), la interfaz y la web.
 // Son placeholders coherentes: ver docs/ASSETS.md para su sustitución.

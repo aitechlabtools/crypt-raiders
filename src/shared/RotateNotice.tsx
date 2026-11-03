@@ -8,7 +8,7 @@ function phonePortrait(): boolean {
 }
 
 /**
- * En móvil en vertical tapa el juego y pide girarlo: DREADBOUND se juega en horizontal.
+ * En móvil en vertical tapa el juego y pide girarlo: Crypt Raiders se juega en horizontal.
  * Mientras se ve, avisa con onChange(true) para congelar la escena. No rota la página con CSS:
  * eso rompe los toques y el teclado; donde se puede (Android a pantalla completa) se fija la horizontal.
  */
@@ -29,7 +29,7 @@ export function RotateNotice({ onChange }: { onChange?: (shown: boolean) => void
       onClick={() => void lockLandscape()}>
       <div className="w-16 h-24 border-4 border-[#e8b33a] rounded-xl rotate-hint" />
       <h2 className="font-display text-2xl text-[#e8b33a] mt-8">Gira el dispositivo para jugar</h2>
-      <p className="font-body text-lg text-[#d9d3c1] mt-2 leading-snug">DREADBOUND se juega en horizontal. La partida queda en pausa mientras tanto.</p>
+      <p className="font-body text-lg text-[#d9d3c1] mt-2 leading-snug">Crypt Raiders se juega en horizontal. La partida queda en pausa mientras tanto.</p>
     </div>
   );
 }

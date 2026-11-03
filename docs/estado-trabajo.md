@@ -121,6 +121,13 @@ Cada fase termina con: pruebas automáticas, capturas en 1920×1080, 1180×820 y
 y abrir `http://IP:5173/play/` con el móvil en la misma Wi-Fi), texto del commit y esperar el visto bueno del usuario.
 
 ## Siguiente paso
+Páginas legales (paso 7) y revisión de calidad (paso 8): HECHAS el 3/11 (commit pendiente del usuario:
+«Páginas legales: aviso legal, privacidad y cookies; pie común y revisión de accesibilidad»).
+aviso-legal.html, privacidad.html y cookies.html (src/legal), pie común con enlaces (src/landing/site.tsx), enlaces discretos en
+Ajustes del juego. Auditoría: sin cookies, sin terceros (fuentes con @fontsource en el propio sitio), solo IndexedDB «cryptraiders»
+→ sin banner. Arreglado: el juego creaba una base vacía «dreadbound» al buscar partidas antiguas. Grises de la web aclarados para
+contraste AA (axe sin errores). FALTA que el usuario rellene [NOMBRE Y APELLIDOS], [NIF], [DOMICILIO] y [EMAIL DE CONTACTO] en
+src/legal/texts.tsx y que un profesional revise los textos.
 Fase 10: HECHA el 3/11 (noche). El plan de 10 fases está terminado. Pendiente de decidir lo siguiente con el usuario
 (por ejemplo: arte definitivo de los atuendos, Pícaro y Clérigo, remontar el tráiler con el rótulo «ATUENDOS»).
 Cambio de nombre a Crypt Raiders: HECHO (código, landing, app instalable, tráiler y póster).

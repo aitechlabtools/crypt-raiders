@@ -19,8 +19,45 @@ function openDb(name = DB_NAME): Promise<IDBDatabase> {
   });
 }
 
-async function idbGet<T>(key: string, name = DB_NAME): Promise<T | undefined> {
-  const db = await openDb(name);
+/** Abre la base antigua solo si ya existe: mirar si hay partida de DREADBOUND no debe crear una base vacía. */
+function openOldDb(): Promise<IDBDatabase | null> {
+  return new Promise((resolve) => {
+    const req = indexedDB.open(OLD_DB_NAME, 1);
+    req.onupgradeneeded = () => req.transaction?.abort(); // no existía: se cancela y no se crea
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => resolve(null);
+  });
+}
+
+async function oldGet<T>(key: string): Promise<T | undefined> {
+  const db = await openOldDb();
+  if (!db) return undefined;
+  try {
+    if (!db.objectStoreNames.contains(STORE)) return undefined;
+    return await new Promise((resolve, reject) => {
+      const r = db.transaction(STORE, 'readonly').objectStore(STORE).get(key);
+      r.onsuccess = () => resolve(r.result as T | undefined);
+      r.onerror = () => reject(r.error);
+    });
+  } finally { db.close(); }
+}
+
+async function oldDel(key: string): Promise<void> {
+  const db = await openOldDb();
+  if (!db) return;
+  try {
+    if (!db.objectStoreNames.contains(STORE)) return;
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite');
+      tx.objectStore(STORE).delete(key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  } finally { db.close(); }
+}
+
+async function idbGet<T>(key: string): Promise<T | undefined> {
+  const db = await openDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, 'readonly');
     const r = tx.objectStore(STORE).get(key);
@@ -39,8 +76,8 @@ async function idbSet(key: string, value: unknown): Promise<void> {
   });
 }
 
-async function idbDel(key: string, name = DB_NAME): Promise<void> {
-  const db = await openDb(name);
+async function idbDel(key: string): Promise<void> {
+  const db = await openDb();
   return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE, 'readwrite');
     tx.objectStore(STORE).delete(key);
@@ -57,7 +94,7 @@ export async function loadProfile(): Promise<Profile | null> {
       const now = await idbGet<Profile>(KEY);
       if (now) return sanitizeProfile(now);
       // Partida guardada con el nombre antiguo del juego: se copia al nuevo (la antigua no se borra).
-      const old = await idbGet<Profile>(KEY, OLD_DB_NAME);
+      const old = await oldGet<Profile>(KEY);
       if (old) { await idbSet(KEY, old); return sanitizeProfile(old); }
       return sanitizeProfile(undefined);
     }
@@ -89,7 +126,7 @@ export async function saveProfile(p: Profile): Promise<void> {
 export async function deleteProfile(): Promise<void> {
   // También la copia con el nombre antiguo: si no, volvería a aparecer al recargar.
   try {
-    if (hasIdb()) { await idbDel(KEY); await idbDel(KEY, OLD_DB_NAME); }
+    if (hasIdb()) { await idbDel(KEY); await oldDel(KEY); }
   } catch { /* ignorar */ }
   try { localStorage.removeItem(LS_PREFIX + KEY); localStorage.removeItem(OLD_LS_PREFIX + KEY); } catch { /* ignorar */ }
 }

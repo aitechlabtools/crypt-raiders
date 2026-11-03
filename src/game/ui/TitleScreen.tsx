@@ -48,6 +48,12 @@ export function SettingsModal({ onClose, onExit }: { onClose: () => void; onExit
         <p className="font-body text-lg">Crea un personaje para ajustar el sonido. El juego se guarda automáticamente en este navegador.</p>
       )}
       <div className="mt-5 text-xs text-stone-400 font-body text-base">Controles: WASD/flechas o clic para moverte · E interactuar · Q beber poción · I inventario · Esc menú · 1-5 acciones de combate.</div>
+      <p className="mt-3 text-sm text-stone-400 font-body" data-testid="settings-legal">
+        Tu partida se guarda solo en este navegador.{' '}
+        <a href="../privacidad.html" target="_blank" rel="noopener" className="underline underline-offset-2 text-stone-300 hover:text-parchment inline-block py-2">Privacidad</a>
+        {' · '}
+        <a href="../cookies.html" target="_blank" rel="noopener" className="underline underline-offset-2 text-stone-300 hover:text-parchment inline-block py-2">Cookies</a>
+      </p>
       <div className="flex gap-2 mt-4 flex-wrap">
         <button className="btn" onClick={onClose}>Cerrar</button>
         {onExit && <button className="btn" onClick={() => { onClose(); onExit(); }} data-testid="btn-exit-title">Salir al título</button>}

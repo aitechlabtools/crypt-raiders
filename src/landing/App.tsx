@@ -3,11 +3,11 @@ import { heroUrl, iconUrl, monsterUrl } from '../shared/art';
 import { SHOWCASE_GEAR } from '../shared/gearLook';
 import { CLASSES } from '../core/data/classes';
 import type { ClassId } from '../core/types';
+import { PLAY_URL, SiteFooter, SiteHeader } from './site';
 import { PhoneShot, RoadmapSection, ShotCarousel, VarkHollowSection, type Shot } from './sections';
 
 // La descarga solo se activa cuando exista un ejecutable real y comprobado.
 const DOWNLOAD_URL: string | null = null;
-const PLAY_URL = './play/';
 
 const LOOP = [
   { verb: 'Explora', text: 'Bajas a las criptas con lo puesto y un reloj en contra.' },
@@ -64,21 +64,7 @@ function DownloadButton() {
 export function App() {
   return (
     <div className="min-h-screen">
-      <header className="fixed top-0 inset-x-0 z-30 site-nav">
-        <nav className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-6" aria-label="Principal">
-          <a href="#top" className="font-display font-extrabold tracking-[0.14em] text-parchment">CRYPT RAIDERS</a>
-          <div className="hidden md:flex gap-5 text-stone-300 font-body text-lg">
-            <a href="#varkhollow" className="hover:text-parchment">VarkHollow</a>
-            <a href="#trailer" className="hover:text-parchment">Tráiler</a>
-            <a href="#juego" className="hover:text-parchment">El juego</a>
-            <a href="#clases" className="hover:text-parchment">Clases</a>
-            <a href="#capturas" className="hover:text-parchment">Capturas</a>
-            <a href="#demo" className="hover:text-parchment">Demo</a>
-            <a href="#hoja-de-ruta" className="hover:text-parchment">Hoja de ruta</a>
-          </div>
-          <a href={PLAY_URL} className="ml-auto btn-play px-4 py-1.5 text-sm">Jugar</a>
-        </nav>
-      </header>
+      <SiteHeader />
 
       {/* Cabecera con diorama vivo */}
       <section id="top" className="relative h-[100svh] min-h-[600px] overflow-hidden">
@@ -232,15 +218,7 @@ export function App() {
 
       <RoadmapSection />
 
-      <footer className="max-w-6xl mx-auto px-4 py-12 flex flex-col md:flex-row gap-4 md:items-center text-stone-400 font-body text-base">
-        <span className="font-display tracking-[0.14em] text-stone-300">CRYPT RAIDERS</span>
-        <span>Juego independiente en desarrollo. Demo jugable: el arte y el sonido actuales son provisionales.</span>
-        <div className="md:ml-auto flex gap-5">
-          <a href={PLAY_URL} className="hover:text-parchment">Jugar</a>
-          <a href="#juego" className="hover:text-parchment">El juego</a>
-          <a href="#top" className="hover:text-parchment">Volver arriba</a>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   );
 }

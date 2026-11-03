@@ -27,3 +27,12 @@ Cómo se hace en este proyecto:
 - Guía para montar una pantalla nueva: `docs/guia-interfaz.md`. Estructura de la opción D de las maquetas (solo estructura, nunca gráficos).
 - Pixel art siempre a escala entera (`usePixelScale`). Objetivos táctiles de 44 px como mínimo.
 - Prueba de menús en los tres formatos: `node scripts/menus-check.cjs <url>/play/ <carpeta>`.
+
+## Regla permanente: privacidad y páginas legales
+- Páginas legales: aviso-legal.html, privacidad.html y cookies.html (textos en src/legal/texts.tsx; cabecera y pie comunes en src/landing/site.tsx).
+- Hoy la web no usa cookies ni servicios de terceros: solo guarda la partida en IndexedDB (técnico, sin consentimiento) y por eso no hay banner.
+- Antes de añadir algo que guarde datos en el navegador o cargue un servicio externo (analítica, fuentes o vídeos de terceros,
+  redes sociales, guardado en la nube, cuentas, compras), actualiza la Política de cookies (tabla) y la de privacidad, y si no es
+  estrictamente necesario, añade antes un banner de consentimiento (Aceptar y Rechazar igual de visibles, Configurar por categorías,
+  nada cargado hasta aceptar y enlace «Configurar cookies» en el pie).
+- Los datos del titular ([NOMBRE Y APELLIDOS], [NIF], [DOMICILIO], [EMAIL DE CONTACTO]) son marcadores: no inventarlos nunca.

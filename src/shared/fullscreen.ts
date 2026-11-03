@@ -17,11 +17,14 @@ export function isFullscreen(): boolean {
   if (typeof document === 'undefined') return false;
   return !!(doc().fullscreenElement || doc().webkitFullscreenElement);
 }
-/** ¿Se abrió como app instalada (desde la pantalla de inicio)? Entonces ya ocupa toda la pantalla. */
+/** ¿Se abrió como app instalada (desde la pantalla de inicio)? Entonces ya ocupa toda la pantalla.
+ *  OJO: Chrome también marca «display-mode: fullscreen» cuando la web entra a pantalla completa con el botón;
+ *  eso NO es una app instalada (si no, el botón ⛶ desaparecería y no se podría salir). */
 export function isStandalone(): boolean {
   if (typeof window === 'undefined') return false;
-  return window.matchMedia?.('(display-mode: fullscreen)').matches || window.matchMedia?.('(display-mode: standalone)').matches
-    || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+  if ((navigator as Navigator & { standalone?: boolean }).standalone === true) return true; // iPhone instalada
+  if (window.matchMedia?.('(display-mode: standalone)').matches) return true;
+  return !!window.matchMedia?.('(display-mode: fullscreen)').matches && !isFullscreen();
 }
 export function isIOS(): boolean {
   if (typeof navigator === 'undefined') return false;

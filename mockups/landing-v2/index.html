@@ -1,0 +1,12 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Landing v2 · maquetas</title>
+<style>body{margin:0;background:#0d0b11;color:#e9e1cc;font-family:Georgia,serif;padding:24px}h1{font-size:22px}h2{color:#e8b33a;font-size:16px;margin:26px 0 8px}
+.g{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}figure{margin:0;background:#17141c;border:1px solid #3a3741;padding:8px}img{width:100%;display:block}figcaption{font-size:13px;color:#aaa;margin-top:6px}a{color:#e8b33a}</style></head>
+<body><h1>Crypt Raiders · Landing v2 (maquetas)</h1>
+<p>Maqueta viva (con el servidor de desarrollo): <a href="maqueta.html">maqueta.html</a> · parámetros <code>?h=a|b|c</code> (titular), <code>?lore=a|b</code> (versión del lore), <code>?menu=open</code>, <code>?cronica=open</code>.</p>
+<div id="g"></div>
+<script>
+const S=[['Escritorio 1920×1080','escritorio'],['Tableta 1180×820','tableta'],['Móvil 390×844','movil']];
+const V=[['portada','Portada (titular A)'],['portada-b','Portada (titular B)'],['portada-c','Portada (titular C)'],['menu','Menú abierto'],['varkhollow','VarkHollow · crónica plegada (versión A)'],['cronica-a','Crónica desplegada · versión A'],['cronica-b','Crónica desplegada · versión B'],['juego','El juego'],['galeria','Galería'],['final','Hoja de ruta y cierre'],['completa','Página completa']];
+let h='';for(const[t,d]of S){h+=`<h2>${t}</h2><div class="g">`;for(const[f,c]of V){h+=`<figure><a href="capturas/${d}-${f}.png"><img loading="lazy" src="capturas/${d}-${f}.png" onerror="this.closest('figure').remove()"></a><figcaption>${c}</figcaption></figure>`}h+='</div>'}
+document.getElementById('g').innerHTML=h;
+</script></body></html>

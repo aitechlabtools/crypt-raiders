@@ -57,7 +57,7 @@ require('fs').mkdirSync(OUT, { recursive: true });
   for (let k = 0; k < 40 && !(await p.$('[data-testid=act-attack]:not([disabled])')); k++) await p.waitForTimeout(150);
   await p.waitForTimeout(300);
   await shot('8-combate');
-  await p.tap('[data-testid=act-skills]'); await p.waitForTimeout(200);
+  await p.tap('[data-testid=act-special]'); await p.waitForTimeout(200);
   const sk = await p.$('[data-testid^=skill-]:not([disabled])');
   await shot('9-habilidades');
   const log0 = await p.evaluate(() => window.__CRYPTRAIDERS__.getState().combat?.state.log.length);

@@ -1,4 +1,4 @@
-// Las tres zonas, de la más alta a la más profunda.
+// Las tres zonas, de la más alta a la más profunda, y sus subzonas (data/subzones.ts).
 import { MAZMORRA } from './mazmorra';
 import { CRIPTA } from './cripta';
 import { INFIERNO } from './infierno';
@@ -26,4 +26,43 @@ export function zoneLock(zone: ZoneDef, level: number, bossesDefeated: string[])
   if (lacksLevel) return `Necesitas nivel ${zone.access.level}.`;
   if (lacksBoss) return `Derrota antes al jefe de ${ZONES[zone.access.bossOf!].name}.`;
   return null;
+}
+
+// ── Subzonas ──
+import { getSubzone, subzonesOf, type SubzoneDef, type SubzoneId } from '../subzones';
+export type { SubzoneDef, SubzoneId } from '../subzones';
+
+/**
+ * Lo que necesita el generador de mapas y el combate de una subzona: sus criaturas, nombres, botín y luz,
+ * más lo común de su zona (llaves de los cofres). Tiene la forma de un ZoneDef, así que el resto del código no cambia.
+ */
+export function areaDef(sub: SubzoneId | string | undefined, zone?: ZoneId): ZoneDef {
+  // Mapas sin subzona (la cripta a mano de la primera expedición, expediciones guardadas antes del cambio): la zona entera
+  if (!sub) return getZone(zone);
+  const s = getSubzone(sub);
+  const z = ZONES[s.zone];
+  return {
+    ...z, levels: s.levels, enemies: s.enemies, elite: s.elite, boss: s.boss, roomNames: s.roomNames,
+    dungeonNames: s.dungeonNames, bossRoom: s.bossRoom, rarity: s.rarity, tint: s.tint, backdrops: s.backdrops,
+    ...(s.decor ? { decor: s.decor } : {}),
+  } as ZoneDef;
+}
+
+/**
+ * ¿Puede bajar a esta subzona? Dentro de una zona basta el nivel; para la primera subzona de la Cripta y del
+ * Infierno, además, el jefe de la última subzona de la zona anterior (la regla de siempre entre zonas).
+ */
+export function subzoneLock(sub: SubzoneDef, level: number, bossesDefeated: string[]): string | null {
+  const z = ZONES[sub.zone];
+  const first = subzonesOf(sub.zone)[0].id === sub.id;
+  if (first) return zoneLock(z, level, bossesDefeated) ?? (level < sub.levels[0] ? `Necesitas nivel ${sub.levels[0]}.` : null);
+  const zl = zoneLock(z, level, bossesDefeated);
+  if (zl) return zl;
+  return level < sub.levels[0] ? `Necesitas nivel ${sub.levels[0]}.` : null;
+}
+
+/** Subzona a la que se baja si solo se elige la zona: la más honda abierta que corresponde a tu nivel. */
+export function defaultSubzone(zone: ZoneId, level: number, bossesDefeated: string[]): SubzoneDef {
+  const open = subzonesOf(zone).filter((s) => !subzoneLock(s, level, bossesDefeated));
+  return open[open.length - 1] ?? subzonesOf(zone)[0];
 }

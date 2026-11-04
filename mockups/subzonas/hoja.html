@@ -1,0 +1,34 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Subzonas: hoja de arte</title>
+<style>body{background:#0b0a0f;color:#e9e1cc;font:13px sans-serif;margin:16px}h2{font:600 16px serif;color:#e8b33a;margin:18px 0 6px}.row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}.c{display:flex;flex-direction:column;align-items:center;gap:3px;width:110px;text-align:center}img{image-rendering:pixelated}.bd{width:320px}.bd img{width:320px}</style></head>
+<body><div id="root"></div>
+<script type="module">
+import * as Art from '/src/shared/art.ts';
+import { SUBZONES, SUBZONE_ORDER } from '/src/core/data/subzones.ts';
+import { ENEMIES } from '/src/core/data/enemies.ts';
+import { zoneBackdrop, ZONES as BD } from '/src/game/ui/combatZones.ts';
+const root = document.getElementById('root');
+const only = new URLSearchParams(location.search).get('sub');
+for (const id of SUBZONE_ORDER) {
+  if (only && only !== id) continue;
+  const s = SUBZONES[id];
+  const h = document.createElement('h2'); h.textContent = `${s.index} · ${s.name} (Nv ${s.levels[0]}–${s.levels[1]})`; root.append(h);
+  const row = document.createElement('div'); row.className = 'row'; root.append(row);
+  const ts = Art.TILESETS[id];
+  const cell = (src, label, w) => { const c = document.createElement('div'); c.className = 'c'; const i = new Image(); i.src = src; if (w) i.style.width = w + 'px'; c.append(i); const t = document.createElement('div'); t.textContent = label; c.append(t); row.append(c); };
+  const cv = (c, k) => { const o = document.createElement('canvas'); o.width = c.width * k; o.height = c.height * k; const g = o.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(c, 0, 0, o.width, o.height); return o.toDataURL(); };
+  // Mosaico de suelo + muro
+  const m = document.createElement('canvas'); m.width = 32 * 6; m.height = 16 * 6 + 40; const g = m.getContext('2d');
+  for (let y = 0; y < 8; y++) for (let x = 0; x < 6; x++) { const t = Art.drawFloorTs((x * 7 + y * 13) % 4, ts); g.drawImage(t, x * 32 + (y % 2) * 16 - 16, 30 + y * 8); }
+  for (let x = 0; x < 6; x++) g.drawImage(Art.drawWallTs(x % 5 === 0 ? 1 : 0, ts), x * 32, 0);
+  cell(cv(m, 2), 'suelo y muro', 384);
+  for (const d of [...new Set(s.decor ?? [])]) cell(cv(Art.drawDecor(d), 3), d);
+  const bd = document.createElement('div'); bd.className = 'c bd'; const bi = new Image(); bi.src = zoneBackdrop(BD[s.backdrops[s.backdrops.length - 1]]); bd.append(bi); bd.append('fondo de combate'); row.append(bd);
+  const row2 = document.createElement('div'); row2.className = 'row'; root.append(row2);
+  for (const eid of [...s.enemies.map((e) => e.id), s.elite, s.boss]) {
+    const e = ENEMIES[eid]; const c = document.createElement('div'); c.className = 'c';
+    const i = new Image(); i.src = Art.monsterUrl(e.sprite, e.boss ? 5 : 4); c.append(i);
+    const t = document.createElement('div'); t.textContent = (e.boss ? '👑 ' : e.elite ? '★ ' : '') + e.name; c.append(t); row2.append(c);
+  }
+}
+document.body.dataset.ready = '1';
+</script></body></html>

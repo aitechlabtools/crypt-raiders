@@ -12,7 +12,45 @@ export const SKILLS: Record<string, SkillDef> = {
   shadow_veil: { id: 'shadow_veil', name: 'Velo de sombras', description: 'Te ocultas: recibes un 40% menos de daño durante 2 turnos.', cost: 3, target: 'self', applies: [{ status: 'protect', chance: 1, turns: 2, self: true }], fx: 'dark' },
   prayer: { id: 'prayer', name: 'Plegaria', description: 'Recuperas un 25% de tu vida.', cost: 5, target: 'self', healPct: 0.25, fx: 'holy' },
 
+  // ── Clase: Guerrero (se desbloquean a elegir en los niveles 20, 40, 60 y 80) ──
+  bloodthirst: { id: 'bloodthirst', name: 'Sed de sangre', description: 'Golpe (x1.3) que te cura la mitad del daño hecho.', cost: 4, cooldown: 3, target: 'enemy', kind: 'physical', power: 1.3, lifesteal: 0.5, fx: 'slash' },
+  hold_line: { id: 'hold_line', name: 'Aguantar la línea', description: 'Durante 2 turnos recibes un 40% menos de daño y no puedes bajar de 1 de vida.', cost: 4, cooldown: 6, target: 'self', applies: [{ status: 'protect', chance: 1, turns: 2, self: true }, { status: 'endure', chance: 1, turns: 2, self: true }], fx: 'shield' },
+  steel_whirl: { id: 'steel_whirl', name: 'Torbellino de acero', description: 'Golpeas a todos los enemigos (x1.2) y les haces sangrar.', cost: 5, cooldown: 4, target: 'enemy', kind: 'physical', power: 1.2, aoe: true, applies: [{ status: 'bleed', chance: 0.8, turns: 3 }], fx: 'slash' },
+  last_bastion: { id: 'last_bastion', name: 'Último bastión', description: 'Durante 3 turnos no puedes bajar de 1 de vida y causas un 30% más de daño.', cost: 6, cooldown: 8, target: 'self', applies: [{ status: 'endure', chance: 1, turns: 3, self: true }, { status: 'empower', chance: 1, turns: 3, self: true }], fx: 'holy' },
+  // ── Clase: Mago ──
+  mana_shield: { id: 'mana_shield', name: 'Escudo de maná', description: 'Un escudo absorbe daño igual al 25% de tu vida máxima durante 3 turnos.', cost: 4, cooldown: 4, target: 'self', shieldPct: 0.25, applies: [{ status: 'ward', chance: 1, turns: 3, self: true }], fx: 'shield' },
+  blink: { id: 'blink', name: 'Parpadeo', description: 'Esquivas el próximo ataque y causas un 30% más de daño durante 2 turnos.', cost: 3, cooldown: 3, target: 'self', applies: [{ status: 'evade', chance: 1, turns: 2, self: true }, { status: 'empower', chance: 1, turns: 2, self: true }], fx: 'dark' },
+  curse_weakness: { id: 'curse_weakness', name: 'Maldición de debilidad', description: 'El enemigo causa un 30% menos de daño durante 3 turnos.', cost: 4, cooldown: 4, target: 'enemy', applies: [{ status: 'weaken', chance: 1, turns: 3 }], fx: 'dark' },
+  blood_pact: { id: 'blood_pact', name: 'Pacto de sangre', description: 'Pierdes el 15% de tu vida máxima y todas tus otras recargas vuelven a 0.', cost: 0, cooldown: 7, target: 'self', selfDamagePct: 0.15, resetCooldowns: true, fx: 'dark' },
+  abyss_comet: { id: 'abyss_comet', name: 'Cometa del abismo', description: 'Daño mágico enorme (x3) que siempre quema durante 3 turnos.', cost: 8, cooldown: 8, target: 'enemy', kind: 'magical', power: 3, applies: [{ status: 'burn', chance: 1, turns: 3 }], fx: 'fire' },
+
+  // ── Armas de las subzonas (C4) ──
+  impale: { id: 'impale', name: 'Empalar', description: 'Lanzada profunda (x1.5) que hace sangrar.', cost: 3, cooldown: 3, target: 'enemy', kind: 'physical', power: 1.5, applies: [{ status: 'bleed', chance: 0.8, turns: 3 }], fx: 'slash' },
+  keep_at_bay: { id: 'keep_at_bay', name: 'Mantener a raya', description: 'Golpe (x0.8) y recibes un 40% menos de daño 2 turnos.', cost: 2, cooldown: 2, target: 'enemy', kind: 'physical', power: 0.8, applies: [{ status: 'protect', chance: 1, turns: 2, self: true }], fx: 'slash' },
+  sweep: { id: 'sweep', name: 'Barrido', description: 'Barrido bajo (x1.1) con 25% de aturdir.', cost: 2, cooldown: 2, target: 'enemy', kind: 'physical', power: 1.1, applies: [{ status: 'stun', chance: 0.25, turns: 1 }], fx: 'smash' },
+  crush: { id: 'crush', name: 'Aplastar', description: 'Golpe (x1.3) que le rompe la armadura: recibe un 25% más de daño 2 turnos.', cost: 3, cooldown: 2, target: 'enemy', kind: 'physical', power: 1.3, applies: [{ status: 'sunder', chance: 1, turns: 2 }], fx: 'smash' },
+  dull_blow: { id: 'dull_blow', name: 'Golpe sordo', description: 'Golpe (x0.9) con 50% de aturdir.', cost: 3, cooldown: 3, target: 'enemy', kind: 'physical', power: 0.9, applies: [{ status: 'stun', chance: 0.5, turns: 1 }], fx: 'smash' },
+  hammer_blow: { id: 'hammer_blow', name: 'Martillazo', description: 'Golpe demoledor (x1.9).', cost: 4, cooldown: 4, target: 'enemy', kind: 'physical', power: 1.9, fx: 'smash' },
+  parry_stab: { id: 'parry_stab', name: 'Puñalada', description: 'Puñalada rápida (x0.9) que no se puede esquivar.', cost: 1, cooldown: 1, target: 'enemy', kind: 'physical', power: 0.9, ignoresEvasion: true, fx: 'slash' },
+  arcane_pulse: { id: 'arcane_pulse', name: 'Pulso', description: 'Daño mágico (x1.0).', cost: 2, cooldown: 1, target: 'enemy', kind: 'magical', power: 1.0, fx: 'dark' },
+  focus: { id: 'focus', name: 'Foco', description: 'Concentras tu poder: causas un 30% más de daño durante 2 turnos.', cost: 2, cooldown: 3, target: 'self', applies: [{ status: 'empower', chance: 1, turns: 2, self: true }], fx: 'holy' },
+  life_siphon: { id: 'life_siphon', name: 'Sifón vital', description: 'Daño mágico (x0.9) y te curas la mitad del daño hecho.', cost: 3, cooldown: 2, target: 'enemy', kind: 'magical', power: 0.9, lifesteal: 0.5, fx: 'dark' },
+  torch_burn: { id: 'torch_burn', name: 'Quemar', description: 'Golpe con la antorcha (x0.8, fuego) con 70% de quemar.', cost: 2, cooldown: 1, target: 'enemy', kind: 'magical', power: 0.8, applies: [{ status: 'burn', chance: 0.7, turns: 3 }], fx: 'fire' },
+  scare: { id: 'scare', name: 'Ahuyentar', description: 'Le acercas el fuego a la cara: causa un 30% menos de daño 2 turnos.', cost: 2, cooldown: 3, target: 'enemy', applies: [{ status: 'weaken', chance: 1, turns: 2 }], fx: 'fire' },
+  sepulchral_bolt: { id: 'sepulchral_bolt', name: 'Saeta sepulcral', description: 'Magia oscura (x1.3).', cost: 3, cooldown: 1, target: 'enemy', kind: 'magical', power: 1.3, fx: 'dark' },
+  // ── Especiales únicos de las legendarias ──
+  veil_lament: { id: 'veil_lament', name: 'Lamento velado', description: 'Magia (x1.2) con 60% de congelar; te protege (-40% de daño) 2 turnos.', cost: 4, cooldown: 4, target: 'enemy', kind: 'magical', power: 1.2, applies: [{ status: 'freeze', chance: 0.6, turns: 1 }, { status: 'protect', chance: 1, turns: 2, self: true }], fx: 'frost' },
+  living_forge: { id: 'living_forge', name: 'Forja viva', description: 'Martillazo (x1.8) que siempre quema y aturde un 40%.', cost: 5, cooldown: 4, target: 'enemy', kind: 'physical', power: 1.8, applies: [{ status: 'burn', chance: 1, turns: 3 }, { status: 'stun', chance: 0.4, turns: 1 }], fx: 'fire' },
+  drag_abyss: { id: 'drag_abyss', name: 'Arrastrar al abismo', description: 'Latigazo de cadena (x2.5) que ignora la defensa y aturde un 50%.', cost: 6, cooldown: 6, target: 'enemy', kind: 'physical', power: 2.5, armorPierce: 1, applies: [{ status: 'stun', chance: 0.5, turns: 1 }], fx: 'dark' },
+  void_gaze: { id: 'void_gaze', name: 'Mirada del vacío', description: 'Magia (x1.0); el enemigo causa un 30% menos de daño 3 turnos y le rompes la armadura.', cost: 4, cooldown: 4, target: 'enemy', kind: 'magical', power: 1.0, applies: [{ status: 'weaken', chance: 1, turns: 3 }, { status: 'sunder', chance: 1, turns: 2 }], fx: 'dark' },
+  obsidian_cleave: { id: 'obsidian_cleave', name: 'Tajo de obsidiana', description: 'Tajo enorme (x2.2) que ignora la mitad de la defensa y hace sangrar.', cost: 5, cooldown: 4, target: 'enemy', kind: 'physical', power: 2.2, armorPierce: 0.5, applies: [{ status: 'bleed', chance: 1, turns: 3 }], fx: 'slash' },
+  brimstone_storm: { id: 'brimstone_storm', name: 'Tormenta de azufre', description: 'Fuego (x2.0) contra todos los enemigos con 70% de quemar.', cost: 6, cooldown: 5, target: 'enemy', kind: 'magical', power: 2.0, aoe: true, applies: [{ status: 'burn', chance: 0.7, turns: 3 }], fx: 'fire' },
+
   // ── Puños (sin arma) ──
+  wild_swing: { id: 'wild_swing', name: 'Golpe a lo loco', description: 'Puñetazo con todo el cuerpo (x1.1).', cost: 2, target: 'enemy', kind: 'physical', power: 1.1, fx: 'smash' },
+  // ── Mano izquierda vacía ──
+  brace: { id: 'brace', name: 'Guardia', description: 'Te cubres con el brazo: -40% de daño durante 1 turno.', cost: 1, target: 'self', applies: [{ status: 'protect', chance: 1, turns: 1, self: true }], fx: 'shield' },
+  shove: { id: 'shove', name: 'Empujón', description: 'Empujas al enemigo (x0.5) con 20% de aturdir.', cost: 2, target: 'enemy', kind: 'physical', power: 0.5, applies: [{ status: 'stun', chance: 0.2, turns: 1 }], fx: 'smash' },
   low_blow: { id: 'low_blow', name: 'Golpe bajo', description: 'Golpe sucio (x0.5) con 25% de aturdir.', cost: 2, target: 'enemy', kind: 'physical', power: 0.5, applies: [{ status: 'stun', chance: 0.25, turns: 1 }], fx: 'smash' },
 
   // ── Espadas ──
@@ -83,6 +121,30 @@ export const SKILLS: Record<string, SkillDef> = {
   hellfire: { id: 'hellfire', name: 'Fuego del abismo', description: 'Fuego (mágico, x1.7) con 80% de quemar.', cost: 0, target: 'enemy', kind: 'magical', power: 1.7, applies: [{ status: 'burn', chance: 0.8, turns: 3 }], fx: 'fire' },
   abyssal_rage: { id: 'abyssal_rage', name: 'Furia abisal', description: 'Su ira crece: +30% de daño 3 turnos.', cost: 0, target: 'self', applies: [{ status: 'empower', chance: 1, turns: 3, self: true }], fx: 'dark' },
 };
+
+/** Turnos de recarga de las habilidades del jugador (editable). Las de las criaturas no tienen. */
+export const COOLDOWNS: Record<string, number> = {
+  // Clase
+  war_cry: 4, meditation: 3, shadow_veil: 3, prayer: 4, sanctuary: 5,
+  // Sin arma
+  low_blow: 1, wild_swing: 1, brace: 1, shove: 1,
+  // Espadas, hachas y dagas
+  rending_slash: 2, thrust: 1, pommel_strike: 2, dread_cut: 4,
+  brutal_blow: 2, skull_splitter: 3, reaping: 4,
+  venom_strike: 2, backstab: 3,
+  // Báculos y mazas
+  spark: 1, frost_lance: 1, fireball: 2, ember_rain: 3, blizzard: 3, ice_prison: 4, dark_nova: 5, holy_light: 2,
+  // Mano izquierda
+  block: 1, shield_bash: 2, iron_wall: 5, arcane_barrier: 4, mana_siphon: 2,
+};
+/** Con recargas, el coste baja: los especiales cuestan de 2 a 4 y las habilidades fuertes algo más. */
+export const COST_WITH_COOLDOWN = 0.5;
+for (const [id, cd] of Object.entries(COOLDOWNS)) {
+  const sk = SKILLS[id];
+  if (!sk) continue;
+  sk.cooldown = cd;
+  if (sk.cost > 0) sk.cost = Math.max(1, Math.round(sk.cost * COST_WITH_COOLDOWN));
+}
 
 export function getSkill(id: string): SkillDef {
   const s = SKILLS[id];

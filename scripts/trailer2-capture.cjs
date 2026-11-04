@@ -78,7 +78,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
   async function waitFor(sel, ms = 4000) { for (let k = 0; k < ms / 100; k++) { if (await page.$(sel)) return true; await wait(100); } return false; }
   async function useSkill(id) {
     if (!(await waitFor('[data-testid=act-attack]:not([disabled])'))) return;
-    await page.click('[data-testid=act-skills]'); await wait(120);
+    await page.click('[data-testid=act-special]'); await wait(120);
     let btn = await page.$(`[data-testid=skill-${id}]:not([disabled])`);
     for (let k = 0; k < 3 && !btn && (await page.$('[data-testid=btn-page-next]:not([disabled])')); k++) { await page.click('[data-testid=btn-page-next]'); btn = await page.$(`[data-testid=skill-${id}]:not([disabled])`); }
     if (btn) await btn.click(); else { await page.keyboard.press('Escape'); await page.click('[data-testid=act-attack]:not([disabled])'); }

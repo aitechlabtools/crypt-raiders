@@ -131,11 +131,11 @@ async function run(c) {
   const cmdMin = await D(() => Math.min(...[...document.querySelectorAll('.cmd')].map((b) => b.getBoundingClientRect().height)));
   check(cmdMin >= 44, `órdenes de combate de ${Math.round(cmdMin)} px de alto (mínimo 44)`);
   // Un toque abre Habilidades a la primera
-  await tapSel('[data-testid=act-skills]');
-  check(await D(() => !!document.querySelector('[data-testid=skills-menu]')), 'un toque en Habilidades no abre el menú');
+  await tapSel('[data-testid=act-special]');
+  check(await D(() => !!document.querySelector('[data-testid=special-menu]')), 'un toque en Habilidades no abre el menú');
   // Mantener pulsado una habilidad: enseña su ficha y NO la usa
   const log0 = await D(() => window.__CRYPTRAIDERS__.getState().combat.state.log.length);
-  const skillSel = await D(() => { const b = document.querySelector('[data-testid=skills-menu] [data-testid^=skill-]:not([disabled])'); return b ? `[data-testid=${b.dataset.testid}]` : null; });
+  const skillSel = await D(() => { const b = document.querySelector('[data-testid=special-menu] [data-testid^=skill-]:not([disabled])'); return b ? `[data-testid=${b.dataset.testid}]` : null; });
   if (skillSel) {
     await tapSel(skillSel, 650);
     await page.waitForTimeout(300);

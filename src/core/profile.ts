@@ -1,3 +1,6 @@
+import { adaptDrops } from './loot';
+import { initialClassSkills, sanitizeClassSkills } from './classSkills';
+import { isSubzoneId } from './data/subzones';
 import { MERCENARIES } from './data/mercenaries';
 import { SKINS } from './data/skins';
 import type { Appearance, ClassId, Profile } from './types';
@@ -25,6 +28,7 @@ export function createProfile(name: string, classId: ClassId, appearance: Appear
   }
   return {
     version: 2,
+    classSkills: initialClassSkills(classId),
     character: { name: name.trim().slice(0, 18) || 'Sin nombre', classId, appearance, level: 1, xp: 0 },
     gold: STARTING_GOLD,
     backpack,
@@ -42,6 +46,9 @@ export function createProfile(name: string, classId: ClassId, appearance: Appear
     pocket: emptyGrid(POCKET_SIZE),
     activeExpedition: null,
     tutorialSeen: { lobby: false, dungeon: false },
+    tutorialDone: false,
+    kael: { missStreak: 0 },
+    lastSubzone: null,
     settings: { volume: 0.6, music: true },
     createdAt: Date.now(),
   };
@@ -78,6 +85,13 @@ export function sanitizeProfile(raw: unknown): Profile | null {
   p.equipment = eq;
   p.quests = initialQuests().map((q) => p.quests?.find((x) => x.id === q.id) ?? q);
   p.tutorialSeen = p.tutorialSeen ?? { lobby: true, dungeon: true };
+  // Subzonas, tutorial y Kael (4/11/2026): quien ya ha bajado alguna vez no repite el tutorial
+  if (typeof p.tutorialDone !== 'boolean') p.tutorialDone = (p.stats?.expeditions ?? 0) > 0;
+  const streak = Number((p.kael as { missStreak?: unknown } | undefined)?.missStreak);
+  const met = Number((p.kael as { met?: unknown } | undefined)?.met);
+  p.kael = { missStreak: Number.isFinite(streak) && streak > 0 ? Math.floor(streak) : 0, met: Number.isFinite(met) && met > 0 ? Math.floor(met) : 0 };
+  p.classSkills = sanitizeClassSkills(p);
+  p.lastSubzone = isSubzoneId(p.lastSubzone) ? p.lastSubzone : null;
   p.settings = Object.assign({ volume: 0.6, music: true }, p.settings ?? {});
   // Partidas de antes de las zonas: si ya cobraste «El trono vacío», el Señor del Osario cuenta como derrotado
   if (!Array.isArray(p.bossesDefeated)) p.bossesDefeated = p.quests.some((q) => q.id === 'q_lord' && q.progress >= 1) ? ['ossuary_lord'] : [];
@@ -97,6 +111,9 @@ export function sanitizeProfile(raw: unknown): Profile | null {
   if (!Array.isArray(p.pocket)) p.pocket = emptyGrid(POCKET_SIZE);
   p.pocket = p.pocket.map(known) as Profile['pocket'];
   p.stats = Object.assign({ expeditions: 0, extractions: 0, deaths: 0, kills: 0 }, p.stats ?? {});
+  // Combate nuevo (C1): el Guerrero usa Ímpetu y el Mago Maná. Las pociones de recurso guardadas pasan a la que te sirve.
+  const fix = (g: Profile['backpack']) => g.map((x) => (x ? adaptDrops([x], p.character.classId)[0] : x));
+  p.backpack = fix(p.backpack); p.stash = fix(p.stash); p.pocket = fix(p.pocket);
   return p;
 }
 

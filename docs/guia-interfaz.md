@@ -61,3 +61,32 @@ Todo está en un sitio: `src/config/ui.ts` (para el código) y el bloque «Base 
 - Añadir uno: entrada en `SKINS` (`src/core/data/skins.ts`) con `order`, `price: { currency: 'gold', amount }` y `body`.
   Con arte final: `sprites.sheet` apuntando a `public/skins/<id>.png` (los tonos #FF00FF/#B000B0 se cambian por la piel del jugador).
 - Comprar exige confirmación; los botones miden `var(--btn-h)` (44 px o más en táctil).
+
+## Mercenarios errantes y tutorial
+
+- Triángulo de riesgo: `RiskBadge` (`DungeonScreen.tsx`), con color y símbolo (✓, !, !!, ☠, ⚔) para que se distinga sin color.
+  En el mapa, texturas `risk_*` (`textures.ts`). Valores en `config/wanderers.ts`.
+- Tutorial: el cartel `TutorialGuide` lee el paso de `core/data/tutorial.ts` y elige el texto de ratón o de toque con `useIsTouch`.
+  Para resaltar un botón, el paso apunta a su `data-testid` (`target: { ui: '...' }`) y recibe la clase `.tut-pulse`;
+  para señalar algo del mapa, `target: { tile: [x, y] }` y la escena pone la flecha.
+
+## Barra de combate (distribución D)
+- **Barra normal (2×2)**: Atacar (tecla 1) · Ataque especial (2) / Habilidad de clase (3) · Mochila (4) y Huir (5) a media anchura.
+  - Atacar: ataque básico del arma de la mano derecha, sin coste ni recarga (sin arma: Puñetazo).
+  - Ataque especial: subtítulo «N listos · M en recarga». Habilidad: coste o «Recarga: N turnos».
+- **Ataque especial** se abre en el mismo sitio: columna «Volver» (Esc) + 2×2. Arriba los 2 de la mano derecha (borde rojo),
+  abajo los 2 de la izquierda (borde azul); un arma a dos manos llena los 4. Teclas 1–4.
+  En recarga: botón apagado con un círculo con los turnos que faltan (no es un botón; la ficha sigue abriéndose).
+- **Mochila** igual: «◂ Volver» arriba y «1 / 2 ▸ Página» abajo (Tab) si hay más de 4 objetos usables.
+- Toque ejecuta; mantener pulsado (o pasar el ratón) enseña la ficha en el registro: nombre, coste, mano y arma, daño, efecto y recarga.
+- Pantallas bajas (≤ 560 px, móvil en horizontal): el registro es una línea flotando sobre la barra y los botones usan todo el ancho.
+- Recursos: Ímpetu (barra naranja, Guerrero) y Maná (barra azul, Mago). Las recargas pendientes pasan al combate siguiente.
+- Código: `CombatScreen.tsx` (`mainCmds`, `specials`, `Cmd`), estilos `.cmdgrid`, `.cmdsplit`, `.cmdback`, `.cdturns` en `game.css`.
+- testids: `act-attack`, `act-special`, `act-class`, `act-bag`, `act-flee`, `special-menu`, `bag-menu`, `skill-<id>`, `use-<id>`, `btn-menu-back`, `btn-page-next`.
+
+## Habilidades de clase (Personaje)
+- `src/game/ui/ClassSkills.tsx`: `ClassSkillCards` (5 tarjetas: Equipada · Equipar · Desbloquear · bloqueada con el próximo nivel) y
+  `ClassUnlockNotice` (aviso en el pueblo cuando hay un desbloqueo pendiente: eliges una, y luego «Equiparla» o «Ahora no»).
+- Escritorio y tableta: panel «Habilidad de clase» encima de «Habilidades» en la columna derecha. Móvil: tercer segmento «De clase».
+- Datos: `CLASSES[c].classSkills` (5 ids, la primera es la inicial) y `CLASS_UNLOCK_LEVELS` en config/progression.ts.
+- testids: `class-skills`, `class-skill-<id>` (data-state), `btn-unlock-class-<id>`, `btn-equip-class-<id>`, `class-unlock`, `pick-class-<id>`, `btn-try-class`.

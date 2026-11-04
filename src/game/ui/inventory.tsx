@@ -1,4 +1,5 @@
-import { qualityStats } from '../../core/forge';
+import { basicAttackOf, isTwoHanded, itemSpecials } from '../../core/data/weapons';
+import { AFFIXES, stackName, stackRarity, stackStats } from '../../core/data/rarity';
 import { QUALITIES } from '../../core/data/forge';
 import { useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
@@ -36,20 +37,21 @@ function statLine(k: keyof Stats, v: number) {
 export function ItemTooltip({ stack, equipment, mode }: { stack: ItemStack; equipment?: Equipment; mode?: InvMode }) {
   const def = getItem(stack.itemId);
   const who = useGame((s) => s.profile?.character);
-  const r = RARITY_INFO[def.rarity];
+  const r = RARITY_INFO[stackRarity(stack, def)];
   const equipped = def.slot && equipment ? equipment[def.slot] : null;
   const cmp = equipped && equipped.uid !== stack.uid ? getItem(equipped.itemId) : null;
   return (
     <div className="panel p-3 w-64 text-sm" style={{ borderColor: r.color }}>
-      <div className="font-semibold text-base leading-tight" style={{ color: r.color }}>{def.name}</div>
+      <div className="font-semibold text-base leading-tight" style={{ color: r.color }}>{stackName(stack, def)}</div>
       <div className="text-stone-300 text-xs mb-2">
         {r.name} · {def.slot ? SLOT_LABELS[def.slot] : categoryName(def.category)}
         {stack.qty > 1 ? ` · x${stack.qty}` : ''}
       </div>
       {def.uses !== undefined && <div className="text-xs mb-1 text-stone-300" data-testid="tool-uses">Usos: {stack.uses ?? def.uses}/{def.uses}{def.mineTime ? ` · pica en ${def.mineTime} s` : ''}</div>}
       {stack.quality !== undefined && <div className="text-xs mb-1" style={{ color: ['#9a9a9a', '#5fbf4a', '#e8b33a'][stack.quality] }}>Calidad {QUALITIES[stack.quality].name.toLowerCase()}{QUALITIES[stack.quality].bonus ? ` (+${Math.round(QUALITIES[stack.quality].bonus * 100)}%)` : ''}{stack.forgedBy ? ` · Forjada por ${stack.forgedBy}` : ''}</div>}
+      {stack.affixes?.length ? <div className="text-xs mb-1 text-gold">{stack.affixes.map((a) => AFFIXES[a]?.description).filter(Boolean).join(' ')}</div> : null}
       {def.stats && (() => {
-        const st = qualityStats(def.stats, stack.quality);
+        const st = stackStats(stack, def);
         return (
           <ul className="mb-2">
             {STAT_KEYS.filter((k) => st[k]).map((k) => (
@@ -60,10 +62,10 @@ export function ItemTooltip({ stack, equipment, mode }: { stack: ItemStack; equi
       })()}
       {def.use && <div className="text-frost mb-2">Uso: {def.description}</div>}
       <div className="font-body italic text-stone-300 leading-snug">{def.use ? '' : def.description}</div>
-      {(def.attack || def.grants) && (
+      {(def.slot === 'mainHand' || def.slot === 'offHand') && (
         <div className="text-xs mt-2 pt-2 border-t border-stone-700">
-          {def.attack && <div className="text-stone-300">Ataque básico: <span className="text-parchment">{def.attack.name}</span></div>}
-          {def.grants && <div className="text-stone-300">{def.slot === 'offHand' ? 'Habilidades defensivas' : 'Habilidades'}: <span className={def.slot === 'offHand' ? 'text-frost' : 'text-parchment'}>{def.grants.map((g) => getSkill(g).name).join(', ')}</span></div>}
+          {def.slot === 'mainHand' && <div className="text-stone-300">Ataque básico: <span className="text-parchment">{basicAttackOf(def).name}</span></div>}
+          {itemSpecials(def).length > 0 && <div className="text-stone-300">Ataques especiales{isTwoHanded(def) ? ' (a dos manos)' : ''}: <span className={def.slot === 'offHand' ? 'text-frost' : 'text-parchment'}>{itemSpecials(def).map((g) => getSkill(g).name).join(', ')}</span></div>}
         </div>
       )}
       {def.classes && <div className={`text-xs mt-2 ${who && !def.classes.includes(who.classId) ? 'text-blood' : 'text-stone-300'}`}>Clases: {def.classes.map((c) => CLASSES[c].name).join(', ')}</div>}
@@ -84,7 +86,7 @@ export function ItemTooltip({ stack, equipment, mode }: { stack: ItemStack; equi
       )}
       <div className="flex justify-between mt-2 text-xs text-gold">
         <span>Valor: {def.value * stack.qty} oro</span>
-        {mode === 'merchant' && <span>Venta: {sellPrice(def.id)}</span>}
+        {mode === 'merchant' && <span>Venta: {sellPrice(def.id, stack)}</span>}
       </div>
     </div>
   );
@@ -117,7 +119,7 @@ interface SlotProps {
 export function ItemSlot({ stack, loc, lootId, equipment, mode, selected, placeholderIcon, label, onSelect, onQuick, onAlt, onEmpty, big, awaiting }: SlotProps) {
   const [over, setOver] = useState(false);
   const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
-  const rarity = stack ? RARITY_INFO[getItem(stack.itemId).rarity] : null;
+  const rarity = stack ? RARITY_INFO[stackRarity(stack, getItem(stack.itemId))] : null;
   const who = useGame((s) => s.profile?.character);
   const sdef = stack ? getItem(stack.itemId) : null;
   const tooHigh = !!(sdef?.slot && who && sdef.levelReq && who.level < sdef.levelReq);

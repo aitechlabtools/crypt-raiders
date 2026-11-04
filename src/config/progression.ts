@@ -28,3 +28,6 @@ export const POTION_MIN_PCT = 0.18;
 export function potionAmount(amount: number, max: number): number {
   return Math.max(amount, Math.round(max * POTION_MIN_PCT));
 }
+
+/** Niveles en los que se gana un desbloqueo de habilidad de clase (el jugador elige cuál). */
+export const CLASS_UNLOCK_LEVELS = [20, 40, 60, 80];

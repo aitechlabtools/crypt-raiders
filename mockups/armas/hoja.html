@@ -1,0 +1,49 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Armas y equipo por subzona</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600&family=Crimson+Pro&display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#0d0b11;color:#e9e1cc;font-family:'Crimson Pro',serif;padding:24px}
+h1{font-family:Cinzel,serif;font-size:22px;margin:0 0 4px}h2{font-family:Cinzel,serif;font-size:15px;color:#e8b33a;margin:20px 0 8px;letter-spacing:.08em}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.it{display:flex;gap:10px;background:#17141c;border:2px solid #3a3741;padding:8px}
+.it img{image-rendering:pixelated;width:48px;height:48px;border:2px solid var(--c);background:#0b0a0f;flex-shrink:0}
+.it .hero{width:auto;height:72px;border:0;background:none}
+.n{font-family:Cinzel,serif;font-size:14px;color:var(--c)}.m{font-size:13px;color:#aaa}.s{font-size:13px;color:#c79bff}
+.nota{color:#aaa;font-size:14px;max-width:900px}
+</style></head><body>
+<h1>Armas y equipo nuevos por subzona · marcadores provisionales</h1>
+<p class="nota">Iconos de 12×12 dibujados por código (se ven a ×4). En el personaje, lanzas y varitas se pintan como bastón, y orbes, antorchas y dagas de la mano izquierda como tomo, hasta que estén los sprites definitivos.</p>
+<div id="out"></div>
+<script type="module">
+import { iconUrl, heroUrl } from '/src/shared/art.ts';
+import { itemsOfSubzone } from '/src/core/data/subzoneItems.ts';
+import { SUBZONES, SUBZONE_ORDER } from '/src/core/data/subzones.ts';
+import { RARITY_INFO } from '/src/core/data/items.ts';
+import { getSkill } from '/src/core/data/skills.ts';
+import { starterEquipment } from '/src/shared/gearLook.ts';
+import { itemSpecials, isTwoHanded, FAMILIES } from '/src/core/data/weapons.ts';
+const SLOT = { mainHand: 'Mano derecha', offHand: 'Mano izquierda', helmet: 'Cabeza', armor: 'Torso', gloves: 'Manos', boots: 'Pies', ring: 'Anillo', amulet: 'Amuleto' };
+let html = '';
+for (const id of SUBZONE_ORDER) {
+  const sz = SUBZONES[id];
+  html += `<h2>${sz.name} · Nv ${sz.levels[0]}–${sz.levels[1]}</h2><div class="grid">`;
+  for (const it of itemsOfSubzone(id)) {
+    const r = RARITY_INFO[it.rarity];
+    const cls = it.classes?.[0] ?? 'warrior';
+    let hero = '';
+    if (it.slot === 'mainHand' || it.slot === 'offHand' || it.slot === 'helmet' || it.slot === 'armor') {
+      const eq = starterEquipment(cls); eq[it.slot] = { uid: 'x', itemId: it.id, qty: 1 };
+      if (it.slot === 'mainHand' && isTwoHanded(it)) eq.offHand = null;
+      hero = `<img class="hero" src="${heroUrl(cls, { cloak: 0, skin: 0 }, 3, 0, 'idle', eq)}">`;
+    }
+    const st = Object.entries(it.stats ?? {}).map(([k, v]) => `${v > 0 ? '+' : ''}${v} ${k}`).join(' · ');
+    const sp = it.slot === 'mainHand' || it.slot === 'offHand' ? itemSpecials(it).map((g) => getSkill(g).name).join(', ') : '';
+    html += `<div class="it" style="--c:${r.color}"><img src="${iconUrl(it.icon, 4)}"><div style="flex:1;min-width:0">
+      <div class="n">${it.rarity === 'legendary' ? '★ ' : ''}${it.name}</div>
+      <div class="m">${r.name} · ${SLOT[it.slot]}${it.family ? ' · ' + FAMILIES[it.family].name : ''}${isTwoHanded(it) ? ' (2 manos)' : ''} · Nv ${it.levelReq}</div>
+      <div class="m">${st}</div>${sp ? `<div class="s">${sp}</div>` : ''}</div>${hero}</div>`;
+  }
+  html += '</div>';
+}
+document.getElementById('out').innerHTML = html;
+document.body.dataset.ready = '1';
+</script></body></html>

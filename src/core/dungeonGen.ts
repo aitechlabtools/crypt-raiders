@@ -5,9 +5,11 @@
 // Es determinista: la misma semilla genera siempre el mismo mapa.
 // ════════════════════════════════════════════════════════════════════
 import { makeRng, type Rng } from './rng';
-import { getZone, type ZoneDef, type ZoneId } from './data/zones';
+import { areaDef, type ZoneDef, type ZoneId, type SubzoneId } from './data/zones';
+import { getSubzone } from './data/subzones';
 import { pickVein } from './mining';
-import { buildDungeon, findPath, type DungeonDef, type EntityDef, type Rect, type RoomDef, type BuiltDungeon } from './dungeon';
+import { LEVEL_BONUS, depthBonus } from '../config/subzones';
+import { buildDungeon, findPath, type DecorSprite, type DungeonDef, type EntityDef, type Rect, type RoomDef, type BuiltDungeon } from './dungeon';
 
 export interface GenOptions {
   width?: number;
@@ -15,8 +17,12 @@ export interface GenOptions {
   rooms?: [number, number];
   /** Zona: decide criaturas, élite, jefe, cofres y nombres. Por defecto, la Mazmorra. */
   zone?: ZoneId;
+  /** Subzona: decide criaturas, élite, jefe, nombres y botín. Manda sobre `zone`. */
+  subzone?: SubzoneId;
   /** Mercenario prisionero que aparece encadenado en una sala profunda (o ninguno). */
   captive?: string | null;
+  /** Hay un mercenario errante en esta expedición (se coloca en la sala de media profundidad). */
+  wanderer?: boolean;
 }
 
 const ROOM_NAMES = [
@@ -40,11 +46,17 @@ interface Draft {
   edges: [number, number][];
 }
 
+/** Forma de los mapas de cada subzona (exterior abierto, salones, túneles…). Ver data/subzones.ts → map. */
+export interface MapStyle { roomW: [number, number]; roomH: [number, number]; corridor: 1 | 2; rooms: [number, number]; size: [number, number] }
+export const DEFAULT_MAP: MapStyle = { roomW: [5, 9], roomH: [5, 8], corridor: 1, rooms: [7, 9], size: [42, 36] };
+let style: MapStyle = DEFAULT_MAP;
+let withWanderer = true;
+
 function placeRooms(rng: Rng, W: number, H: number, count: number): RoomDef[] {
   const rooms: RoomDef[] = [];
   for (let attempt = 0; attempt < 400 && rooms.length < count; attempt++) {
-    const w = rng.int(5, 9);
-    const h = rng.int(5, 8);
+    const w = rng.int(style.roomW[0], style.roomW[1]);
+    const h = rng.int(style.roomH[0], style.roomH[1]);
     const x = rng.int(1, W - w - 2);
     const y = rng.int(1, H - h - 2);
     const r: RoomDef = { id: `r${rooms.length}`, name: '', x, y, w, h };
@@ -88,8 +100,9 @@ function connect(rng: Rng, rooms: RoomDef[]): [number, number][] {
 function corridorBetween(rng: Rng, a: RoomDef, b: RoomDef): Rect[] {
   const ca = center(a), cb = center(b);
   const out: Rect[] = [];
-  const hRect = (x1: number, x2: number, y: number): Rect => ({ x: Math.min(x1, x2), y, w: Math.abs(x2 - x1) + 1, h: 1 });
-  const vRect = (y1: number, y2: number, x: number): Rect => ({ x, y: Math.min(y1, y2), w: 1, h: Math.abs(y2 - y1) + 1 });
+  const t = style.corridor;
+  const hRect = (x1: number, x2: number, y: number): Rect => ({ x: Math.min(x1, x2), y, w: Math.abs(x2 - x1) + t, h: t });
+  const vRect = (y1: number, y2: number, x: number): Rect => ({ x, y: Math.min(y1, y2), w: t, h: Math.abs(y2 - y1) + t });
   if (rng.chance(0.5)) {
     out.push(hRect(ca.x, cb.x, ca.y), vRect(ca.y, cb.y, cb.x));
   } else {
@@ -121,15 +134,17 @@ function draft(rng: Rng, W: number, H: number, count: number): Draft | null {
 }
 
 export function generateDungeon(seed: number, opts: GenOptions = {}): DungeonDef {
-  const W = opts.width ?? 42;
-  const H = opts.height ?? 36;
-  const [minR, maxR] = opts.rooms ?? [7, 9];
+  style = opts.subzone ? { ...DEFAULT_MAP, ...getSubzone(opts.subzone).map } : DEFAULT_MAP;
+  withWanderer = opts.wanderer ?? true;
+  const W = opts.width ?? style.size[0];
+  const H = opts.height ?? style.size[1];
+  const [minR, maxR] = opts.rooms ?? style.rooms;
   for (let attempt = 0; attempt < 60; attempt++) {
     const rng = makeRng((seed + attempt * 7919) >>> 0);
     const d = draft(rng, W, H, rng.int(minR, maxR));
     if (!d) continue;
-    const def = populate(rng, seed, d, W, H, getZone(opts.zone), opts.captive ?? null);
-    if (def && validateDungeon(def).ok) return def;
+    const def = populate(rng, seed, d, W, H, areaDef(opts.subzone, opts.zone), opts.captive ?? null);
+    if (def && validateDungeon(def).ok) return opts.subzone ? { ...def, subzone: getSubzone(opts.subzone).id } : def;
   }
   throw new Error(`No se pudo generar una mazmorra válida con la semilla ${seed}`);
 }
@@ -206,7 +221,7 @@ function populate(rng: Rng, seed: number, d: Draft, W: number, H: number, zone: 
 
   // Jefe y su cofre
   const bc = spot(rooms[boss], 1) ?? [center(rooms[boss]).x, center(rooms[boss]).y];
-  entities.push({ kind: 'enemy', id: 'e_boss', enemyId: zone.boss, x: bc[0], y: bc[1] });
+  entities.push({ kind: 'enemy', id: 'e_boss', enemyId: zone.boss, x: bc[0], y: bc[1], lvl: LEVEL_BONUS.boss });
   take(bc[0], bc[1]);
   const bchest = spot(rooms[boss], 1);
   if (bchest) { entities.push({ kind: 'chest', id: 'chest_boss', table: zone.chests.boss, x: bchest[0], y: bchest[1] }); take(...bchest); }
@@ -214,7 +229,7 @@ function populate(rng: Rng, seed: number, d: Draft, W: number, H: number, zone: 
   // Rival
   const rv = spot(rooms[rivalRoom], 1);
   if (!rv) return null;
-  entities.push({ kind: 'rival', x: rv[0], y: rv[1] });
+  if (withWanderer) entities.push({ kind: 'rival', x: rv[0], y: rv[1] });
   for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) take(rv[0] + dx, rv[1] + dy);
 
   // Enemigos: más y más duros cuanto más lejos del inicio
@@ -226,7 +241,7 @@ function populate(rng: Rng, seed: number, d: Draft, W: number, H: number, zone: 
       const p = spot(rooms[i], 1);
       if (!p) continue;
       const enemyId = pickEnemy(rng, zone, dep);
-      entities.push({ kind: 'enemy', id: `e${enemyN++}`, enemyId, x: p[0], y: p[1] });
+      entities.push({ kind: 'enemy', id: `e${enemyN++}`, enemyId, x: p[0], y: p[1], lvl: depthBonus(dep) });
       take(p[0], p[1]);
     }
   }
@@ -235,7 +250,7 @@ function populate(rng: Rng, seed: number, d: Draft, W: number, H: number, zone: 
   const eliteRoom = [...others].filter((i) => i !== portal && i !== rivalRoom).sort((a, b) => depth[b] - depth[a])[0];
   if (eliteRoom !== undefined) {
     const p = spot(rooms[eliteRoom], 1);
-    if (p) { entities.push({ kind: 'enemy', id: 'e_elite', enemyId: zone.elite, x: p[0], y: p[1] }); take(p[0], p[1]); }
+    if (p) { entities.push({ kind: 'enemy', id: 'e_elite', enemyId: zone.elite, x: p[0], y: p[1], lvl: LEVEL_BONUS.elite }); take(p[0], p[1]); }
   }
 
   // Prisionero: encadenado en una sala profunda, distinta de la del élite y la de Kael
@@ -310,12 +325,13 @@ function populate(rng: Rng, seed: number, d: Draft, W: number, H: number, zone: 
     entities.push(...candidates.slice(0, r.id === 'boss' || r.id === 'portal' ? 3 : 2));
   });
 
-  // Decoración
+  // Decoración (la de su subzona)
+  const decor = (zone as ZoneDef & { decor?: DecorSprite[] }).decor ?? (['bones', 'skull', 'barrel', 'rubble'] as DecorSprite[]);
   rooms.forEach((r) => {
-    for (let k = 0; k < rng.int(0, 2); k++) {
+    for (let k = 0; k < rng.int(0, 2) + (decor.length > 4 ? 1 : 0); k++) {
       const p = spot(r, 0);
       if (!p) continue;
-      entities.push({ kind: 'decor', sprite: rng.pick(['bones', 'skull', 'barrel', 'rubble'] as const), x: p[0], y: p[1] });
+      entities.push({ kind: 'decor', sprite: rng.pick(decor), x: p[0], y: p[1] });
       take(...p);
     }
   });

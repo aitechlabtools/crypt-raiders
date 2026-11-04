@@ -1,3 +1,5 @@
+import { RARITY_RULES } from './data/rarity';
+import type { ItemStack } from './types';
 import type { Profile } from './types';
 import { getItem } from './data/items';
 import { SELL_RATIO } from './data/merchant';
@@ -14,8 +16,12 @@ export function buyPrice(itemId: string, rep = 0): number {
   return Math.max(1, Math.round(getItem(itemId).value * (1 - REP_RANKS[rankOf(rep)].discount)));
 }
 
-export function sellPrice(itemId: string): number {
-  return Math.max(1, Math.floor(getItem(itemId).value * SELL_RATIO));
+/** Precio de venta. Un ejemplar de rareza superior a la de su ficha vale más (y uno con atributos, un poco más). */
+export function sellPrice(itemId: string, stack?: Pick<ItemStack, 'rarity' | 'affixes'>): number {
+  const def = getItem(itemId);
+  const k = stack?.rarity ? RARITY_RULES[stack.rarity].statMult / RARITY_RULES[def.rarity].statMult : 1;
+  const extra = 1 + 0.1 * (stack?.affixes?.length ?? 0);
+  return Math.max(1, Math.floor(def.value * SELL_RATIO * k * k * extra));
 }
 
 export function buy(p: Profile, itemId: string, vendorId: VendorId = 'orvel'): EconomyResult {
@@ -36,7 +42,7 @@ export function sell(p: Profile, container: 'backpack' | 'stash', index: number,
   const s = grid[index];
   if (!s) return { ok: false, error: 'No hay nada que vender.' };
   const qty = all ? s.qty : 1;
-  const gain = sellPrice(s.itemId) * qty;
+  const gain = sellPrice(s.itemId, s) * qty;
   if (s.qty - qty <= 0) grid[index] = null;
   else grid[index] = { ...s, qty: s.qty - qty };
   return { ok: true, profile: { ...p, gold: p.gold + gain, [container]: grid } };

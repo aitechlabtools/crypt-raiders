@@ -3,11 +3,12 @@
 // la persistencia y la comunicación con la escena de Phaser.
 // ════════════════════════════════════════════════════════════════════
 import { useSyncExternalStore } from 'react';
-import type { Appearance, ClassId, Grid, ItemStack, Profile } from '../../core/types';
+import type { Appearance, ClassId, Grid, ItemStack, Profile, Rarity } from '../../core/types';
+import { AFFIXES, RARITY_RULES, rollStacks } from '../../core/data/rarity';
 import { createProfile, grantRecruitKit, needsRecruitKit } from '../../core/profile';
 import { loadProfile, saveProfile, deleteProfile } from '../persistence/db';
 import { startExpedition, endExpedition, timeLeft, abandonInterruptedExpedition, type ExpeditionState, type ExpeditionSummary, type EndReason } from '../../core/expedition';
-import { addManyToGrid, addToGrid, countItem, emptyGrid, gridValue, removeItem, sortGrid, transfer, quickEquip, quickMove, equippedValue, type Containers, type ContainerId, type Loc, stackAt, clearAt } from '../../core/inventory';
+import { addManyToGrid, addToGrid, countItem, emptyGrid, removeItem, sortGrid, transfer, quickEquip, quickMove, type Containers, type ContainerId, type Loc, stackAt, clearAt } from '../../core/inventory';
 import { buy, sell, upgradeStash } from '../../core/economy';
 import { computeStats } from '../../core/stats';
 import { createCombat, performAction, runAITurn, currentActor, getCombatant, type CombatAction, type CombatState } from '../../core/combat';
@@ -17,16 +18,24 @@ import { QUALITIES } from '../../core/data/forge';
 import { VENDORS, type VendorId } from '../../core/data/vendors';
 import { REP_RANKS, rankOf } from '../../config/reputation';
 import { knowledge, noteKill, noteSeen } from '../../core/bestiary';
-import { getZone, zoneEnemyLevel, zoneLock, ZONES, type ZoneId } from '../../core/data/zones';
+import { areaDef, defaultSubzone, subzoneLock, zoneEnemyLevel, ZONES, type SubzoneId, type ZoneId } from '../../core/data/zones';
+import { getSubzone, isSubzoneId, subzonesOf, SUBZONE_ORDER } from '../../core/data/subzones';
+import { overlevelPenalty } from '../../config/subzones';
 import { enemyCombatant, playerCombatant, rivalCombatant, enemyXp, rivalHpBack } from '../../core/combatants';
 import { getEnemy } from '../../core/data/enemies';
 import { getItem } from '../../core/data/items';
+import { CLASSES } from '../../core/data/classes';
+import { equipClassSkill, unlockClassSkill } from '../../core/classSkills';
+import { getSkill } from '../../core/data/skills';
 import { questDef, isComplete } from '../../core/quests';
 import { applyXp } from '../../core/stats';
 import { potionAmount } from '../../config/progression';
-import { rollLoot, CHEST_TABLES } from '../../core/loot';
+import { rollLoot, adaptDrops, CHEST_TABLES, subzoneChestTable } from '../../core/loot';
 import { makeRng, makeUid, randomSeed } from '../../core/rng';
-import { initialRival, talk, proposeAlliance, rejectRival, leaveAlliance, shareLoot, evaluateBetrayal, playerBetrays, playerAttacksNeutral, type RivalState } from '../../core/social';
+import { noRival, initialRival, talk, greetLine, proposeAlliance, rejectRival, leaveAlliance, shareLoot, evaluateBetrayal, playerBetrays, playerAttacksNeutral, rollEncounter, goldShare, type RivalState } from '../../core/social';
+import { getWanderer } from '../../core/data/wanderers';
+import { TUTORIAL_MAP, TUTORIAL_REWARD, TUTORIAL_STEPS, tutorialRoomCenter, tutorialRoomOf } from '../../core/data/tutorial';
+import { GOLD_SHARE, ROB_ITEMS } from '../../config/wanderers';
 import { bus } from './bus';
 import { buySkin, equipSkin } from '../../core/skins';
 import { getSkin } from '../../core/data/skins';
@@ -43,7 +52,7 @@ export type Screen = 'boot' | 'title' | 'create' | 'lobby' | 'dungeon' | 'summar
 
 export interface Toast { id: number; text: string; kind: 'loot' | 'info' | 'danger' | 'social' | 'good'; icon?: string }
 
-export type CombatKind = 'pve' | 'hostile' | 'betrayal-by-player' | 'betrayal-by-rival' | 'duel';
+export type CombatKind = 'pve' | 'hostile' | 'betrayal-by-player' | 'betrayal-by-rival';
 
 export interface CombatSession {
   state: CombatState;
@@ -85,8 +94,19 @@ export interface DungeonHud {
   playerTile: [number, number];
 }
 
+/** Tutorial en curso (primera expedición, o repetido desde Ajustes). */
+export interface TutorialRun {
+  step: number;
+  /** Repetido desde Ajustes: sin recompensas, y al acabar se devuelve el perfil tal como estaba. */
+  replay: Profile | null;
+  /** Pociones que llevabas al empezar el paso de la poción. */
+  potionsAt?: number;
+  betrayalStarted?: boolean;
+}
+
 export interface GameState {
   screen: Screen;
+  tutorial: TutorialRun | null;
   profile: Profile | null;
   expedition: ExpeditionState | null;
   /** Mazmorra de la expedición en curso. */
@@ -118,11 +138,12 @@ const initial: GameState = {
   expedition: null,
   dungeon: null,
   summary: null,
+  tutorial: null,
   combat: null,
   modal: null,
   suspended: false,
   toasts: [],
-  rival: initialRival(),
+  rival: noRival(),
   rivalLine: null,
   merc: null,
   chests: {},
@@ -233,9 +254,17 @@ function equipCtx() {
 // Acciones
 // ════════════════════════════════════════════════════════════════════
 /** Nivel de las criaturas (y de Kael) en la expedición actual: el del jugador dentro del rango de la zona. */
+/** Nivel de una criatura concreta: el de la subzona más lo que sume su sala (más honda, élite o jefe). */
+function enemyLevel(entityId: string | null): number {
+  const s = state;
+  const e = s.dungeon?.entities.find((x) => x.kind === 'enemy' && x.id === entityId) as { lvl?: number } | undefined;
+  const area = areaDef(s.dungeon?.subzone, s.dungeon?.zone);
+  return Math.min(area.levels[1] + 3, combatLevel() + (e?.lvl ?? 0));
+}
+
 function combatLevel(): number {
   const s = state;
-  return zoneEnemyLevel(getZone(s.dungeon?.zone), s.profile?.character.level ?? 1);
+  return zoneEnemyLevel(areaDef(s.dungeon?.subzone, s.dungeon?.zone), s.profile?.character.level ?? 1);
 }
 
 export const actions = {
@@ -261,8 +290,9 @@ export const actions = {
     set({ notice: null });
   },
 
-  async createCharacter(name: string, classId: ClassId, appearance: Appearance) {
-    const p = createProfile(name, classId, appearance);
+  async createCharacter(name: string, classId: ClassId, appearance: Appearance, skipTutorial = false) {
+    const p0 = createProfile(name, classId, appearance);
+    const p = skipTutorial ? { ...p0, tutorialDone: true } : p0;
     set({ profile: p, screen: 'lobby' });
     await saveNow();
   },
@@ -361,7 +391,9 @@ export const actions = {
       if (exp.hp >= stats.maxHp) return invError('Ya tienes la vida al máximo.');
       exp.hp = Math.min(stats.maxHp, exp.hp + potionAmount(def.use.amount, stats.maxHp));
     } else if (def.use.kind === 'mana') {
-      if (exp.mp >= stats.maxMp) return invError('Ya tienes el recurso al máximo.');
+      const cls = CLASSES[s.profile.character.classId];
+      if (def.resource && def.resource !== cls.resource) return invError(`Esto no te sirve: tú usas ${cls.resourceName.toLowerCase()}.`);
+      if (exp.mp >= stats.maxMp) return invError(`Ya tienes el ${cls.resourceName.toLowerCase()} al máximo.`);
       exp.mp = Math.min(stats.maxMp, exp.mp + potionAmount(def.use.amount, stats.maxMp));
     } else if (def.use.kind === 'cleanse') {
       // Veneno, quemadura y sangrado solo existen dentro del combate: fuera no gastes el antídoto
@@ -450,6 +482,28 @@ export const actions = {
     const p = state.profile;
     if (!p) return;
     set({ profile: equipSkin(p, id) });
+    sfx('equip');
+  },
+
+  // ── Habilidades de clase ──
+  /** Elegir qué habilidad de clase desbloquear (si hay un desbloqueo pendiente). */
+  unlockClassSkill(id: string) {
+    const p = state.profile;
+    if (!p) return false;
+    const next = unlockClassSkill(p, id);
+    if (!next) return false;
+    set({ profile: next });
+    sfx('magic');
+    toast(`Nueva habilidad de clase: ${getSkill(id).name}`, 'good');
+    return true;
+  },
+  /** Llevar equipada otra habilidad de clase (fuera de combate). */
+  equipClassSkill(id: string) {
+    const p = state.profile;
+    if (!p || state.combat) return;
+    const next = equipClassSkill(p, id);
+    if (!next) return;
+    set({ profile: next });
     sfx('equip');
   },
 
@@ -552,30 +606,153 @@ export const actions = {
   },
 
   // ── Expedición ──
-  async enterDungeon(zoneId: ZoneId = 'mazmorra') {
+  /** Bajar a una subzona concreta, o a una zona (entonces, a la subzona más honda abierta para tu nivel). */
+  async enterDungeon(target: ZoneId | SubzoneId = 'mazmorra') {
     const p = state.profile;
     if (!p) return;
-    const lock = zoneLock(ZONES[zoneId], p.character.level, p.bossesDefeated);
+    const sub = isSubzoneId(target) ? getSubzone(target) : defaultSubzone(target in ZONES ? (target as ZoneId) : 'mazmorra', p.character.level, p.bossesDefeated);
+    const zoneId = sub.zone;
+    const lock = p.stats.expeditions === 0 ? null : subzoneLock(sub, p.character.level, p.bossesDefeated);
     if (lock) return invError(lock);
     // La primera expedición usa la cripta diseñada a mano (sirve de tutorial); después, mapas procedurales de la zona elegida.
     const seed = randomSeed();
     const captive = makeRng(seed ^ 0x51ed).chance(CAPTIVE_CHANCE) ? captiveCandidate(p, zoneId) : null;
-    const dungeon = p.stats.expeditions === 0 ? CRYPTS_OF_UMBRAVEL : generateDungeon(seed, { zone: zoneId, captive });
+    // Primera expedición de una partida nueva: el tutorial guiado (salvo si se saltó)
+    if (p.stats.expeditions === 0 && !p.tutorialDone && !dev.skipTutorial) return actions.startTutorial(null);
+    // Mercenario errante: Kael (solo en la Mazmorra, 1 de cada 3 con garantía) u otro de la zona
+    const first = p.stats.expeditions === 0;
+    const enc = first ? { who: 'kael', risk: 'kael' as const, hostile: false, kaelStreak: p.kael.missStreak } : rollEncounter(makeRng(seed ^ 0x7a31), sub, p.kael.missStreak);
+    if (dev.forceKael && sub.zone === 'mazmorra') Object.assign(enc, { who: 'kael', risk: 'kael', hostile: false, kaelStreak: 0 });
+    if (dev.forceWanderer) Object.assign(enc, { who: dev.forceWanderer, hostile: !!dev.forceHostile });
+    const dungeon = first ? CRYPTS_OF_UMBRAVEL : generateDungeon(seed, { zone: zoneId, subzone: sub.id, captive, wanderer: !!enc.who });
     const started = startExpedition(p, Date.now());
-    const profile = started.profile;
-    const expedition = { ...started.expedition, zone: dungeon.zone ?? 'mazmorra', chestsOpened: {}, veinsMined: 0 };
+    const kael = { ...p.kael, missStreak: first || sub.zone !== 'mazmorra' ? p.kael.missStreak : enc.kaelStreak };
+    const profile = first ? started.profile : { ...started.profile, lastSubzone: sub.id, kael };
+    const expedition = { ...started.expedition, zone: dungeon.zone ?? 'mazmorra', subzone: dungeon.subzone, chestsOpened: {}, veinsMined: 0 };
     set({
       profile, expedition, dungeon, screen: 'dungeon', summary: null, combat: null, modal: null,
-      rival: initialRival(), rivalLine: null, merc: mercForExpedition(p), chests: {}, mined: {}, bags: {},
+      rival: enc.who ? initialRival(enc.who, enc.risk, enc.hostile) : noRival(), rivalLine: null, merc: mercForExpedition(p), chests: {}, mined: {}, bags: {},
       hud: { room: '', prompt: null, channel: 0, playerTile: [0, 0] },
     });
     await saveNow();
   },
 
+  /** Empieza el tutorial. `replay`: el perfil a devolver al acabar (se repite desde Ajustes sin tocar tu inventario). */
+  async startTutorial(replay: Profile | null) {
+    const p0 = state.profile;
+    if (!p0) return;
+    // Al repetirlo, bajas con el equipo inicial de tu clase; tu inventario de verdad se guarda aparte
+    const p = replay ? { ...createProfile(p0.character.name, p0.character.classId, p0.character.appearance), character: p0.character } : p0;
+    const started = startExpedition(p, Date.now());
+    const expedition = { ...started.expedition, durationMs: 24 * 3600_000, zone: 'mazmorra', subzone: 'afueras', chestsOpened: {}, veinsMined: 0 };
+    const rival = { ...initialRival('osric', 'low'), traitor: true };
+    set({
+      profile: replay ? { ...p0 } : started.profile, expedition, dungeon: TUTORIAL_MAP, screen: 'dungeon', summary: null, combat: null, modal: null,
+      rival, rivalLine: null, merc: null, chests: {}, mined: {}, bags: {}, tutorial: { step: 0, replay },
+      hud: { room: '', prompt: null, channel: 0, playerTile: [0, 0] },
+    });
+    if (!replay) await saveNow();
+  },
+
+  /** En el tutorial no se pierde: si caes, vuelves al último punto seguro; al extraer, recompensas y fin. */
+  async finishTutorial(reason: EndReason) {
+    const s = state;
+    const t = s.tutorial;
+    if (!t || !s.profile || !s.expedition) return;
+    if (reason !== 'extracted') {
+      const max = computeStats(s.profile.character.classId, s.profile.character.level, s.expedition.equipment);
+      const [x, y] = tutorialRoomCenter(TUTORIAL_STEPS[t.step]?.checkpoint ?? 0);
+      set({ combat: null, modal: null, expedition: { ...s.expedition, hp: max.maxHp, mp: max.maxMp } });
+      bus.emit('tutorial-revive', { x, y });
+      toast('Caes… y despiertas en el último punto seguro. En el tutorial no pierdes nada.', 'info');
+      return;
+    }
+    if (t.replay) {
+      // Repetido desde Ajustes: tu personaje vuelve exactamente como estaba
+      const { summary } = endExpedition(s.profile, s.expedition, 'extracted', Date.now());
+      set({ profile: t.replay, tutorial: null, expedition: null, screen: 'summary', combat: null, modal: null, merc: null,
+        summary: { ...summary, tutorialNote: 'Tutorial repetido. Tu personaje y tu inventario no han cambiado.' } });
+      return;
+    }
+    let { profile, summary } = endExpedition(s.profile, s.expedition, 'extracted', Date.now());
+    // Recompensa: oro y objetos para empezar (config en data/tutorial.ts)
+    let stash = profile.backpack;
+    for (const it of TUTORIAL_REWARD.items) stash = addToGrid(stash, { uid: makeUid(), itemId: it.itemId, qty: it.qty }).grid;
+    profile = { ...profile, backpack: stash, gold: profile.gold + TUTORIAL_REWARD.gold, tutorialDone: true, tutorialSeen: { lobby: true, dungeon: true } };
+    summary = { ...summary, tutorialNote: `Has sobrevivido a tu primera bajada. El intendente te da ${TUTORIAL_REWARD.gold} de oro, 3 pociones y unos guantes de cuero.` };
+    markTutorialDoneOnDevice();
+    set({ profile, summary, tutorial: null, expedition: null, screen: 'summary', combat: null, modal: null, merc: null });
+    await saveNow();
+  },
+
+  /** Repetir el tutorial desde Ajustes (sin recompensas y sin tocar tu inventario). */
+  replayTutorial() {
+    const p = state.profile;
+    if (!p) return;
+    void actions.startTutorial(JSON.parse(JSON.stringify(p)));
+  },
+
+  /** Comprueba si el paso del tutorial está cumplido y pasa al siguiente (se llama con el reloj de la mazmorra). */
+  tutorialCheck() {
+    const s = state;
+    const t = s.tutorial;
+    if (!t || !s.expedition || s.screen !== 'dungeon') return;
+    const step = TUTORIAL_STEPS[t.step];
+    if (!step) return;
+    const e = s.expedition;
+    const room = tutorialRoomOf(s.hud.playerTile[0]);
+    const potions = countItem(e.backpack, 'health_potion');
+    let done = false;
+    switch (step.id) {
+      case 'move': done = room >= 1; break;
+      case 'fight': done = (e.kills.ossuary_rat ?? 0) >= 1 && !s.combat; break;
+      case 'box': done = !!s.chests.t_box && !s.modal && (countItem(e.backpack, 'iron_key') > 0 || !!s.chests.t_rich); break;
+      case 'rich': done = !!s.chests.t_rich && !s.modal; break;
+      case 'equip': done = e.equipment.helmet?.itemId === 'leather_hood' && !s.modal; break;
+      case 'potion': {
+        // Al llegar a la hoguera, la trampa (o el camino) te deja herido para practicar con la poción
+        if (t.potionsAt === undefined) {
+          if (room < 3) return;
+          const max = computeStats(s.profile!.character.classId, s.profile!.character.level, e.equipment).maxHp;
+          if (e.hp > max * 0.7) { set({ expedition: { ...e, hp: Math.round(max * 0.55) } }); sfx('trap'); toast('¡Una trampa de pinchos! Te has hecho daño.', 'danger'); }
+          set({ tutorial: { ...t, potionsAt: countItem(state.expedition!.backpack, 'health_potion') } });
+          return;
+        }
+        done = potions < t.potionsAt;
+        break;
+      }
+      case 'talk': done = s.rival.greeted; break;
+      case 'ally': done = s.rival.disposition === 'allied' && !s.modal; break;
+      case 'together': done = (e.kills.bandit ?? 0) >= 2 && !s.combat; break;
+      case 'betrayal': {
+        // Guion: al llegar a la brecha, Osric avisa y traiciona
+        if (!t.betrayalStarted && room >= 6 && s.rival.disposition === 'allied' && !s.combat && !s.modal) {
+          set({ tutorial: { ...t, betrayalStarted: true }, rival: { ...s.rival, warned: true } });
+          toast(getWanderer('osric').lines.warn, 'danger');
+          bus.emit('rival-warn');
+          setTimeout(() => {
+            const st = state;
+            if (!st.tutorial || st.combat) return;
+            set({ rival: { ...st.rival, disposition: 'hostile', betrayed: true, betrayedBy: 'rival' } });
+            sfx('betray');
+            toast(`${getWanderer('osric').lines.betray} ¡Osric te traiciona!`, 'danger');
+            bus.emit('rival-changed');
+            actions.startCombat('betrayal-by-rival', null);
+          }, 1600);
+        }
+        done = s.rival.disposition === 'dead' && !s.combat;
+        break;
+      }
+      default: break;
+    }
+    if (done && t.step < TUTORIAL_STEPS.length - 1) { set({ tutorial: { ...t, step: t.step + 1, potionsAt: undefined } }); sfx('click'); }
+  },
+
   tick() {
     const s = state;
     const now = Date.now();
-    if (s.screen === 'dungeon' && s.expedition && timeLeft(s.expedition, now) <= 0 && !s.summary) {
+    if (s.tutorial) actions.tutorialCheck();
+    if (s.screen === 'dungeon' && s.expedition && !s.tutorial && timeLeft(s.expedition, now) <= 0 && !s.summary) {
       void actions.finishExpedition('timeout');
       return;
     }
@@ -591,7 +768,15 @@ export const actions = {
   async finishExpedition(reason: EndReason) {
     const s = state;
     if (!s.profile || !s.expedition) return;
-    let { profile, summary } = endExpedition(s.profile, s.expedition, reason, Date.now());
+    if (s.tutorial) return actions.finishTutorial(reason);
+    // El errante aliado que extrae contigo se lleva su parte del oro encontrado desde que os aliasteis
+    const share = reason === 'extracted' ? goldShare(s.rival, s.expedition.goldFound, GOLD_SHARE) : 0;
+    const expDone = share ? { ...s.expedition, goldFound: s.expedition.goldFound - share } : s.expedition;
+    let { profile, summary } = endExpedition(s.profile, expDone, reason, Date.now());
+    if (reason === 'extracted' && s.rival.disposition === 'allied' && s.rival.hp > 0) {
+      const w = getWanderer(s.rival.who);
+      summary = { ...summary, wandererNote: `${w.lines.farewell}${share ? ` ${w.name.split(' ')[0]} se lleva su parte: ${share} de oro.` : ''}` };
+    }
     const mo = settleMerc(profile, s.merc, reason === 'extracted');
     profile = mo.profile;
     if (mo.note) summary = { ...summary, mercNote: mo.note };
@@ -651,8 +836,12 @@ export const actions = {
     let gold = 0;
     if (!grid) {
       const rng = makeRng(randomSeed());
-      const loot = rollLoot(CHEST_TABLES[table], rng);
-      grid = addManyToGrid(emptyGrid(12), loot.items).grid;
+      const sub = s.dungeon?.subzone ? getSubzone(s.dungeon.subzone) : null;
+      const base = CHEST_TABLES[table];
+      const loot = rollLoot(sub ? subzoneChestTable(base, sub.levels, subzonesOf(sub.zone).indexOf(sub), sub.id) : base, rng);
+      const ct = chestType(table);
+      const found = rollStacks(adaptDrops(loot.items, s.profile!.character.classId), getItem, { depth: subzoneDepth(), bonus: ct.look === 'boss' ? 2 : ct.key ? 1 : 0 }, () => rng.next());
+      grid = addManyToGrid(emptyGrid(12), found).grid;
       gold = loot.gold;
       const opened = { ...(s.expedition.chestsOpened ?? {}), [table]: (s.expedition.chestsOpened?.[table] ?? 0) + 1 };
       set({ expedition: { ...state.expedition!, chestsOpened: opened } });
@@ -706,9 +895,15 @@ export const actions = {
     if (m?.type === 'loot') {
       // Recogida de oro implícita en bolsas: nada. Reparto con aliado:
       if (m.session.shareAsked) {
-        const r = shareLoot(s.rival, m.session.given, m.session.initialCount);
+        const r = shareLoot(s.rival, m.session.given, m.session.initialCount, makeRng(randomSeed()));
         set({ rival: r.rival });
         if (r.line) toast(r.line, m.session.given.length ? 'social' : 'danger');
+        bus.emit('rival-changed');
+      }
+      // Abrir un cofre con llave o de jefe es un momento de debilidad: un errante traidor puede aprovecharlo
+      if (m.session.source === 'chest' && s.rival.disposition === 'allied') {
+        const ent = s.dungeon?.entities.find((e) => e.kind === 'chest' && e.id === m.session.id) as { table?: string } | undefined;
+        if (ent?.table && chestType(ent.table).key) setTimeout(() => actions.checkBetrayal(false, true), 300);
       }
       // Bolsas vacías desaparecen
       if (m.session.source === 'bag') {
@@ -739,7 +934,12 @@ export const actions = {
 
   // ── Rival ──
   interactRival() {
-    set({ modal: { type: 'rival' }, rivalLine: null });
+    const s = state;
+    if (s.rival.greeted || !s.profile) { set({ modal: { type: 'rival' }, rivalLine: null }); return; }
+    // Primer encuentro: su presentación (Kael recuerda cuántas veces os habéis visto)
+    const met = s.rival.who === 'kael' ? s.profile.kael.met ?? 0 : 0;
+    set({ modal: { type: 'rival' }, rivalLine: greetLine(s.rival, met), rival: { ...s.rival, greeted: true } });
+    if (s.rival.who === 'kael') set({ profile: { ...s.profile, kael: { ...s.profile.kael, met: met + 1 } } });
   },
 
   rivalTalk() {
@@ -748,11 +948,12 @@ export const actions = {
   },
 
   rivalPropose() {
-    const r = proposeAlliance(state.rival);
+    const r = proposeAlliance(state.rival, makeRng(randomSeed()), Date.now(), state.expedition?.goldFound ?? 0);
+    if (dev.forceBetrayal) r.rival.traitor = true;
     set({ rival: r.rival, rivalLine: r.line });
     if (r.accepted) {
       sfx('heal');
-      toast('Kael se une a ti. Os repartiréis el botín.', 'social');
+      toast(`${getWanderer(state.rival.who).name.split(' ')[0]} se une a ti. Os repartiréis el botín.`, 'social');
       bus.emit('rival-changed');
     }
   },
@@ -769,16 +970,6 @@ export const actions = {
     set({ rival: r.rival, rivalLine: null, modal: null });
     toast(r.line, 'social');
     bus.emit('rival-changed');
-  },
-
-  rivalDuel() {
-    const r = state.rival;
-    if (r.trust < 30) {
-      set({ rivalLine: 'Kael: «¿Un duelo amistoso? No me fío de tus «amistades».»' });
-      return;
-    }
-    set({ rivalLine: null, modal: null });
-    actions.startCombat('duel', null);
   },
 
   rivalAttack() {
@@ -798,25 +989,57 @@ export const actions = {
     actions.startCombat('betrayal-by-player', null);
   },
 
-  /** La escena lo llama periódicamente mientras Kael es aliado. */
-  checkBetrayal(nearPortal: boolean) {
+  /**
+   * Comprueba si el errante aliado traiciona: la escena lo llama cada poco (cerca del portal), y también tras ganar un
+   * combate y al abrir un cofre con llave o de jefe. Solo actúa un traidor, y siempre avisa antes.
+   */
+  checkBetrayal(nearPortal: boolean, richChest = false) {
     const s = state;
-    if (!s.expedition || !s.profile || s.combat || s.modal) return;
+    if (!s.expedition || !s.profile || s.combat || s.modal || !s.dungeon || s.tutorial) return;
     const stats = computeStats(s.profile.character.classId, s.profile.character.level, s.expedition.equipment);
-    const r = evaluateBetrayal(s.rival, {
-      playerHpPct: s.expedition.hp / stats.maxHp,
-      playerLootValue: gridValue(s.expedition.backpack) + equippedValue(s.expedition.equipment) * 0.3,
-      nearPortal,
-    });
+    const rng = makeRng(randomSeed());
+    const r = evaluateBetrayal(s.rival, { now: Date.now(), playerHpPct: s.expedition.hp / stats.maxHp, nearPortal, richChest, zone: s.dungeon.zone ?? 'mazmorra' }, rng);
     if (r.action === 'none') return;
     set({ rival: r.rival });
-    if (r.action === 'warn') toast(r.line!, 'danger');
+    if (r.action === 'warn') { toast(r.line!, 'danger'); bus.emit('rival-warn'); }
     if (r.action === 'betray') {
       sfx('betray');
       toast(r.line!, 'danger');
       bus.emit('rival-changed');
       actions.startCombat('betrayal-by-rival', null);
     }
+    if (r.action === 'rob') {
+      // Roba 1 o 2 objetos de tu mochila y huye hacia el portal: si lo alcanzas, combate y lo recuperas
+      const backpack = [...s.expedition.backpack];
+      const filled = backpack.map((x, i) => (x ? i : -1)).filter((i) => i >= 0);
+      const n = Math.min(filled.length, rng.int(ROB_ITEMS[0], ROB_ITEMS[1]));
+      const stolen: string[] = [];
+      for (let k = 0; k < n; k++) {
+        const idx = filled.splice(rng.int(0, filled.length - 1), 1)[0];
+        const it = backpack[idx]!;
+        for (let q = 0; q < it.qty; q++) stolen.push(it.itemId);
+        backpack[idx] = null;
+      }
+      set({ expedition: { ...state.expedition!, backpack }, rival: { ...r.rival, bagItemIds: [...r.rival.bagItemIds, ...stolen] } });
+      sfx('betray');
+      toast(`${r.line} ¡Alcánzalo antes de que llegue al portal!`, 'danger');
+      bus.emit('rival-changed');
+    }
+  },
+
+  /** Kael aparece: un aviso especial (el encuentro es raro, 1 de cada 3 bajadas a la Mazmorra). */
+  announceKael() {
+    sfx('portal');
+    toast('Una linterna verde brilla en la penumbra. Es Kael el Errante.', 'social');
+  },
+
+  /** El errante que huía con lo robado ha llegado al portal: se lo lleva. */
+  rivalEscaped() {
+    const s = state;
+    if (s.rival.disposition !== 'fleeing') return;
+    toast(`${getWanderer(s.rival.who).name} cruza el portal con lo que te robó.`, 'danger');
+    set({ rival: { ...s.rival, disposition: 'departed', bagItemIds: [] } });
+    bus.emit('rival-changed');
   },
 
   // ── Combate ──
@@ -824,35 +1047,37 @@ export const actions = {
     const s = state;
     if (!s.profile || !s.expedition || s.combat) return;
     const ch = s.profile.character;
-    const player = playerCombatant(ch, s.expedition.equipment, s.expedition.hp, s.expedition.mp);
+    const player = playerCombatant(ch, s.expedition.equipment, s.expedition.hp, s.expedition.mp, s.expedition.cooldowns, s.profile.classSkills.equipped);
     const list = [player];
     let title = '';
     let canFlee = true;
     if (kind === 'pve' && enemyId) {
       const e = getEnemy(enemyId);
-      if (s.rival.disposition === 'allied') list.push(rivalCombatant(s.rival.hp, 'A', s.rival.potions, combatLevel()));
+      if (s.rival.disposition === 'allied') list.push(rivalCombatant(s.rival.who, s.rival.hp, 'A', s.rival.potions, combatLevel()));
       if (s.merc?.alive) list.push(mercCombatant(s.merc, 'A', combatLevel()));
-      list.push(enemyCombatant(enemyId, entityId ?? 'enemy', 'B', combatLevel()));
+      list.push(enemyCombatant(enemyId, entityId ?? 'enemy', 'B', enemyLevel(entityId)));
       const firstTime = knowledge(s.profile.bestiary, enemyId) === 0;
       set({ profile: { ...s.profile, bestiary: noteSeen(s.profile.bestiary, enemyId) } });
       if (firstTime) toast(`Nueva entrada en el Bestiario: ${e.name}`, 'info');
       title = e.boss ? `¡${e.name}!` : e.name;
       canFlee = !e.boss;
     } else {
-      const rc = rivalCombatant(s.rival.hp, 'B', s.rival.potions, combatLevel());
+      const rc = rivalCombatant(s.rival.who, s.rival.hp, 'B', s.rival.potions, combatLevel());
+      const name = getWanderer(s.rival.who).name;
       if (kind === 'betrayal-by-player') rc.statuses.push({ id: 'stun', turns: 1 });
-      if (kind === 'betrayal-by-rival') player.statuses.push({ id: 'bleed', turns: 2 });
+      // Si te traiciona atacando, empiezas sangrando; si te robó y lo alcanzas, no
+      if (kind === 'betrayal-by-rival' && s.rival.disposition !== 'fleeing') player.statuses.push({ id: 'bleed', turns: 2 });
       list.push(rc);
-      // En un duelo es uno contra uno; en una pelea de verdad, tu mercenario te defiende
-      if (kind !== 'duel' && s.merc?.alive) list.splice(1, 0, mercCombatant(s.merc, 'A', combatLevel()));
-      title = kind === 'duel' ? 'Duelo consensuado con Kael' : kind === 'hostile' ? 'Combate hostil: Kael' : kind === 'betrayal-by-player' ? 'Traición: atacas a Kael por sorpresa' : '¡Kael te traiciona!';
-      // Duelo y traiciones: no hay huida posible. Solo el ataque hostil a un Kael neutral permite escapar.
+      // Tu mercenario de Garra Roja siempre te defiende
+      if (s.merc?.alive) list.splice(1, 0, mercCombatant(s.merc, 'A', combatLevel()));
+      title = kind === 'hostile' ? `Combate hostil: ${name}` : kind === 'betrayal-by-player' ? `Traición: atacas a ${name} por sorpresa` : s.rival.disposition === 'fleeing' ? `¡Alcanzas a ${name}!` : `¡${name} te traiciona!`;
+      // Traiciones: no hay huida posible. Solo el combate hostil (atacar a un neutral o un errante hostil) permite escapar.
       canFlee = kind === 'hostile';
     }
     const combat = createCombat(list, randomSeed(), { canFlee });
-    combat.log.unshift(kind === 'pve' ? `¡${title.replace(/[¡!]/g, '')} te cierra el paso!` : kind === 'duel' ? 'Kael desenvaina con una sonrisa. Duelo hasta la rendición.' : 'Las dagas salen de sus vainas.');
-    if (s.rival.disposition === 'allied' && kind === 'pve') combat.log.push('Kael combate a tu lado.');
-    if (s.merc?.alive && kind !== 'duel') combat.log.push(`${getMerc(s.merc.id).name} combate a tu lado (${STANCE_NAME[s.merc.stance].toLowerCase()}).`);
+    combat.log.unshift(kind === 'pve' ? `¡${title.replace(/[¡!]/g, '')} te cierra el paso!` : s.rival.disposition === 'hostile' && !s.rival.betrayed && getWanderer(s.rival.who).lines.hostile ? getWanderer(s.rival.who).lines.hostile! : 'Las armas salen de sus vainas.');
+    if (s.rival.disposition === 'allied' && kind === 'pve') combat.log.push(`${getWanderer(s.rival.who).name} combate a tu lado.`);
+    if (s.merc?.alive) combat.log.push(`${getMerc(s.merc.id).name} combate a tu lado (${STANCE_NAME[s.merc.stance].toLowerCase()}).`);
     set({ combat: { state: combat, kind, entityId, title, rewards: null }, modal: null });
     bus.emit('cancel-channel');
   },
@@ -890,6 +1115,7 @@ export const actions = {
     const pl = getCombatant(next, 'player');
     exp.hp = pl.hp;
     exp.mp = pl.mp;
+    exp.cooldowns = { ...(pl.cooldowns ?? {}) };
     let rival = s.rival;
     const rc = next.combatants.find((c) => c.id === 'rival');
     if (rc) rival = { ...rival, hp: rivalHpBack(rc.hp, combatLevel()), potions: rc.potions };
@@ -899,7 +1125,6 @@ export const actions = {
     let rewards = s.combat.rewards;
 
     if (next.outcome) {
-      const kind = s.combat.kind;
       if (next.outcome === 'victory') {
         const rng = makeRng(randomSeed());
         let xp = 0, gold = 0;
@@ -908,7 +1133,7 @@ export const actions = {
         for (const c of next.combatants.filter((x) => x.side === 'B')) {
           if (c.ref && c.ref !== 'rival') {
             const e = getEnemy(c.ref);
-            xp += enemyXp(e.xp, combatLevel());
+            xp += enemyXp(e.xp, enemyLevel(c.id));
             if (e.boss && !state.profile!.bossesDefeated.includes(e.id)) {
               { const pr = state.profile!; set({ profile: { ...pr, bossesDefeated: [...pr.bossesDefeated, e.id] } }); }
               const next = Object.values(ZONES).find((z) => z.access.bossOf && ZONES[z.access.bossOf].boss === e.id);
@@ -916,27 +1141,28 @@ export const actions = {
             }
             const l = rollLoot(e.loot, rng);
             gold += l.gold;
-            items.push(...l.items);
+            items.push(...rollStacks(adaptDrops(l.items, state.profile!.character.classId), getItem, { depth: subzoneDepth(), bonus: e.boss ? 2 : e.elite ? 1 : 0 }, () => rng.next()));
             kills[e.id] = (kills[e.id] ?? 0) + 1;
             { const pr = state.profile!; set({ profile: { ...pr, bestiary: noteKill(pr.bestiary, e.id) } }); }
           }
         }
         if (rc && rc.side === 'B') {
-          if (kind === 'duel') {
-            gold += 25;
-            xp += 20;
-            rival = { ...rival, hp: Math.max(30, rival.hp), trust: Math.min(100, rival.trust + 10) };
-          } else {
+          {
             xp += 60;
             gold += rival.gold;
             rival = { ...rival, disposition: 'dead' };
-            // El cuerpo de Kael deja una bolsa con sus pertenencias
+            // El cuerpo del errante deja una bolsa con sus pertenencias (y lo que te robó o le diste)
             const bagGrid = addManyToGrid(emptyGrid(12), rival.bagItemIds.map((id) => ({ uid: makeUid(), itemId: id, qty: 1 }))).grid;
             const [x, y] = s.hud.playerTile;
-            const bag: Bag = { id: makeUid('bag'), x, y, grid: bagGrid, label: 'Pertenencias de Kael' };
+            const bag: Bag = { id: makeUid('bag'), x, y, grid: bagGrid, label: `Pertenencias de ${getWanderer(rival.who).name.split(' ')[0]}` };
             set((st) => ({ bags: { ...st.bags, [bag.id]: bag } }));
             bus.emit('bags-changed');
           }
+        }
+        // Subzonas muy por debajo de tu nivel: menos experiencia y oro (config/subzones.ts)
+        if (s.dungeon?.subzone) {
+          const pen = overlevelPenalty(getSubzone(s.dungeon.subzone).levels[1], s.profile.character.level);
+          if (pen) { xp = Math.round(xp * pen.xp); gold = Math.round(gold * pen.gold); }
         }
         const r = addManyToGrid(exp.backpack, items);
         exp.backpack = r.grid;
@@ -954,12 +1180,6 @@ export const actions = {
         // Tu mercenario se venda las heridas tras cada victoria
         if (merc?.alive && mc && mc.hp > 0) { const max = mercBaseStats(getMerc(merc.id)).maxHp; merc = { ...merc, hp: Math.min(max, merc.hp + Math.round(max * 0.15)) }; }
         sfx('victory');
-      } else if (next.outcome === 'defeat' && kind === 'duel') {
-        // Un duelo consensuado no mata: quedas fuera de combate con algo de vida.
-        exp.hp = Math.max(1, Math.round(computeStats(s.profile.character.classId, s.profile.character.level, exp.equipment).maxHp * 0.25));
-        rewards = { xp: 10, gold: 0, items: [], overflow: false };
-        exp.xpGained += 10;
-        rival = { ...rival, trust: Math.min(100, rival.trust + 5) };
       } else if (next.outcome === 'defeat') {
         sfx('defeat');
       }
@@ -969,7 +1189,7 @@ export const actions = {
       }
       if (rc && rc.side === 'A' && rc.hp <= 0) {
         rival = { ...rival, disposition: 'dead' };
-        toast('Kael ha caído en combate.', 'danger');
+        toast(`${getWanderer(rival.who).name} ha caído en combate.`, 'danger');
       }
     }
     set({ combat: { ...s.combat, state: next, rewards }, expedition: exp, rival, merc });
@@ -981,18 +1201,17 @@ export const actions = {
     const { outcome } = s.combat.state;
     const kind = s.combat.kind;
     const entityId = s.combat.entityId;
-    if (outcome === 'defeat' && kind !== 'duel') {
+    if (outcome === 'defeat') {
       set({ combat: null });
       void actions.finishExpedition('died');
       return;
-    }
-    if (kind !== 'pve' && kind !== 'duel' && outcome === 'fled') {
-      // Huiste de Kael: se queda hostil.
     }
     set({ combat: null });
     bus.emit('combat-ended', { entityId, outcome, kind });
     bus.emit('rival-changed');
     bus.emit('merc-changed');
+    // Tras ganar un combate con poca vida, un errante traidor puede aprovechar el momento
+    if (kind === 'pve' && outcome === 'victory') setTimeout(() => actions.checkBetrayal(false), 400);
   },
 
   backToLobby() {
@@ -1000,9 +1219,68 @@ export const actions = {
   },
 };
 
+/** Profundidad de la subzona actual (0 Afueras … 9 Trono) para la tirada de rareza. */
+function subzoneDepth(): number {
+  const sub = state.dungeon?.subzone;
+  return sub ? Math.max(0, SUBZONE_ORDER.indexOf(sub as SubzoneId)) : 0;
+}
+
 // Para pruebas automáticas (solo con ?debug en la URL)
+/** Ayudas de desarrollo (solo con ?debug): forzar a Kael, a un errante concreto, que sea hostil o que traicione. */
+export const dev: {
+  forceKael: boolean; forceWanderer: string | null; forceHostile: boolean; forceBetrayal: boolean; skipTutorial: boolean;
+  /** Te da cualquier objeto con la rareza y los atributos que quieras (a la mochila de la expedición o del perfil). */
+  give: (itemId: string, rarity?: Rarity, affixes?: string[], qty?: number) => string;
+  /** Pone a tu personaje en el nivel que digas (1–100). */
+  setLevel: (level: number) => string;
+  /** Deja todas tus acciones listas (también en el combate en curso). */
+  resetCooldowns: () => string;
+} = {
+  forceKael: false, forceWanderer: null, forceHostile: false, forceBetrayal: false,
+  give(itemId, rarity, affixes, qty = 1) {
+    const def = getItem(itemId);
+    if (rarity && !RARITY_RULES[rarity]) return `Rareza desconocida: ${rarity}`;
+    for (const a of affixes ?? []) if (!AFFIXES[a]) return `Atributo desconocido: ${a}`;
+    const stack: ItemStack = { uid: makeUid(), itemId, qty, ...(rarity ? { rarity } : {}), ...(affixes?.length ? { affixes } : {}) };
+    if (state.expedition) {
+      const r = addToGrid(state.expedition.backpack, stack);
+      set({ expedition: { ...state.expedition, backpack: r.grid } });
+    } else if (state.profile) {
+      const r = addToGrid(state.profile.backpack, stack);
+      set({ profile: { ...state.profile, backpack: r.grid } });
+    } else return 'No hay personaje.';
+    return `Añadido: ${def.name} (${rarity ?? def.rarity})`;
+  },
+  setLevel(level) {
+    if (!state.profile) return 'No hay personaje.';
+    const lv = Math.max(1, Math.min(100, Math.floor(level)));
+    set({ profile: { ...state.profile, character: { ...state.profile.character, level: lv, xp: 0 } } });
+    return `Nivel ${lv}`;
+  },
+  resetCooldowns() {
+    if (state.expedition) set({ expedition: { ...state.expedition, cooldowns: {} } });
+    if (state.combat) {
+      const cs = structuredClone(state.combat.state);
+      for (const c of cs.combatants) if (c.control === 'player') c.cooldowns = {};
+      set({ combat: { ...state.combat, state: cs } });
+    }
+    return 'Recargas a cero';
+  },
+  // Con ?debug las pruebas automáticas se saltan el tutorial; con ?debug&tutorial se juega
+  skipTutorial: typeof window !== 'undefined' && /[?&]debug/.test(window.location.search) && !/[?&]tutorial/.test(window.location.search),
+};
+
+/** En este navegador ya se completó alguna vez el tutorial: los personajes nuevos pueden saltarlo. */
+const TUTORIAL_FLAG = 'cryptraiders.tutorialDone';
+export function tutorialDoneOnDevice(): boolean {
+  try { return localStorage.getItem(TUTORIAL_FLAG) === '1'; } catch { return false; }
+}
+function markTutorialDoneOnDevice() {
+  try { localStorage.setItem(TUTORIAL_FLAG, '1'); } catch { /* sin almacenamiento: no pasa nada */ }
+}
+
 export function exposeDebug(extra: Record<string, unknown> = {}) {
   if (typeof window !== 'undefined' && /[?&]debug/.test(window.location.search)) {
-    (window as unknown as Record<string, unknown>).__CRYPTRAIDERS__ = { getState, actions, setState: (patch: Partial<GameState>) => set(patch), ...extra };
+    (window as unknown as Record<string, unknown>).__CRYPTRAIDERS__ = { getState, actions, dev, setState: (patch: Partial<GameState>) => set(patch), ...extra };
   }
 }

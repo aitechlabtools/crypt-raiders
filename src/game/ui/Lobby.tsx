@@ -17,6 +17,7 @@ import { Misiones } from './screens/Misiones';
 import type { VendorTarget } from './VendorsTab';
 import { PillBar, type PillTab } from './kit';
 import { useLayout } from '../../config/ui';
+import { ClassUnlockNotice } from './ClassSkills';
 
 export type LobbyTab = 'play' | 'character' | 'stash' | 'merchants' | 'quests' | 'bestiary' | 'shop';
 
@@ -73,7 +74,7 @@ export function Lobby() {
         </div>
       </main>
       {settings && <SettingsModal onClose={() => setSettings(false)} onExit={() => actions.goto('title')} />}
-      {!profile.tutorialSeen.lobby && <LobbyTutorial />}
+      {!profile.tutorialSeen.lobby ? <LobbyTutorial /> : <ClassUnlockNotice />}
     </div>
   );
 }

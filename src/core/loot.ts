@@ -1,6 +1,10 @@
-import type { ItemStack } from './types';
+import type { ClassId, ItemStack } from './types';
+import { CLASSES } from './data/classes';
 import type { Rng } from './rng';
 import { makeUid } from './rng';
+import { ITEMS } from './data/items';
+import { itemsOfSubzone } from './data/subzoneItems';
+import { CHEST_BY_POSITION, GEAR_LEVEL_WEIGHT } from '../config/subzones';
 import { CRIPTA_CHESTS } from './data/zones/cripta';
 import { INFIERNO_CHESTS } from './data/zones/infierno';
 
@@ -32,6 +36,13 @@ export function rollLoot(table: LootTable, rng: Rng): LootResult {
   return { items, gold };
 }
 
+/** Pociones de recurso: cada clase encuentra la que le sirve (tónico de concentración para el Ímpetu, poción de maná para el Maná). */
+const RESOURCE_POTION = { impetus: 'focus_tonic', mana: 'mana_potion' } as const;
+export function adaptDrops(items: ItemStack[], classId: ClassId): ItemStack[] {
+  const want = RESOURCE_POTION[CLASSES[classId].resource];
+  return items.map((i) => (i.itemId === 'mana_potion' || i.itemId === 'focus_tonic') && i.itemId !== want ? { ...i, itemId: want } : i);
+}
+
 // Tablas de los cofres de la mazmorra.
 export const CHEST_TABLES: Record<string, LootTable> = {
   // Niveles 1-3
@@ -60,3 +71,29 @@ export const CHEST_TABLES: Record<string, LootTable> = {
 };
 
 Object.assign(CHEST_TABLES, CRIPTA_CHESTS, INFIERNO_CHESTS);
+// Tutorial: contenido fijo (la llave en el baúl; una capucha y unas botas en el cofre de hierro)
+CHEST_TABLES['tut:box'] = { rolls: 0, gold: [5, 5], entries: [{ itemId: 'nothing', weight: 1 }], always: [{ itemId: 'iron_key' }] };
+CHEST_TABLES['tut:rich'] = { rolls: 0, gold: [25, 25], entries: [{ itemId: 'nothing', weight: 1 }], always: [{ itemId: 'leather_hood' }, { itemId: 'worn_boots' }] };
+
+/**
+ * Tabla de un cofre ajustada a la subzona: más oro y tiradas en las subzonas hondas de cada zona, y el equipo de su nivel
+ * sale más que el de niveles muy bajos o muy altos (config/subzones.ts).
+ */
+/** Peso en los cofres de cada objeto nuevo de la subzona (las legendarias, muy raras). */
+export const SUBZONE_ITEM_WEIGHT = { normal: 5, legendary: 0.5 };
+
+export function subzoneChestTable(table: LootTable, levels: [number, number], position: number, sub?: string): LootTable {
+  const pos = CHEST_BY_POSITION[Math.min(CHEST_BY_POSITION.length - 1, Math.max(0, position))];
+  const w = GEAR_LEVEL_WEIGHT;
+  const entries = table.entries.map((e) => {
+    const req = e.itemId === 'nothing' ? undefined : ITEMS[e.itemId]?.levelReq;
+    if (!req || !ITEMS[e.itemId]?.slot) return e;
+    const k = req > levels[1] + w.nearAbove ? w.above : req < levels[0] - w.nearBelow ? w.below : w.near;
+    return { ...e, weight: e.weight * k };
+  });
+  // Lo nuevo de la subzona: solo en los cofres con equipo (no en baúles de llaves o sacos de oro)
+  if (sub && entries.some((e) => e.itemId !== 'nothing' && ITEMS[e.itemId]?.slot)) {
+    for (const it of itemsOfSubzone(sub)) entries.push({ itemId: it.id, weight: it.rarity === 'legendary' ? SUBZONE_ITEM_WEIGHT.legendary : SUBZONE_ITEM_WEIGHT.normal });
+  }
+  return { ...table, rolls: table.rolls + pos.extraRolls, gold: [Math.round(table.gold[0] * pos.gold), Math.round(table.gold[1] * pos.gold)], entries };
+}

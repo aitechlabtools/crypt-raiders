@@ -191,11 +191,30 @@ html{-webkit-tap-highlight-color:transparent}
 .cmd-label{font-family:var(--font-display);font-size:clamp(13px,1.45vw,18px);letter-spacing:.05em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .caret{display:inline-block;margin-left:8px;font-size:13px;animation:blink 1s steps(2) infinite}
 @keyframes nudge{50%{transform:translateX(3px)}}@keyframes blink{50%{opacity:0}}
-.combat-bar{min-height:9.5rem}
+.combat-bar{min-height:9.5rem;position:relative}
+/* Barra D: 2×2 (Atacar · Ataque especial / Habilidad · Mochila+Huir). Submenús: columna Volver + 2×2 en el mismo sitio */
+.cmdgrid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:8px}
+.cmdgrid.sub{grid-template-columns:110px 1fr 1fr}
+
+.cmdsplit{display:grid;grid-template-columns:1fr 1fr;gap:8px;min-width:0}
+.cmdback{grid-column:1;grid-row:1 / span 2;display:flex;flex-direction:column;gap:8px}
+.cmdback>.cmd{flex:1;flex-direction:column;justify-content:center;align-items:center;padding:6px;gap:2px;text-align:center}
+.cmd.half{padding-left:20px;gap:6px}.cmd.half .cmd-label{font-size:clamp(11px,1.1vw,15px)}
+.cmd[aria-disabled]{opacity:.45;cursor:not-allowed}
+.cmd.cd{filter:saturate(.35) brightness(.75);opacity:1}
+.cdturns{margin-left:auto;flex-shrink:0;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;border:2px solid var(--c);color:#e9e1cc;font-size:13px;font-weight:700;background:#0b0a0f}
 @media (max-height:560px){
   .info-stack{transform:scale(.66);transform-origin:top left}.info-stack-br{transform-origin:bottom right}
   .turnbar{display:none}.combat-bar{min-height:0;padding:6px;gap:6px}.combat-bar .panel{padding:6px 10px;font-size:14px}
   .cmd{min-height:2.6rem;padding:4px 8px 4px 20px;gap:6px}.cmd svg{width:18px;height:18px}
+  /* Móvil en horizontal: el registro pasa a una línea flotando sobre la barra y los botones ocupan todo el ancho */
+  .combat-bar{grid-template-columns:1fr!important}
+  .combat-bar [data-testid=combat-log]{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(100% + 4px);width:min(560px,72vw);
+    background:#0b0a0fd9;text-align:center;white-space:nowrap;text-overflow:ellipsis;font-size:13px;padding:3px 10px;pointer-events:none}
+  .combat-bar [data-testid=combat-log] > div:not(:last-child){display:none}
+  .combat-bar [data-testid=entry-info]{white-space:normal;text-align:left}
+  .cmdgrid{gap:6px}.cmdgrid.sub{grid-template-columns:84px 1fr 1fr}.cmdsplit{gap:6px}.cmdback{gap:6px}
+  .cdturns{width:22px;height:22px;font-size:12px}
 }
 
 /* ── Fase 3 · Táctil: objetivos de 44 px y zonas seguras en combate y ventanas ── */
@@ -321,3 +340,20 @@ html{-webkit-tap-highlight-color:transparent}
 .skin-tile{display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px;min-width:44px;min-height:44px;border:2px solid #3a3741;background:#0d0c11;cursor:pointer}
 .skin-tile.on{border-color:#e8b33a;box-shadow:0 0 0 1px #07060a,0 0 16px #e8b33a55}
 .skin-tile:hover{filter:brightness(1.2)}
+
+/* Mapa de zonas: filas de subzona (44 px como mínimo para el dedo) */
+.subzone-row { display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 10px; width: 100%; }
+.subzone-num { width: 26px; height: 26px; flex: none; display: grid; place-items: center; font-size: 13px; color: var(--color-gold, #e8b33a); border: 1px solid #5a4520; transform: rotate(45deg); }
+.subzone-num { transform: none; border-radius: 2px; }
+
+/* Triángulo de riesgo de traición de los mercenarios errantes */
+.risk-badge { position: relative; display: inline-grid; place-items: end center; flex: none; }
+.risk-badge::before { content: ""; position: absolute; inset: 0; background: var(--risk); clip-path: polygon(50% 0, 100% 100%, 0 100%); filter: drop-shadow(0 0 1px #000); }
+.risk-badge span { position: relative; color: #0b0a0f; font-weight: 800; line-height: 1; padding-bottom: 8%; font-family: system-ui, sans-serif; }
+
+/* Tutorial: cartel con el paso actual y el botón que hay que pulsar resaltado */
+.tut-guide { position: absolute; left: 50%; transform: translateX(-50%); top: 84px; z-index: 25; max-width: min(560px, calc(100vw - 2 * var(--pad, 12px))); padding: 10px 16px; pointer-events: none; text-align: center; font-size: 17px; }
+html.is-touch .tut-guide { top: auto; bottom: max(8px, env(safe-area-inset-bottom)); font-size: 15px; max-width: min(460px, calc(100vw - 420px)); }
+@media (max-height: 560px) { .tut-guide { font-size: 14px; padding: 6px 12px; } }
+.tut-pulse { outline: 3px solid var(--color-gold, #e8b33a) !important; outline-offset: 2px; animation: tut-pulse 1s ease-in-out infinite; }
+@keyframes tut-pulse { 50% { outline-color: #fff1a8; box-shadow: 0 0 18px rgba(232, 179, 58, 0.8); } }

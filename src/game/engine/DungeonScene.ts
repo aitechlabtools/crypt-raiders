@@ -1,7 +1,10 @@
+import { FLYER_SPECS, TALL_DECOR } from '../../shared/art';
+import { getWanderer } from '../../core/data/wanderers';
+import { TUTORIAL_STEPS } from '../../core/data/tutorial';
 import { getMerc } from '../../core/data/mercenaries';
 import { wornSkin } from '../../core/skins';
 import { bestPick, VEINS, type VeinId } from '../../core/mining';
-import { getZone } from '../../core/data/zones';
+import { areaDef } from '../../core/data/zones';
 import { chestType } from '../../core/data/chests';
 import { getItem } from '../../core/data/items';
 import { touchStick } from './touchInput';
@@ -120,13 +123,13 @@ export class DungeonScene extends Phaser.Scene {
     activeScene = this;
     const st = getState();
     const ch = st.profile!.character;
-    registerTextures(this);
+    registerTextures(this, st.dungeon?.subzone);
     this.heroVersion = 0;
     this.heroLook = lookSignature(st.expedition!.equipment) + '|' + (wornSkin(st.profile) ?? '');
     const heroTex = registerHeroTextures(this, 0, { classId: ch.classId, appearance: ch.appearance, equipment: st.expedition!.equipment, skin: wornSkin(st.profile) });
     this.def = st.dungeon ?? CRYPTS_OF_UMBRAVEL;
     this.dungeon = buildDungeon(this.def);
-    this.zoneTint = getZone(this.def.zone).tint;
+    this.zoneTint = areaDef(this.def.subzone, this.def.zone).tint;
     this.enemies = [];
     this.merc = null;
     this.captive = null;
@@ -192,6 +195,8 @@ export class DungeonScene extends Phaser.Scene {
     this.unsub.push(
       bus.on('combat-ended', (p) => this.onCombatEnded(p)),
       bus.on('rival-changed', () => this.refreshRival()),
+      bus.on('tutorial-revive', (t) => { this.debugTeleport(t.x, t.y); this.grace = 1.5; }),
+      bus.on('rival-warn', () => { const mk = this.rival?.marker; if (mk) this.tweens.add({ targets: mk, angle: { from: -18, to: 18 }, duration: 90, yoyo: true, repeat: 7, onComplete: () => mk.setAngle(0) }); }),
       bus.on('merc-changed', () => this.refreshMerc()),
       bus.on('bags-changed', () => this.refreshBags()),
       bus.on('cancel-channel', () => this.cancelChannel()),
@@ -296,14 +301,14 @@ export class DungeonScene extends Phaser.Scene {
         break;
       }
       case 'decor': {
-        const standing = e.sprite === 'barrel';
+        const standing = TALL_DECOR.has(e.sprite);
         const img = this.add.image(c.x + ((e.x * 5) % 7) - 3, c.y + 2, `decor_${e.sprite}`).setOrigin(0.5, 0.85).setDepth(standing ? depthAt(cx, cy) : -8);
         vis?.imgs.push(img);
         break;
       }
       case 'enemy': {
         const def = getEnemy(e.enemyId);
-        const isBat = def.sprite === 'bat';
+        const isBat = def.sprite in FLYER_SPECS;
         const mob = this.makeMob(def.sprite, isBat ? 3 : 4, cx, cy, def.boss ? 1.6 : def.elite ? 1.25 : def.sprite === 'imp' ? 0.85 : 1);
         if (isBat) mob.lift = 10;
         this.enemies.push({ ...mob, id: e.id, enemyId: e.enemyId, homeX: cx, homeY: cy, target: null, wait: Math.random() * 2, speed: def.wander.speed, aggro: def.wander.aggroRange, dead: false, boss: !!def.boss });
@@ -325,9 +330,14 @@ export class DungeonScene extends Phaser.Scene {
         break;
       }
       case 'rival': {
-        const m = this.makeMob('rival', 4, cx, cy);
-        m.marker = this.add.image(0, 0, 'marker_neutral').setDepth(99980);
+        // Mercenario errante: su dibujo y, sobre la cabeza, el triángulo de riesgo de traición
+        const rs = getState().rival;
+        if (!rs.who) break;
+        const m = this.makeMob(getWanderer(rs.who).sprite, 4, cx, cy);
+        m.marker = this.add.image(0, 0, `risk_${rs.risk}`).setDepth(99980);
         this.rival = { ...m, gone: false, leaving: false };
+        // Kael lleva una linterna verde: se le distingue de lejos
+        if (rs.who === 'kael') this.kaelGlow = this.add.image(c.x, c.y - 10, 'glow_kael').setBlendMode(Phaser.BlendModes.ADD).setDepth(99990).setAlpha(0.8);
         break;
       }
     }
@@ -442,7 +452,13 @@ export class DungeonScene extends Phaser.Scene {
       m.marker?.setVisible(visible);
     };
     this.enemies.filter((e) => !e.dead).forEach(mobVis);
-    if (this.rival && !this.rival.gone) mobVis(this.rival);
+    if (this.rival && !this.rival.gone) {
+      mobVis(this.rival);
+      // El triángulo se ve aunque el errante esté en penumbra, si está cerca (aviso justo)
+      const near = Math.hypot(this.rival.x - this.player.x, this.rival.y - this.player.y) < 9;
+      this.rival.marker?.setVisible(this.rival.sprite.visible || near);
+      if (this.kaelGlow) { const q = iso(this.rival.x, this.rival.y); this.kaelGlow.setPosition(q.x, q.y - 10).setVisible(this.rival.sprite.visible || near); }
+    }
     if (this.merc && !this.merc.gone) mobVis(this.merc);
     if (this.captive) { mobVis(this.captive); this.captive.chains.setVisible(this.captive.sprite.visible); }
     for (const [, img] of this.bagSprites) {
@@ -485,15 +501,16 @@ export class DungeonScene extends Phaser.Scene {
     m.sprite.setDepth(depthAt(m.x, m.y) + 2);
     m.shadow.setDepth(depthAt(m.x, m.y) + 1);
     m.marker?.setPosition(p.x, p.y - 26 * m.scale - m.lift).setDepth(99980);
-    if (m.moving || m.tex === 'bat') m.animT += dt * (m.tex === 'bat' ? 9 : 7);
+    const flyer = m.tex in FLYER_SPECS;
+    if (m.moving || flyer) m.animT += dt * (flyer ? 9 : 7);
     else m.animT = 0;
     const f = Math.floor(m.animT) % m.frames;
-    m.sprite.setTexture(`${m.tex}${m.tex === 'bat' ? f : m.moving ? f : 0}`);
+    m.sprite.setTexture(`${m.tex}${flyer ? f : m.moving ? f : 0}`);
   }
 
   paused() {
     const s = getState();
-    return !!s.combat || !!s.modal || s.suspended || s.screen !== 'dungeon' || !s.profile?.tutorialSeen.dungeon;
+    return !!s.combat || !!s.modal || s.suspended || s.screen !== 'dungeon' || (!s.profile?.tutorialSeen.dungeon && !s.tutorial);
   }
 
   update(time: number, deltaMs: number) {
@@ -511,6 +528,7 @@ export class DungeonScene extends Phaser.Scene {
       if (this.grace > 0) this.grace -= dt;
     }
     this.placeMob(this.player, dt);
+    this.updateTutorialArrow(time);
     this.enemies.filter((e) => !e.dead).forEach((e) => this.placeMob(e, dt));
     if (this.rival && !this.rival.gone) this.placeMob(this.rival, dt);
     if (this.merc && !this.merc.gone) this.placeMob(this.merc, dt);
@@ -645,6 +663,22 @@ export class DungeonScene extends Phaser.Scene {
       if (Math.abs(wdx - wdy) > 0.05) r.sprite.setFlipX(wdx - wdy < 0);
       return d;
     };
+    // Kael: aviso especial la primera vez que te acercas
+    if (st.who === 'kael' && !this.kaelAnnounced && dist < 7 && st.disposition === 'neutral') {
+      this.kaelAnnounced = true;
+      actions.announceKael();
+    }
+    if (st.disposition === 'fleeing') {
+      // Te ha robado y corre al portal: si lo alcanzas, combate; si llega, se lo lleva
+      const d = follow(this.portal.x + 0.5, this.portal.y + 0.5, 3.1, 0.4);
+      if (dist < 0.8) { this.path = []; actions.startCombat('betrayal-by-rival', null); return; }
+      if (d <= 0.45 && !r.leaving) {
+        r.leaving = true;
+        actions.rivalEscaped();
+        this.tweens.add({ targets: [r.sprite, r.shadow, r.marker, this.kaelGlow].filter(Boolean), alpha: 0, duration: 800, onComplete: () => this.removeRival() });
+      }
+      return;
+    }
     if (st.disposition === 'allied') {
       follow(p.x, p.y, 3.4, 1.3);
       this.betrayTimer -= dt;
@@ -655,6 +689,9 @@ export class DungeonScene extends Phaser.Scene {
       }
     } else if (st.disposition === 'hostile') {
       if (this.grace > 0) { r.moving = false; return; }
+      // Un errante hostil desde el principio espera hasta verte
+      if (!st.betrayed && dist > 6 && !this.rivalAggro) { r.moving = false; return; }
+      this.rivalAggro = true;
       follow(p.x, p.y, 2.6, 0.7);
       if (dist < 0.8) {
         this.path = [];
@@ -664,7 +701,7 @@ export class DungeonScene extends Phaser.Scene {
       const d = follow(this.portal.x + 0.5, this.portal.y + 0.5, 2.2, 0.4);
       if (d <= 0.45 && !r.leaving) {
         r.leaving = true;
-        this.tweens.add({ targets: [r.sprite, r.shadow, r.marker], alpha: 0, duration: 800, onComplete: () => this.removeRival() });
+        this.tweens.add({ targets: [r.sprite, r.shadow, r.marker, this.kaelGlow].filter(Boolean), alpha: 0, duration: 800, onComplete: () => this.removeRival() });
       }
     } else {
       r.moving = false;
@@ -719,6 +756,8 @@ export class DungeonScene extends Phaser.Scene {
     this.rival.sprite.destroy();
     this.rival.shadow.destroy();
     this.rival.marker?.destroy();
+    this.kaelGlow?.destroy();
+    this.kaelGlow = null;
   }
 
   refreshRival() {
@@ -730,7 +769,8 @@ export class DungeonScene extends Phaser.Scene {
       r.gone = true;
       return;
     }
-    r.marker?.setTexture(d === 'allied' ? 'marker_ally' : d === 'hostile' ? 'marker_hostile' : 'marker_neutral');
+    const rs = getState().rival;
+    r.marker?.setTexture(d === 'hostile' || d === 'fleeing' ? 'risk_hostile' : `risk_${rs.risk}`);
   }
 
   refreshBags() {
@@ -772,7 +812,7 @@ export class DungeonScene extends Phaser.Scene {
     const out: (Interactable & { dist: number })[] = [];
     if (this.rival && !this.rival.gone && ['neutral', 'allied'].includes(st.rival.disposition)) {
       const dist = Math.hypot(this.rival.x - p.x, this.rival.y - p.y);
-      if (dist < 1.6) out.push({ dist, label: st.rival.disposition === 'allied' ? 'Hablar con tu aliado Kael' : 'Interactuar con Kael el Errante', run: () => actions.interactRival() });
+      if (dist < 1.6) out.push({ dist, label: st.rival.disposition === 'allied' ? `Hablar con tu aliado ${getWanderer(st.rival.who).name.split(' ')[0]}` : `Hablar con ${getWanderer(st.rival.who).name}`, run: () => actions.interactRival() });
     }
     if (this.captive && !st.merc?.alive) {
       const dist = Math.hypot(this.captive.x - p.x, this.captive.y - p.y);
@@ -913,11 +953,26 @@ export class DungeonScene extends Phaser.Scene {
 
   /** Tinte de la luz según la zona (Mazmorra neutra, Cripta fría, Infierno rojiza). */
   zoneTint: [number, number, number] = [1, 1, 1];
+  kaelGlow: Phaser.GameObjects.Image | null = null;
+  tutArrow: Phaser.GameObjects.Image | null = null;
+  kaelAnnounced = false;
+  rivalAggro = false;
 
   /** Solo para el tráiler: revela e ilumina todo el mapa (0 = desactivado). */
   cineReveal = 0;
 
   /** Solo para pruebas automáticas. */
+  /** Tutorial: una flecha dorada flota sobre lo que hay que hacer ahora. */
+  updateTutorialArrow(time: number) {
+    const t = getState().tutorial;
+    const target = t ? TUTORIAL_STEPS[t.step]?.target : null;
+    if (!target || !('tile' in target)) { this.tutArrow?.setVisible(false); return; }
+    if (!this.tutArrow) this.tutArrow = this.add.image(0, 0, 'tut_arrow').setDepth(99995);
+    const [x, y] = target.tile;
+    const q = iso(x + 0.5, y + 0.5);
+    this.tutArrow.setVisible(true).setPosition(q.x, q.y - 34 + Math.sin(time / 220) * 3);
+  }
+
   debugTeleport(x: number, y: number) {
     this.player.x = x + 0.5;
     this.player.y = y + 0.5;

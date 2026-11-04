@@ -41,6 +41,18 @@ export interface Combatant {
   ref?: string;
   /** Actitud de un compañero controlado por la IA (mercenarios): agresivo o prudente. */
   stance?: 'aggressive' | 'cautious';
+  /** Jefes: al bajar de la mitad de la vida cambian de habilidades (una sola vez). */
+  phase2?: { skills: string[]; line: string; skillChance?: number };
+  /** Ya ha entrado en su segunda fase. */
+  enraged?: boolean;
+  /** Turnos que le faltan a cada habilidad para poder usarse otra vez (el jugador los conserva entre combates). */
+  cooldowns?: Record<string, number>;
+  /** Escudo de maná: puntos de daño que absorbe antes de tocar la vida. */
+  shield?: number;
+  /** Atributos de las armas que lleva (ids de data/rarity.ts). */
+  affixes?: string[];
+  /** Especiales mejorados por la rareza del arma: turnos de recarga de menos y potencia extra. */
+  skillMods?: Record<string, { cooldown: number; power: number }>;
 }
 
 export type CombatAction =
@@ -134,8 +146,13 @@ export function hasStatus(c: Combatant, id: StatusId): boolean {
   return c.statuses.some((s) => s.id === id && s.turns > 0);
 }
 
+/** Turnos que faltan para poder volver a usar una habilidad (0 = lista). */
+export function cooldownLeft(c: Combatant, skillId: string): number {
+  return c.cooldowns?.[skillId] ?? 0;
+}
+
 export function canUseSkill(c: Combatant, skillId: string): boolean {
-  return c.skills.includes(skillId) && c.mp >= getSkill(skillId).cost;
+  return c.skills.includes(skillId) && c.mp >= getSkill(skillId).cost && cooldownLeft(c, skillId) === 0;
 }
 
 // ── Fórmulas ──
@@ -153,6 +170,7 @@ export function rollDamage(att: Combatant, def: Combatant, kind: DamageKind, pow
   const crit = rng.chance(att.stats.crit / 100);
   if (crit) dmg *= 1.5;
   if (def.undead && opts.undeadMult) dmg *= opts.undeadMult;
+  if (att.affixes?.includes('executioner') && def.hp < def.stats.maxHp * 0.3) dmg *= 1.25;
   for (const st of att.statuses) {
     const m = STATUSES[st.id].damageDealtMult;
     if (m && st.turns > 0) dmg *= m;
@@ -173,7 +191,15 @@ export function fleeChance(actor: Combatant, foes: Combatant[]): number {
 // ── Aplicación de efectos ──
 
 function dealDamage(s: CombatState, target: Combatant, amount: number, crit: boolean, source: 'hit' | 'dot' | 'doom', status?: StatusId) {
-  target.hp = Math.max(0, target.hp - amount);
+  if (target.shield && target.shield > 0 && source !== 'doom') {
+    const absorbed = Math.min(target.shield, amount);
+    target.shield -= absorbed;
+    amount -= absorbed;
+    s.log.push(`El escudo de ${target.name} absorbe ${absorbed} de daño${target.shield <= 0 ? ' y se rompe' : ''}.`);
+    if (target.shield <= 0) { target.shield = 0; target.statuses = target.statuses.filter((x) => x.id !== 'ward'); }
+  }
+  const floor = hasStatus(target, 'endure') && source !== 'doom' ? 1 : 0;
+  target.hp = Math.max(Math.min(floor, target.hp), target.hp - amount);
   if (source === 'hit') {
     // Estados que se gastan al recibir un golpe (bloqueo con escudo)
     for (const st of target.statuses.filter((x) => STATUSES[x.id].consumedOnHit)) {
@@ -183,6 +209,13 @@ function dealDamage(s: CombatState, target: Combatant, amount: number, crit: boo
     target.statuses = target.statuses.filter((x) => !STATUSES[x.id].consumedOnHit);
   }
   s.events.push({ type: 'damage', targetId: target.id, amount, crit, source, status });
+  // Segunda fase de los jefes: por debajo de la mitad de la vida cambian de habilidades y avisan
+  if (target.phase2 && !target.enraged && target.hp > 0 && target.hp <= target.stats.maxHp / 2) {
+    target.enraged = true;
+    target.skills = [...target.phase2.skills];
+    if (target.phase2.skillChance !== undefined) target.skillChance = target.phase2.skillChance;
+    s.log.push(target.phase2.line);
+  }
   if (target.hp === 0) {
     s.events.push({ type: 'death', targetId: target.id });
     s.log.push(`${target.name} cae derrotado.`);
@@ -223,6 +256,27 @@ function applyItemEffect(s: CombatState, actor: Combatant, effect: ItemEffect) {
   }
 }
 
+/** Efectos de los atributos al golpear: sangrado (básico), robo de vida y congelar. */
+function onHitAffixes(s: CombatState, actor: Combatant, target: Combatant, amount: number, rng: Rng, basic: boolean) {
+  const a = actor.affixes;
+  if (!a?.length) return;
+  if (basic && a.includes('bleeding') && alive(target) && rng.chance(0.2)) applyStatus(s, target, 'bleed', 3);
+  if (a.includes('frost') && alive(target) && rng.chance(0.15)) applyStatus(s, target, 'freeze', 1);
+  if (a.includes('vampire') && alive(actor)) {
+    const h = heal(s, actor, amount * 0.08);
+    if (h > 0) s.log.push(`${actor.name} absorbe ${h} de vida.`);
+  }
+}
+
+/** Parpadeo: el próximo ataque contra quien lo tiene falla sin más. */
+function evaded(s: CombatState, actor: Combatant, target: Combatant, label: string): boolean {
+  if (!hasStatus(target, 'evade')) return false;
+  target.statuses = target.statuses.filter((x) => x.id !== 'evade');
+  s.events.push({ type: 'miss', targetId: target.id });
+  s.log.push(`${actor.name} usa ${label}, pero ${target.name} se desvanece y reaparece a un lado.`);
+  return true;
+}
+
 function resolveTarget(s: CombatState, actor: Combatant, targetId?: string): Combatant | null {
   const foes = opponents(s, actor);
   if (targetId) {
@@ -239,6 +293,7 @@ function executeAction(s: CombatState, actor: Combatant, action: CombatAction, r
       if (!target) return;
       const atk = actor.basicAttack;
       s.events.push({ type: 'action', actorId: actor.id, label: atk.name, fx: atk.fx, targetId: target.id });
+      if (evaded(s, actor, target, atk.name)) return;
       const r = rollDamage(actor, target, atk.kind, atk.power, rng);
       if (r.miss) {
         s.events.push({ type: 'miss', targetId: target.id });
@@ -246,6 +301,7 @@ function executeAction(s: CombatState, actor: Combatant, action: CombatAction, r
       } else {
         s.log.push(`${actor.name} usa ${atk.name}: ${r.amount} de daño${r.crit ? ' ¡CRÍTICO!' : ''}.`);
         dealDamage(s, target, r.amount, r.crit, 'hit');
+        onHitAffixes(s, actor, target, r.amount, rng, true);
       }
       return;
     }
@@ -253,23 +309,48 @@ function executeAction(s: CombatState, actor: Combatant, action: CombatAction, r
       const sk = getSkill(action.skillId);
       if (!actor.skills.includes(sk.id)) throw new Error('Habilidad no disponible');
       if (actor.mp < sk.cost) throw new Error('Recurso insuficiente');
+      if (cooldownLeft(actor, sk.id) > 0) throw new Error('Habilidad en recarga');
       actor.mp -= sk.cost;
+      if (sk.resetCooldowns) actor.cooldowns = {};
+      const mod = actor.skillMods?.[sk.id];
+      const cd = sk.cooldown ? Math.max(1, sk.cooldown + (mod?.cooldown ?? 0)) : 0;
+      if (cd) actor.cooldowns = { ...actor.cooldowns, [sk.id]: cd };
       const target = sk.target === 'self' ? actor : resolveTarget(s, actor, action.targetId);
       if (!target) return;
       s.events.push({ type: 'action', actorId: actor.id, label: sk.name, fx: sk.fx, targetId: target.id });
-      let landed = true;
+      // Golpes a todos: el objetivo elegido primero y luego el resto
+      const targets = sk.aoe && sk.target === 'enemy' ? [target, ...opponents(s, actor).filter((x) => x !== target)] : [target];
+      const landedOn = new Set<Combatant>();
       if (sk.kind && sk.power && sk.target === 'enemy') {
-        const r = rollDamage(actor, target, sk.kind, sk.power, rng, { ignoresEvasion: sk.ignoresEvasion, undeadMult: sk.bonusVsUndead, armorPierce: sk.armorPierce });
-        if (r.miss) {
-          landed = false;
-          s.events.push({ type: 'miss', targetId: target.id });
-          s.log.push(`${actor.name} usa ${sk.name}, pero ${target.name} lo esquiva.`);
-        } else {
-          s.log.push(`${actor.name} usa ${sk.name}: ${r.amount} de daño${r.crit ? ' ¡CRÍTICO!' : ''}.`);
-          dealDamage(s, target, r.amount, r.crit, 'hit');
+        for (const t of targets) {
+          if (evaded(s, actor, t, sk.name)) continue;
+          const r = rollDamage(actor, t, sk.kind, sk.power * (1 + (mod?.power ?? 0)), rng, { ignoresEvasion: sk.ignoresEvasion, undeadMult: sk.bonusVsUndead, armorPierce: sk.armorPierce });
+          if (r.miss) {
+            s.events.push({ type: 'miss', targetId: t.id });
+            s.log.push(`${actor.name} usa ${sk.name}, pero ${t.name} lo esquiva.`);
+          } else {
+            landedOn.add(t);
+            s.log.push(`${actor.name} usa ${sk.name}${targets.length > 1 ? ` contra ${t.name}` : ''}: ${r.amount} de daño${r.crit ? ' ¡CRÍTICO!' : ''}.`);
+            dealDamage(s, t, r.amount, r.crit, 'hit');
+            onHitAffixes(s, actor, t, r.amount, rng, false);
+            if (sk.lifesteal && alive(actor)) {
+              const h = heal(s, actor, r.amount * sk.lifesteal);
+              if (h > 0) s.log.push(`${actor.name} recupera ${h} de vida.`);
+            }
+          }
         }
       } else {
+        for (const t of targets) landedOn.add(t);
         s.log.push(`${actor.name} usa ${sk.name}.`);
+      }
+      if (sk.selfDamagePct) {
+        const loss = Math.min(actor.hp - 1, Math.round(actor.stats.maxHp * sk.selfDamagePct));
+        if (loss > 0) { actor.hp -= loss; s.events.push({ type: 'damage', targetId: actor.id, amount: loss, crit: false, source: 'dot' }); s.log.push(`${actor.name} paga ${loss} de vida.`); }
+        if (sk.resetCooldowns) s.log.push(`Las recargas de ${actor.name} vuelven a cero.`);
+      }
+      if (sk.shieldPct) {
+        actor.shield = Math.round(actor.stats.maxHp * sk.shieldPct);
+        s.log.push(`${actor.name} se envuelve en un escudo de ${actor.shield}.`);
       }
       if (sk.manaGain) {
         const real = Math.min(actor.stats.maxMp - actor.mp, sk.manaGain);
@@ -282,10 +363,11 @@ function executeAction(s: CombatState, actor: Combatant, action: CombatAction, r
         s.log.push(`${actor.name} recupera ${h} de vida.`);
       }
       for (const ap of sk.applies ?? []) {
-        const who = ap.self ? actor : target;
-        if (!alive(who)) continue;
-        if (!ap.self && !landed) continue;
-        if (rng.chance(ap.chance)) applyStatus(s, who, ap.status, ap.turns);
+        for (const who of ap.self ? [actor] : targets) {
+          if (!alive(who)) continue;
+          if (!ap.self && !landedOn.has(who)) continue;
+          if (rng.chance(ap.chance)) applyStatus(s, who, ap.status, ap.turns);
+        }
       }
       return;
     }
@@ -326,8 +408,9 @@ function executeAction(s: CombatState, actor: Combatant, action: CombatAction, r
 }
 
 /** Efectos de final de turno: daño persistente, regeneración, duración de estados y recurso. */
-function endOfTurn(s: CombatState, actor: Combatant) {
+function endOfTurn(s: CombatState, actor: Combatant, used?: string) {
   if (!alive(actor)) return;
+  tickCooldowns(actor, used);
   for (const st of [...actor.statuses]) {
     const def = STATUSES[st.id];
     if (def.dotPct && alive(actor)) {
@@ -345,7 +428,19 @@ function endOfTurn(s: CombatState, actor: Combatant) {
     }
   }
   actor.statuses = actor.statuses.filter((x) => x.turns > 0);
+  if (actor.shield && !hasStatus(actor, 'ward')) actor.shield = 0;
   if (alive(actor)) actor.mp = Math.min(actor.stats.maxMp, actor.mp + actor.resourceRegen);
+}
+
+/** Cada turno propio resta 1 a las recargas (menos a la habilidad que se acaba de usar). */
+export function tickCooldowns(c: Combatant, used?: string) {
+  if (!c.cooldowns) return;
+  const next: Record<string, number> = {};
+  for (const [id, t] of Object.entries(c.cooldowns)) {
+    const left = id === used ? t : t - 1;
+    if (left > 0) next[id] = left;
+  }
+  c.cooldowns = next;
 }
 
 function checkOutcome(s: CombatState) {
@@ -412,7 +507,7 @@ export function performAction(state: CombatState, action: CombatAction): CombatS
   executeAction(s, actor, action, rng);
   checkOutcome(s);
   if (!s.outcome) {
-    endOfTurn(s, actor);
+    endOfTurn(s, actor, action.type === 'skill' ? action.skillId : undefined);
     checkOutcome(s);
   }
   if (!s.outcome) advance(s, rng);

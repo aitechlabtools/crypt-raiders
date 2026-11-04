@@ -138,7 +138,7 @@ Ajustes del juego. Auditoría: sin cookies, sin terceros (fuentes con @fontsourc
 contraste AA (axe sin errores). Datos del titular puestos el 3/11 como IMÁGENES (public/legal/d1–d5.png) para que los bots no los copien; domicilio:
 solo la ciudad por ahora. Botón «Escribir un correo» que monta la dirección al pulsarlo. Máxima protección: los datos solo se cargan al pulsar «Ver datos del
 titular»; robots.txt y meta robots (noindex, noimageindex) en aviso legal y privacidad. Falta que un profesional revise los textos.
-Fase 10: HECHA el 3/11 (noche). El plan de 10 fases está terminado. Pendiente de decidir lo siguiente con el usuario
+Fase 10: HECHA el 3/11 (noche). El plan de 10 fases está terminado. Subzonas, errantes, Kael y tutorial: HECHO el 4/11 (ver abajo). Pendiente de decidir lo siguiente con el usuario
 (por ejemplo: arte definitivo de los atuendos, Pícaro y Clérigo, remontar el tráiler con el rótulo «ATUENDOS»).
 Cambio de nombre a Crypt Raiders: HECHO (código, landing, app instalable, tráiler y póster).
 Idea aceptada para la Fase 7 (Alijo): la ficha de un arma muestra las habilidades que daría antes de equiparla.
@@ -147,6 +147,85 @@ y copia los archivos a la carpeta.
 
 Texto de commit sugerido para lo entregado (si se sube todo junto):
 «Maquetas de menús (opción D), Fase 1: controles táctiles fiables y Fase 2: pantalla completa, horizontal y app instalable»
+
+## Subzonas, mercenarios errantes, Kael y tutorial — HECHO el 4/11 (commit pendiente del usuario)
+Plan y decisiones en docs/plan-subzonas.md. El usuario pidió ejecutarlo entero sin parar en cada fase (el arte es provisional,
+hecho por código; él diseñará el definitivo con la lista de assets del plan, sección 9).
+- S1 Datos: src/core/data/subzones.ts (10 subzonas: afueras, castillo, calabozos · osario, catacumbas, panteon ·
+  carmesi, puertas, rios, trono), zones/index.ts (areaDef, subzoneLock, defaultSubzone). Dentro de una zona basta el nivel;
+  entre zonas, el jefe de la última subzona de la anterior. Perfil: tutorialDone, kael {missStreak, met}, lastSubzone.
+- S2 Jugar: tarjeta con la subzona («La Cripta · 5/10», «Demasiado fácil») y Mapa de zonas con filas de subzona (en móvil,
+  una pestaña por zona). Prueba: scripts/subzones-check.cjs.
+- S3 Curva: config/subzones.ts → +0/+1/+2 niveles por profundidad de sala, élite +2, jefe +3 (tope: máximo +3);
+  bases de las comunes igualadas entre zonas (ZONE_NORMALIZE) y +0,66 %/nivel; menos XP y oro 5+ niveles por encima
+  (50 %/75 %) y 10+ (10 %/50 %); cofres con más oro/tiradas en las subzonas hondas y equipo de su nivel (loot.ts).
+- S4–S6 Escenarios y criaturas: baldosas por subzona (shared/art.ts → TILESETS, drawFloorTs/drawWallTs), estilos de mapa
+  (subzones.ts → map: salas y pasillos), decorado propio (20 piezas), fondos de combate (ui/combatZones.ts) y 39 criaturas
+  nuevas (core/data/zones/subzoneEnemies.ts: 25 comunes, 7 élites, 7 jefes; dibujos en MONSTER_SPECS/BEAST_SPECS/FLYER_SPECS).
+  Todos los jefes tienen 2.ª fase al 50 % (combat.ts → phase2). Bestiario por subzonas. Equilibrio: tests/balance.test.ts
+  («Balance por subzona»). Hoja de arte para revisar: mockups/subzonas/hoja.html (con el servidor: /mockups/subzonas/hoja.html?sub=afueras).
+  Capturas en el juego: scripts/subzone-shots.cjs.
+- S7–S8 Errantes y Kael: config/wanderers.ts (probabilidades, triángulos, 20 % del oro, robo, hostiles 20 % en 8–10, Kael 33 %
+  con garantía tras 4) y core/data/wanderers.ts (Kael, Brann, Sela, Odo, Varga, Malek, Iskra; Osric solo en el tutorial).
+  core/social.ts reescrito: el dado se tira al aliarse; el reparto lo cambia; un traidor espera 1 min y un momento de
+  debilidad (poca vida tras un combate, cofre con llave o cerca del portal) y SIEMPRE avisa antes. Sin duelo amistoso.
+  Kael: solo en la Mazmorra, linterna verde y aviso al acercarte, recuerda cuántas veces os habéis visto.
+  Pruebas: tests/wanderers.test.ts y scripts/e2e-social.cjs (reescrito).
+- S9 Tutorial: core/data/tutorial.ts (mapa a mano en las Afueras, 11 pasos con textos de ratón y de toque, recompensa),
+  store (startTutorial, tutorialCheck, finishTutorial, replayTutorial), guía en DungeonScreen (TutorialGuide) y flecha en la
+  escena. No se puede perder (vuelves al último punto seguro). «Saltar el tutorial» al crear personaje si ya se completó en este
+  navegador (localStorage cryptraiders.tutorialDone) y «Repetir el tutorial» en Ajustes (sin recompensas ni cambios).
+  Con ?debug las pruebas se lo saltan; con ?debug&tutorial se juega. Prueba: scripts/e2e-tutorial.cjs [url] [carpeta] [dispositivo].
+- Ayudas de desarrollo (?debug): __CRYPTRAIDERS__.actions.enterDungeon('rios'), __CRYPTRAIDERS__.dev.forceKael = true,
+  dev.forceWanderer = 'iskra', dev.forceHostile = true, dev.forceBetrayal = true.
+- Landing y hoja de ruta actualizadas (diez escenarios, errantes, tutorial).
+- Pendiente para el usuario: arte definitivo (lista de assets en el plan) y nombres si quiere cambiarlos.
+
+## Combate nuevo: barra D, armas por subzona y rarezas — C1–C6 HECHAS el 4/11 (commits pendientes del usuario)
+Plan, decisiones y maquetas: docs/plan-combate.md y mockups/combate (barra) y mockups/armas/hoja.html (armas nuevas).
+Decisiones del usuario: distribución D; Ímpetu (físico, Guerrero; Tónico de concentración) y Maná (mágico, Mago y futuras clases
+mágicas; poción de maná); las recargas pasan de un combate al siguiente dentro de la expedición; rareza y atributos para todo;
+legendarias como en el plan; desbloqueo de habilidades de clase A ELEGIR en los niveles 20/40/60/80.
+- C1 Datos: data/weapons.ts (familias, básico por familia, itemSpecials: 2 por mano o 4 a dos manos; mano vacía: Golpe bajo y
+  Golpe a lo loco / Guardia y Empujón), loadout.ts (right/left/classSkill), recargas (skills.ts → COOLDOWNS y `cooldown`;
+  combat.ts → cooldownLeft/tickCooldowns; expedition.cooldowns), costes a la mitad (COST_WITH_COOLDOWN), data/rarity.ts
+  (RARITY_RULES, AFFIXES, stackStats, stackName), ItemStack.rarity/affixes, pociones según clase (loot.ts → adaptDrops; las
+  guardadas se convierten al cargar). Dev: __CRYPTRAIDERS__.dev.give(id, rareza, atributos), dev.setLevel(n), dev.resetCooldowns().
+- C2 Barra D en CombatScreen.tsx (Atacar · Ataque especial · Habilidad · Mochila+Huir; submenús en el mismo sitio; círculo de
+  recarga; registro en una línea en móvil). Ímpetu en naranja. Guía: docs/guia-interfaz.md («Barra de combate»).
+- C3 Habilidades de clase: CLASSES[c].classSkills (5 por clase), core/classSkills.ts (pendingUnlocks, unlock/equip),
+  Profile.classSkills, ui/ClassSkills.tsx (tarjetas en Personaje y aviso en el pueblo). Mecánicas nuevas en combat.ts: escudo
+  (shield/ward), aguante (endure), parpadeo (evade), debilidad (weaken), golpes a todos (aoe), robo de vida, pacto de sangre.
+  Capturas automáticas: ?debug&noclass oculta el aviso.
+- C4 data/subzoneItems.ts: 27 armas/secundarias y 23 piezas nuevas (curvas ITEM_CURVES), 19 especiales nuevos, legendarias
+  con especial único (Velo de la Reina, Martillo de Ignaroth, Cadena de Belzar, Ojo del Abismo, Corona rota; y la Gran hoja de
+  obsidiana y el Cetro de azufre forjado). REUSED_BY_SUBZONE reparte las antiguas. Dos manos: inventory.ts → fixHands.
+  Botín: loot.ts → subzoneChestTable(…, sub). Iconos y aspecto provisionales en shared/art.ts y shared/gearLook.ts.
+- C5 Rareza sorteada al caer (rarity.ts → RARITY_ROLL, rollStacks; más alta en subzonas hondas, cofres con llave, élites y
+  jefes), atributos con efecto (vampiro, sangrado, verdugo, escarcha, sabio; veloz/piedra/ermitaño suman estadísticas),
+  especiales mejorados (rara −1 recarga al primero; épica además +15 %), precio de venta según rareza.
+- C6 Equilibrio: 188 pruebas en verde. Ajustes: Escudo de maná 30 % y recarga 3; Maldición de debilidad hace daño (x1.0);
+  Aplastar x1.4; Último bastión 2 turnos y recarga 9; recargas del plan −1 turno. La simulación usa la habilidad de clase que
+  tendría un jugador a su nivel y la mejor arma de su familia de la subzona. Victorias contra jefes (simulación): Mago 16–75 %,
+  Guerrero 29–99 %. A vigilar: el jefe del Umbral Carmesí es casi seguro para el Guerrero (99 %).
+- Pendiente: hablar con el usuario cómo actualizar la landing y la hoja de ruta (pidió comentarlo antes); arte definitivo
+  (lista de assets en docs/plan-combate.md, sección 11).
+
+## Landing v2, alpha y tráiler v5 — HECHO el 4/11 (commit pendiente del usuario)
+Decisiones: titular A («Confía en tu espada. En nadie más.»), lore versión B (aprobado el nuevo: el Bastión es lo que quedó en pie
+del castillo; tres criptas para tres clases de muertos; el fuego empezó abajo), sin clip en la portada (el usuario lo quitó),
+sin sección ni botón de Windows, tráiler de 60 s.
+- Landing (src/landing): menú fijo de 4 enlaces (VarkHollow, El juego, Galería, Hoja de ruta) que resalta la sección visible; en
+  móvil ☰ con Apoyar dentro y Jugar siempre visible. Orden: Portada · VarkHollow (intro, crónica desplegable y descenso por las
+  10 subzonas, plegado en móvil) · El juego (ciclo, 6 rasgos, clases, Kael) · Galería (tráiler, capturas, móvil) · Hoja de ruta ·
+  Cierre (#apoyar). Nota de alpha bajo el botón. Prueba: node scripts/landing-check.cjs [url] [carpeta].
+- «Demo» → «alpha» en la landing, metaetiquetas, páginas legales (apartado «La alpha y tu progreso»), título del juego y textos.
+  Borrado src/shared/MobileNotice.tsx (no se usaba y estaba desfasado).
+- Subzonas renombradas: Afueras del Bastión, El Bastión en ruinas, Las mazmorras del Bastión.
+- Capturas de la landing: node scripts/landing-shots.cjs <url>/play/ y python scripts/landing-webp.py (nuevas: especial, afueras).
+- Tráiler v5 (60 s, MP4 H.264 + WebM VP9, póster): guion y rótulos editables en trailer/v5/guion.json y trailer/v5/make.cjs.
+  Rehacerlo entero: npm run dev y luego npm run trailer (graba las tomas y monta); solo montaje: npm run trailer:render.
+  En la landing se reproduce silenciado, en bucle y con playsinline. También genera public/trailer/clip.* (sin uso ahora).
 
 ## Encargos guardados
 - Skins de traje completo: HECHO (docs/plan-skins.md, maquetas en mockups/skins).

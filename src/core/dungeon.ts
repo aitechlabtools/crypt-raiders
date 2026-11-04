@@ -11,7 +11,7 @@ export interface RoomDef extends Rect { id: string; name: string }
 
 export type EntityDef =
   | { kind: 'spawn'; x: number; y: number }
-  | { kind: 'enemy'; id: string; enemyId: string; x: number; y: number }
+  | { kind: 'enemy'; id: string; enemyId: string; x: number; y: number; /** Niveles de más por lo honda que está su sala. */ lvl?: number }
   | { kind: 'chest'; id: string; table: string; x: number; y: number }
   | { kind: 'door'; id: string; x: number; y: number }
   | { kind: 'trap'; id: string; x: number; y: number }
@@ -21,7 +21,11 @@ export type EntityDef =
   | { kind: 'rival'; x: number; y: number }
   | { kind: 'captive'; mercId: string; x: number; y: number }
   | { kind: 'vein'; id: string; vein: import('./mining').VeinId; x: number; y: number }
-  | { kind: 'decor'; sprite: 'bones' | 'skull' | 'barrel' | 'rubble'; x: number; y: number };
+  | { kind: 'decor'; sprite: DecorSprite; x: number; y: number };
+
+/** Piezas de decorado (cada subzona usa las suyas: data/subzones.ts → decor). */
+export const DECOR_SPRITES = ['bones', 'skull', 'barrel', 'rubble', 'grass', 'stake', 'puddle', 'crate', 'banner', 'cage', 'chain', 'urn', 'candles', 'roots', 'statue', 'coffin', 'lava', 'crystal', 'brazier', 'spikes'] as const;
+export type DecorSprite = (typeof DECOR_SPRITES)[number];
 
 export interface DungeonDef {
   id: string;
@@ -35,6 +39,8 @@ export interface DungeonDef {
   seed?: number;
   /** Zona a la que pertenece (por defecto, la Mazmorra). */
   zone?: import('./data/zones/types').ZoneId;
+  /** Subzona (afueras, castillo…). Las mazmorras antiguas no la tienen: se usa la primera de su zona. */
+  subzone?: import('./data/subzones').SubzoneId;
 }
 
 export const CRYPTS_OF_UMBRAVEL: DungeonDef = {

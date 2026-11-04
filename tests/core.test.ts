@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { getSkill } from '../src/core/data/skills';
 import { createCombat, performAction, runAITurn, currentActor, turnOrder, rollDamage, getCombatant, DOOM_ROUND, type Combatant } from '../src/core/combat';
 import { enemyCombatant, playerCombatant, rivalCombatant } from '../src/core/combatants';
 import { createProfile, needsRecruitKit } from '../src/core/profile';
@@ -9,7 +10,6 @@ import { buy, sell } from '../src/core/economy';
 import { makeRng } from '../src/core/rng';
 import { rollLoot, CHEST_TABLES } from '../src/core/loot';
 import { buildDungeon, CRYPTS_OF_UMBRAVEL, findPath } from '../src/core/dungeon';
-import { initialRival, talk, proposeAlliance, shareLoot, evaluateBetrayal, betrayalScore, playerBetrays } from '../src/core/social';
 import { ITEMS } from '../src/core/data/items';
 import { ENEMIES } from '../src/core/data/enemies';
 
@@ -155,7 +155,7 @@ describe('Combate por turnos', () => {
     let s = duel(3);
     const before = getCombatant(s, 'player').mp;
     s = performAction(s, { type: 'skill', skillId: 'rending_slash', targetId: 'e1' });
-    expect(getCombatant(s, 'player').mp).toBe(Math.min(before - 5 + 2, getCombatant(s, 'player').stats.maxMp));
+    expect(getCombatant(s, 'player').mp).toBe(Math.min(before - getSkill('rending_slash').cost + 2, getCombatant(s, 'player').stats.maxMp));
   });
   it('no permite usar una habilidad sin recurso', () => {
     let s = duel(3);
@@ -226,7 +226,7 @@ describe('Combate por turnos', () => {
   });
   it('un aliado de IA combate en el bando del jugador', () => {
     const p = warriorProfile();
-    let s = createCombat([playerCombatant(p.character, p.equipment, 999, 999), rivalCombatant(105, 'A', 1), enemyCombatant('skeleton', 'e')], 2);
+    let s = createCombat([playerCombatant(p.character, p.equipment, 999, 999), rivalCombatant('kael', 105, 'A', 1), enemyCombatant('skeleton', 'e')], 2);
     let guard = 0;
     let rivalActed = false;
     while (!s.outcome && guard++ < 100) {
@@ -330,41 +330,3 @@ describe('Mazmorra', () => {
   });
 });
 
-describe('Alianzas y traición', () => {
-  it('Kael no acepta una alianza sin hablar antes, y sí después', () => {
-    let r = initialRival();
-    expect(proposeAlliance(r).accepted).toBe(false);
-    r = talk(r).rival;
-    const res = proposeAlliance(r);
-    expect(res.accepted).toBe(true);
-    expect(res.rival.disposition).toBe('allied');
-  });
-  it('no compartir el botín aumenta el riesgo de traición', () => {
-    let r = proposeAlliance(talk(initialRival()).rival).rival;
-    const ctx = { playerHpPct: 0.8, playerLootValue: 200, nearPortal: false };
-    const fair = shareLoot(r, ['old_coin'], 3).rival;
-    const greedy = shareLoot(r, [], 3).rival;
-    expect(betrayalScore(greedy, ctx)).toBeGreaterThan(betrayalScore(fair, ctx));
-    r = greedy;
-    const near = evaluateBetrayal(shareLoot(r, [], 3).rival, { playerHpPct: 0.3, playerLootValue: 600, nearPortal: true });
-    expect(near.action).toBe('betray');
-    expect(near.rival.disposition).toBe('hostile');
-  });
-  it('un aliado tratado con justicia no traiciona en condiciones normales', () => {
-    let r = proposeAlliance(talk(talk(initialRival()).rival).rival).rival;
-    r = shareLoot(r, ['old_coin'], 2).rival;
-    expect(evaluateBetrayal(r, { playerHpPct: 0.9, playerLootValue: 100, nearPortal: true }).action).not.toBe('betray');
-  });
-  it('Kael lleva equipo real que se puede saquear', () => {
-    const r = initialRival();
-    expect(r.bagItemIds).toEqual(expect.arrayContaining(['bone_dagger', 'leather_hood', 'swift_boots']));
-    expect(r.gold).toBeGreaterThan(0);
-    const after = shareLoot(proposeAlliance(talk(r).rival).rival, ['golden_chalice'], 2).rival;
-    expect(after.bagItemIds).toContain('golden_chalice');
-  });
-  it('el jugador puede traicionar', () => {
-    const r = playerBetrays(proposeAlliance(talk(initialRival()).rival).rival);
-    expect(r.disposition).toBe('hostile');
-    expect(r.betrayedBy).toBe('player');
-  });
-});

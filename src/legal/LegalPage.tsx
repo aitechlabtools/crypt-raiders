@@ -71,7 +71,7 @@ export function LegalPage({ title, intro, updated, sections }: { title: string; 
             ))}
             <div className="flex flex-wrap gap-3 mt-12">
               <a href="./" className="btn-ghost px-6 py-3">← Volver a la portada</a>
-              <a href={PLAY_URL} className="btn-play px-6 py-3">Jugar la demo gratis</a>
+              <a href={PLAY_URL} className="btn-play px-6 py-3">Jugar la alpha gratis</a>
             </div>
           </div>
         </div>

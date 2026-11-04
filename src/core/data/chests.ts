@@ -21,6 +21,9 @@ export const CHEST_TYPES: Record<string, ChestType> = {
   'infierno:common': { name: 'Baúl calcinado', key: null, look: 'common' },
   'infierno:rich': { name: 'Cofre infernal', key: 'sulfur_key', look: 'rich' },
   'infierno:boss': { name: 'Relicario sellado', key: 'relic_key', look: 'boss' },
+  // Tutorial
+  'tut:box': { name: 'Baúl abandonado', key: null, look: 'common' },
+  'tut:rich': { name: 'Cofre de hierro', key: 'iron_key', look: 'rich' },
 };
 
 export function chestType(table: string): ChestType {

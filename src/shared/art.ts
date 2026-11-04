@@ -586,6 +586,48 @@ export const MONSTER_SPECS: Record<string, HumanoidSpec> = {
   hell_knight: { skin: PAL.threat1, torso: '#2a1414', trim: PAL.fire1, legs: '#2a1414', boots: PAL.outline, cape: PAL.threat0, head: 'helmet', headColor: '#3a1a1a', weapon: 'sword', weaponColor: PAL.fire1, offhand: 'shield', shieldColor: '#3a1a1a', shieldRim: PAL.fire1, shieldEmblem: PAL.fire2, torsoStyle: 'mail', eye: PAL.fire2 },
   sulfur_caller: { skin: '#d9c06a', torso: '#4a3a10', trim: '#e8d24a', legs: '#2a2008', boots: '#1a1404', head: 'hood', headColor: '#6b5a14', weapon: 'staff', weaponColor: PAL.earth0, orb: '#e8d24a', torsoStyle: 'robe', eye: '#ffef6a' },
   chain_warden: { skin: PAL.stone3, torso: PAL.steel0, trim: PAL.fire1, legs: PAL.stone2, boots: PAL.outline, head: 'helmet', headColor: PAL.stone2, weapon: 'mace', offhand: 'shield', shieldColor: PAL.stone2, shieldRim: PAL.steel1, torsoStyle: 'mail', eye: PAL.fire2 },
+  // ── Mercenarios errantes ──
+  wand_brann: { skin: SKIN_COLORS[1], torso: PAL.earth1, trim: PAL.gold1, legs: PAL.stone2, boots: PAL.earth0, cape: PAL.earth2, head: 'hair', headColor: PAL.earth3, weapon: 'staff', weaponColor: PAL.earth2, orb: PAL.steel2, torsoStyle: 'tunic', eye: PAL.outline },
+  wand_sela: { skin: SKIN_COLORS[0], torso: PAL.night1, trim: PAL.threat2, legs: PAL.night0, boots: PAL.outline, cape: PAL.night0, head: 'hood', headColor: PAL.night1, weapon: 'dagger', weaponColor: PAL.steel3, offhand: 'dagger', torsoStyle: 'tunic', eye: PAL.outline },
+  wand_odo: { skin: SKIN_COLORS[0], torso: '#d8d0b8', trim: PAL.gold1, legs: '#d8d0b8', boots: PAL.earth0, head: 'hood', headColor: '#c8c0a8', weapon: 'staff', weaponColor: PAL.earth2, orb: PAL.gold3, torsoStyle: 'robe', eye: PAL.outline },
+  wand_varga: { skin: SKIN_COLORS[2], torso: PAL.earth1, trim: PAL.steel1, legs: PAL.stone2, boots: PAL.earth0, head: 'hair', headColor: PAL.threat1, weapon: 'mace', weaponColor: PAL.steel1, torsoStyle: 'shirt', hands: PAL.earth1, eye: PAL.outline },
+  wand_malek: { skin: SKIN_COLORS[1], torso: '#2a2228', trim: PAL.fire1, legs: '#2a2228', boots: PAL.outline, cape: PAL.threat0, head: 'hair', headColor: PAL.stone3, weapon: 'sword', weaponColor: '#3a2a3a', offhand: 'shield', shieldColor: '#2a2228', shieldRim: PAL.fire1, torsoStyle: 'mail', hands: PAL.steel0, eye: PAL.fire3 },
+  wand_iskra: { skin: SKIN_COLORS[0], torso: PAL.fire0, trim: PAL.fire2, legs: '#3a1410', boots: PAL.outline, cape: PAL.fire1, head: 'hair', headColor: PAL.fire2, weapon: 'staff', weaponColor: PAL.earth0, orb: PAL.fire3, torsoStyle: 'robe', eye: PAL.outline },
+  wand_osric: { skin: SKIN_COLORS[0], torso: PAL.earth2, trim: PAL.earth0, legs: PAL.stone1, boots: PAL.earth0, head: 'hair', headColor: PAL.earth0, weapon: 'dagger', weaponColor: PAL.steel2, torsoStyle: 'shirt', eye: PAL.outline },
+  // ── Subzonas (criaturas nuevas; marcadores hasta el arte definitivo) ──
+  mordrek: { skin: SKIN_COLORS[1], torso: PAL.steel0, trim: PAL.threat1, legs: PAL.stone2, boots: PAL.earth0, cape: PAL.threat0, head: 'hair', headColor: PAL.outline, weapon: 'sword', weaponColor: PAL.steel2, offhand: 'shield', shieldColor: PAL.threat0, shieldRim: PAL.steel1, torsoStyle: 'mail', eye: PAL.threat3 },
+  hollow_armor: { skin: PAL.outline, torso: PAL.steel1, trim: PAL.steel2, legs: PAL.steel0, boots: PAL.steel0, head: 'helmet', headColor: PAL.steel1, weapon: 'sword', weaponColor: PAL.steel2, offhand: 'shield', shieldColor: PAL.steel0, shieldRim: PAL.steel2, torsoStyle: 'mail', eye: PAL.ice, hands: PAL.steel1 },
+  hanged_servant: { skin: '#8a9478', torso: PAL.bone1, trim: PAL.stone2, legs: PAL.stone2, boots: PAL.stone1, head: 'hair', headColor: PAL.stone1, weapon: 'none', torsoStyle: 'shirt', eye: PAL.threat3, hands: '#6b745c' },
+  fallen_guard_knight: { skin: PAL.bone1, torso: PAL.steel1, trim: PAL.gold1, legs: PAL.steel0, boots: PAL.steel0, cape: PAL.threat0, head: 'helmet', headColor: PAL.steel2, weapon: 'greatsword', weaponColor: PAL.steel3, torsoStyle: 'mail', ribs: true, eye: PAL.ice },
+  burned_seneschal: { skin: PAL.fire0, torso: PAL.outline, trim: PAL.fire1, legs: PAL.stone1, boots: PAL.outline, cape: PAL.fire0, head: 'crown', weapon: 'mace', weaponColor: PAL.fire2, torsoStyle: 'robe', eye: PAL.fire3, hands: PAL.fire0 },
+  torturer: { skin: SKIN_COLORS[0], torso: PAL.earth0, trim: PAL.earth1, legs: PAL.stone1, boots: PAL.earth0, head: 'hood', headColor: PAL.outline, weapon: 'mace', weaponColor: PAL.steel1, torsoStyle: 'shirt', eye: PAL.threat3, hands: PAL.earth1 },
+  mad_prisoner: { skin: SKIN_COLORS[0], torso: PAL.bone0, trim: PAL.earth1, legs: PAL.bone0, boots: SKIN_COLORS[0], head: 'hair', headColor: PAL.bone1, weapon: 'none', torsoStyle: 'shirt', eye: PAL.threat3 },
+  executioner: { skin: SKIN_COLORS[1], torso: PAL.outline, trim: PAL.threat1, legs: PAL.stone1, boots: PAL.outline, head: 'hood', headColor: PAL.outline, weapon: 'axe', weaponColor: PAL.steel2, torsoStyle: 'shirt', eye: PAL.threat3, hands: PAL.earth0 },
+  bone_colossus: { skin: PAL.bone2, torso: PAL.bone1, trim: PAL.bone0, legs: PAL.bone2, boots: PAL.bone1, head: 'skull', weapon: 'mace', weaponColor: PAL.bone2, ribs: true, eye: PAL.magic3, hands: PAL.bone1 },
+  ossuary_monk: { skin: PAL.bone2, torso: PAL.earth1, trim: PAL.bone1, legs: PAL.earth0, boots: PAL.earth0, head: 'hoodskull', headColor: PAL.earth1, weapon: 'staff', weaponColor: PAL.bone1, orb: PAL.magic2, torsoStyle: 'robe', eye: PAL.magic3 },
+  bone_abbot: { skin: PAL.bone3, torso: PAL.bone1, trim: PAL.gold1, legs: PAL.bone1, boots: PAL.bone0, cape: PAL.earth1, head: 'crown', weapon: 'staff', weaponColor: PAL.bone2, orb: PAL.magic2, torsoStyle: 'robe', ribs: true, eye: PAL.magic3 },
+  drowned: { skin: '#6f8f88', torso: '#2f4a4a', trim: '#4a6b66', legs: '#2f4a4a', boots: '#1f3434', head: 'hair', headColor: '#1a2a2a', weapon: 'none', torsoStyle: 'shirt', eye: PAL.ice, hands: '#5a7a74' },
+  mourner: { skin: '#cfd8e3', torso: PAL.outline, trim: PAL.stone2, legs: PAL.outline, boots: PAL.outline, head: 'hood', headColor: PAL.stone0, weapon: 'none', torsoStyle: 'robe', eye: PAL.ice },
+  water_lady: { skin: '#a8d0d8', torso: '#1f4a5a', trim: PAL.ice, legs: '#1f4a5a', boots: '#13303a', cape: '#2a6070', head: 'hair', headColor: '#3a8a9a', weapon: 'staff', weaponColor: '#5aa0b0', orb: PAL.ice, torsoStyle: 'robe', eye: PAL.ice },
+  black_ferryman: { skin: PAL.bone2, torso: '#13303a', trim: PAL.ice, legs: '#0e2028', boots: PAL.outline, cape: '#0e2028', head: 'hoodskull', headColor: '#13303a', weapon: 'greatsword', weaponColor: PAL.bone1, torsoStyle: 'robe', eye: PAL.ice },
+  embalmed_noble: { skin: PAL.bone2, torso: PAL.bone2, trim: PAL.gold2, legs: PAL.bone1, boots: PAL.gold0, cape: PAL.magic0, head: 'crown', weapon: 'sword', weaponColor: PAL.gold2, torsoStyle: 'tunic', eye: PAL.gold3, hands: PAL.bone1 },
+  marble_gargoyle: { skin: '#d8d4cc', torso: '#bfbab0', trim: '#e8e4dc', legs: '#a8a398', boots: '#8a857a', head: 'helmet', headColor: '#d8d4cc', weapon: 'none', torsoStyle: 'mail', eye: PAL.gold2, hands: '#bfbab0' },
+  spectral_duelist: { skin: '#b9c7d6', torso: '#3d4a5c', trim: '#8fa8c8', legs: '#2a3240', boots: '#1f2630', cape: '#5c6b80', head: 'hair', headColor: '#6f7f96', weapon: 'sword', weaponColor: '#dfe8f2', offhand: 'dagger', torsoStyle: 'tunic', eye: PAL.ice },
+  flame_cultist: { skin: SKIN_COLORS[0], torso: PAL.threat1, trim: PAL.fire1, legs: PAL.threat0, boots: PAL.outline, head: 'hood', headColor: PAL.threat0, weapon: 'dagger', weaponColor: PAL.fire2, torsoStyle: 'robe', eye: PAL.fire3 },
+  bleeding_ghoul: { skin: '#8f4a44', torso: PAL.threat0, trim: PAL.threat1, legs: '#8f4a44', boots: PAL.threat0, head: 'skull', weapon: 'none', ribs: true, eye: PAL.fire3, hands: '#6b3430' },
+  flayed_penitent: { skin: '#b0544a', torso: '#b0544a', trim: PAL.threat0, legs: PAL.earth0, boots: PAL.outline, head: 'hood', headColor: PAL.earth0, weapon: 'dagger', weaponColor: PAL.steel1, torsoStyle: 'shirt', eye: PAL.threat3 },
+  umbral_priest: { skin: PAL.bone2, torso: PAL.threat0, trim: PAL.gold2, legs: PAL.threat0, boots: PAL.outline, cape: PAL.threat1, head: 'hoodskull', headColor: PAL.threat0, weapon: 'staff', weaponColor: PAL.gold1, orb: PAL.threat3, torsoStyle: 'robe', eye: PAL.fire3 },
+  vharok: { skin: PAL.threat1, torso: PAL.outline, trim: PAL.threat2, legs: PAL.outline, boots: PAL.outline, cape: PAL.threat0, head: 'helmet', headColor: PAL.threat0, weapon: 'greatsword', weaponColor: PAL.threat3, torsoStyle: 'mail', eye: PAL.fire3, hands: PAL.outline },
+  magma_elemental: { skin: PAL.fire1, torso: '#3a1a10', trim: PAL.fire2, legs: '#3a1a10', boots: PAL.fire0, head: 'skull', weapon: 'none', torsoStyle: 'mail', eye: PAL.fire3, hands: PAL.fire1 },
+  obsidian_gargoyle: { skin: '#2a2230', torso: '#1a1420', trim: PAL.magic1, legs: '#1a1420', boots: PAL.outline, head: 'helmet', headColor: '#2a2230', weapon: 'none', torsoStyle: 'mail', eye: PAL.fire2, hands: '#2a2230' },
+  hound_master: { skin: SKIN_COLORS[2], torso: '#3a1a10', trim: PAL.fire1, legs: PAL.stone1, boots: PAL.outline, cape: PAL.threat0, head: 'hair', headColor: PAL.outline, weapon: 'mace', weaponColor: PAL.steel1, torsoStyle: 'mail', eye: PAL.fire3, hands: PAL.earth0 },
+  ignaroth: { skin: PAL.fire0, torso: '#2a1408', trim: PAL.fire2, legs: '#2a1408', boots: PAL.outline, cape: PAL.fire0, head: 'hair', headColor: PAL.fire1, weapon: 'mace', weaponColor: PAL.steel1, torsoStyle: 'mail', eye: PAL.fire3, hands: PAL.steel0 },
+  flayer: { skin: '#c9786a', torso: PAL.threat0, trim: PAL.bone1, legs: PAL.earth0, boots: PAL.outline, head: 'hair', headColor: PAL.outline, weapon: 'axe', weaponColor: PAL.bone2, torsoStyle: 'shirt', eye: PAL.fire3, hands: PAL.threat1 },
+  burning_soul: { skin: PAL.fire2, torso: PAL.fire1, trim: PAL.fire3, legs: PAL.fire0, boots: PAL.fire0, cape: PAL.fire0, head: 'hoodskull', headColor: PAL.fire1, weapon: 'none', torsoStyle: 'robe', eye: PAL.fire3 },
+  pit_lord: { skin: PAL.threat1, torso: PAL.outline, trim: PAL.fire1, legs: '#2a1414', boots: PAL.outline, head: 'crown', weapon: 'axe', weaponColor: PAL.fire1, torsoStyle: 'mail', eye: PAL.fire3, hands: PAL.threat0 },
+  chained_herald: { skin: PAL.stone3, torso: PAL.stone1, trim: PAL.steel1, legs: PAL.stone1, boots: PAL.outline, head: 'hood', headColor: PAL.stone1, weapon: 'mace', weaponColor: PAL.steel1, torsoStyle: 'shirt', eye: PAL.fire2, hands: PAL.steel0 },
+  soul_devourer: { skin: PAL.magic2, torso: PAL.magic0, trim: PAL.magic2, legs: PAL.magic0, boots: PAL.outline, cape: PAL.magic1, head: 'hoodskull', headColor: PAL.magic0, weapon: 'none', torsoStyle: 'robe', eye: PAL.magic3 },
+  belzar_herald: { skin: PAL.threat1, torso: '#1a0a0a', trim: PAL.gold1, legs: '#2a1010', boots: PAL.outline, cape: PAL.gold0, head: 'helmet', headColor: '#2a1010', weapon: 'sword', weaponColor: PAL.fire2, offhand: 'shield', shieldColor: '#2a1010', shieldRim: PAL.gold1, torsoStyle: 'mail', eye: PAL.fire3, hands: PAL.outline },
   belzar: { skin: PAL.threat1, torso: '#1a0a0a', trim: PAL.gold2, legs: '#2a1010', boots: PAL.outline, cape: PAL.threat0, head: 'crown', weapon: 'greatsword', torsoStyle: 'mail', eye: PAL.fire3, hands: PAL.outline },
 };
 
@@ -593,6 +635,17 @@ export const MONSTER_SPECS: Record<string, HumanoidSpec> = {
 export const BEAST_SPECS: Record<string, { body: string; belly: string; eye: string; big: boolean }> = {
   rat: { body: '#5a4a44', belly: '#8a7a6c', eye: PAL.threat3, big: false },
   hound: { body: '#3a1414', belly: PAL.fire1, eye: PAL.fire3, big: true },
+  starving_wolf: { body: '#5c5a5e', belly: '#8a8690', eye: PAL.gold3, big: false },
+  pit_worm: { body: '#b8a08a', belly: '#d8c4ae', eye: PAL.threat3, big: false },
+  crypt_leech: { body: '#4a1a24', belly: '#7a3040', eye: PAL.ice, big: false },
+  abyss_spawn: { body: PAL.magic0, belly: PAL.magic2, eye: PAL.fire3, big: true },
+  sulfur_beast: { body: '#6b5a14', belly: '#e8d24a', eye: PAL.fire3, big: true },
+};
+
+/** Criaturas voladoras (murciélago, cuervo): mismo dibujo con otra paleta. */
+export const FLYER_SPECS: Record<string, { body: string; wing: string; wingLight: string; eye: string; beak?: string }> = {
+  bat: { body: '#3b2a3a', wing: '#2a1d2c', wingLight: '#4e3a50', eye: PAL.threat3 },
+  carrion_crow: { body: '#3a3741', wing: '#2a2830', wingLight: '#625d69', eye: PAL.gold3, beak: PAL.bone1 },
 };
 export function drawBeast(kind: string, frame: number, hurt = false): Canvas {
   const b = BEAST_SPECS[kind] ?? BEAST_SPECS.rat;
@@ -620,17 +673,18 @@ export function drawBeast(kind: string, frame: number, hurt = false): Canvas {
 }
 
 /** Murciélago: 3 fotogramas de aleteo. */
-export function drawBat(frame: number, hurt = false): Canvas {
+export function drawBat(frame: number, hurt = false, kind = 'bat'): Canvas {
+  const f = FLYER_SPECS[kind] ?? FLYER_SPECS.bat;
   const p = new Pix(22, 16);
-  const body = hurt ? PAL.threat2 : '#3b2a3a';
-  const wing = hurt ? PAL.threat1 : '#2a1d2c';
-  const wingL = '#4e3a50';
+  const body = hurt ? PAL.threat2 : f.body;
+  const wing = hurt ? PAL.threat1 : f.wing;
+  const wingL = f.wingLight;
   p.rect(9, 6, 4, 5, body);
   p.rect(9, 5, 1, 1, body);
   p.rect(12, 5, 1, 1, body);
-  p.px(10, 7, PAL.threat3);
-  p.px(11, 7, PAL.threat3);
-  p.px(10, 9, PAL.bone3);
+  p.px(10, 7, f.eye);
+  p.px(11, 7, f.eye);
+  if (f.beak) { p.px(10, 9, f.beak); p.px(11, 9, f.beak); p.px(11, 10, f.beak); } else p.px(10, 9, PAL.bone3);
   const up = frame === 0, mid = frame === 1;
   for (let i = 0; i < 8; i++) {
     const yy = up ? 6 - Math.floor(i / 2) : mid ? 7 : 7 + Math.floor(i / 3);
@@ -854,7 +908,11 @@ export function drawTorch(frame: number): Canvas {
   return p.c;
 }
 
-export function drawDecor(kind: 'bones' | 'skull' | 'barrel' | 'rubble'): Canvas {
+/** Decorado alto (de pie): se ordena en profundidad con los personajes. */
+export const TALL_DECOR = new Set(['barrel', 'stake', 'crate', 'banner', 'cage', 'statue', 'coffin', 'brazier', 'crystal', 'urn', 'candles']);
+
+export function drawDecor(kind: string): Canvas {
+  if (!['bones', 'skull', 'barrel', 'rubble'].includes(kind)) return drawDecorExtra(kind);
   const p = new Pix(16, 14);
   if (kind === 'bones') {
     p.rect(3, 10, 8, 1, PAL.bone2);
@@ -987,6 +1045,16 @@ const ICON_SHAPES: Record<string, string[]> = {
   mace: ['............', '.......aaa..', '......ahaaA.', '......aaaaA.', '.......aAA..', '......bB....', '.....bB.....', '.....bB.....', '....bB......', '....bB......', '...gg.......', '............'],
   ore: ['............', '............', '............', '....AAA.....', '...AahAA....', '..AaaahaA...', '..AaghaaaA..', '.AaaaagaaA..', '.AaaaaaaaA..', '..AAAAAAA...', '............', '............'],
   pick: ['............', '..aaaa......', '.a....aa....', '......bAa...', '.....bB..a..', '....bB....a.', '...bB......', '..bB........', '.bB.........', 'bB..........', '............', '............'],
+  // ── Formas nuevas (C4, provisionales hasta que estén los iconos definitivos) ──
+  spear: ['...........h', '..........ha', '.........aaA', '........bA..', '.......bB...', '......bB....', '.....bB.....', '....bB......', '...bB.......', '..bB........', '.bB.........', '............'],
+  wand: ['............', '............', '.........h..', '........hah.', '.........h..', '.......bB...', '......bB....', '.....bB.....', '....bB......', '...gg.......', '............', '............'],
+  orb: ['............', '............', '....AAAA....', '...AhaaaA...', '..AhhaaaaA..', '..AhaaaaaA..', '..AaaaaaAA..', '...AaaaAA...', '....AAAA....', '...gggggG...', '..gGGGGGGG..', '............'],
+  torch: ['............', '.....h......', '....hah.....', '....aAa.....', '.....A......', '....bbB.....', '.....bB.....', '.....bB.....', '.....bB.....', '.....bB.....', '.....bB.....', '............'],
+  lantern: ['............', '.....gg.....', '....g..g....', '....gggg....', '...gAAAAg...', '...gAhaAg...', '...gAaaAg...', '...gAAAAg...', '....gggg....', '............', '............', '............'],
+  greatsword: ['...........w', '..........wa', '.........wa.', '........wa..', '.......wa...', '......wa....', '.....wa.....', '..g.wa......', '...gaG......', '...Bg.g.....', '..B.........', '.B..........'],
+  crown: ['............', '............', '............', '..g..g..g...', '..gg.gg.gg..', '..gaggagg...', '..ggggggg...', '..gyyyyyG...', '..GGGGGGG...', '............', '............', '............'],
+  chain: ['............', '.aa.........', 'a..a........', '.aa.aa......', '....a..a....', '.....aa.aa..', '........a..a', '.........aa.', '............', '............', '............', '............'],
+  hammer: ['............', '.....aaaaa..', '.....ahaaA..', '.....aaaaA..', '......AAA...', '.......bB...', '......bB....', '.....bB.....', '....bB......', '...bB.......', '..gg........', '............'],
   key: ['............', '............', '..ggg.......', '.g...g......', '.g...gggggg.', '.g...g..g.g.', '..ggg...g.g.', '............', '............', '............', '............', '............'],
 };
 
@@ -1030,6 +1098,7 @@ const ICONS: Record<string, IconVariant> = {
   amulet_heart: { shape: 'amulet', a: PAL.threat2, h: PAL.threat3, g: PAL.gold2 },
   potion_red: { shape: 'potion', a: PAL.threat2, A: PAL.threat1, h: PAL.threat3 },
   potion_blue: { shape: 'potion', a: '#3d7be0', A: '#1f3f80', h: PAL.ice },
+  potion_orange: { shape: 'potion', a: '#e08a3d', A: '#80461f', h: '#ffd29a' },
   potion_green: { shape: 'potion', a: PAL.moss2, A: PAL.moss1, h: '#c8f0a0' },
   dust: { shape: 'dust', a: PAL.bone2 },
   wing: { shape: 'wing', a: '#4e3a50', A: '#2a1d2c' },
@@ -1040,6 +1109,49 @@ const ICONS: Record<string, IconVariant> = {
   ore_copper: { shape: 'ore', a: PAL.stone3, A: PAL.stone1, h: '#e08a4a', g: '#5fbf8a' },
   ore_iron: { shape: 'ore', a: PAL.stone2, A: PAL.stone0, h: '#a8b4c0', g: '#6a4a3a' },
   ore_silver: { shape: 'ore', a: PAL.stone3, A: PAL.stone1, h: '#f2f6fa', g: '#cfd8e3' },
+  // ── Armas y equipo de las subzonas (C4): marcadores provisionales ──
+  spear: { shape: 'spear', a: PAL.steel2, h: PAL.steel3 },
+  spear_bone: { shape: 'spear', a: PAL.bone2, h: PAL.bone3 },
+  spear_sea: { shape: 'spear', a: '#5fb3a8', h: '#bff0e8' },
+  wand: { shape: 'wand', a: PAL.ice, h: '#ffffff' },
+  wand_bone: { shape: 'wand', a: '#7cff9a', h: PAL.bone3 },
+  wand_fire: { shape: 'wand', a: PAL.fire1, h: PAL.fire3 },
+  torch: { shape: 'torch', a: PAL.fire1, A: PAL.fire0, h: PAL.fire3 },
+  torch_hell: { shape: 'torch', a: PAL.threat2, A: PAL.threat0, h: '#ffef6a' },
+  lantern: { shape: 'lantern', a: '#7cff9a', A: '#2a5a3a', h: '#d8ffe0', g: PAL.steel1 },
+  orb: { shape: 'orb', a: '#6f7f96', A: '#2f3542', h: '#cfd8e3' },
+  orb_bone: { shape: 'orb', a: PAL.bone2, A: PAL.bone0, h: PAL.bone3 },
+  orb_veil: { shape: 'orb', a: PAL.ice, A: '#3d7be0', h: '#ffffff', g: PAL.gold2 },
+  orb_fire: { shape: 'orb', a: PAL.fire1, A: PAL.fire0, h: PAL.fire3 },
+  orb_eye: { shape: 'orb', a: PAL.threat2, A: PAL.threat0, h: '#ffef6a', g: PAL.outline },
+  mace_iron: { shape: 'mace', a: PAL.steel2, A: PAL.steel1, h: PAL.steel3 },
+  mace_blood: { shape: 'mace', a: PAL.threat2, A: PAL.threat0, h: PAL.bone3 },
+  hammer_fire: { shape: 'hammer', a: '#3a2a3a', A: PAL.outline, h: PAL.fire2 },
+  chain: { shape: 'chain', a: PAL.steel1, A: PAL.steel0 },
+  dagger_steel: { shape: 'dagger', a: PAL.steel3, g: PAL.gold2 },
+  dagger_blood: { shape: 'dagger', a: PAL.threat2, g: PAL.bone2 },
+  greatsword: { shape: 'greatsword', a: PAL.steel2, g: PAL.steel1 },
+  greatsword_dark: { shape: 'greatsword', a: '#3a2a3a', A: PAL.outline, g: PAL.fire2 },
+  greataxe: { shape: 'axe', a: '#e8d24a', A: '#8a6a1a', g: PAL.earth1 },
+  greatstaff: { shape: 'staff', a: PAL.steel2, h: PAL.ice, A: PAL.steel0 },
+  greatstaff_dark: { shape: 'staff', a: PAL.outline, h: PAL.fire2, A: PAL.threat0 },
+  sword_noble: { shape: 'sword', a: '#e8ecf2', g: PAL.gold3 },
+  shield_chain: { shape: 'shield', a: PAL.steel1, A: PAL.outline, g: PAL.fire1 },
+  hood_dark: { shape: 'hood', a: '#2a2830', A: PAL.outline },
+  hood_blood: { shape: 'hood', a: PAL.threat1, A: PAL.threat0 },
+  helm_bone: { shape: 'helm', a: PAL.bone2, A: PAL.bone0 },
+  helm_obsidian: { shape: 'helm', a: '#3a2a3a', A: PAL.outline },
+  crown: { shape: 'crown', a: '#cfd8e3', g: '#cfd8e3' },
+  crown_dark: { shape: 'crown', a: PAL.threat2, g: '#3a2a3a' },
+  robe_sea: { shape: 'robe', a: '#3d6a6a', A: '#1f3a3a', g: '#7cd0c0' },
+  plate_blood: { shape: 'tunic', a: PAL.threat1, A: PAL.threat0, g: PAL.bone2 },
+  plate_chain: { shape: 'tunic', a: PAL.steel1, A: PAL.outline, g: PAL.fire2 },
+  gloves_silk: { shape: 'gloves', a: '#e8ecf2', A: '#9aa4b0', g: PAL.night1 },
+  gauntlets_fire: { shape: 'gloves', a: '#3a2a3a', A: PAL.outline, g: PAL.fire2 },
+  boots_ash: { shape: 'boots', a: '#5a5458', A: '#2a2628', g: PAL.fire1 },
+  ring_sea: { shape: 'ring', a: '#2a2830', h: '#7cd0c0', g: '#5fb3a8' },
+  ring_dark: { shape: 'ring', a: PAL.outline, h: PAL.threat3, g: PAL.steel1 },
+  amulet_sulfur: { shape: 'amulet', a: '#e8d24a', h: '#fff4a0', g: PAL.earth1 },
   pick: { shape: 'pick', a: PAL.steel2, A: PAL.steel1 },
   pick_steel: { shape: 'pick', a: PAL.steel3, A: PAL.ice },
 };
@@ -1107,8 +1219,227 @@ export function allyBackUrl(sprite: string, scale = 4, pose: 'idle' | 'attack' |
 }
 
 export function monsterUrl(sprite: string, scale = 4, pose: 'idle' | 'attack' | 'hurt' = 'idle'): string {
-  if (sprite === 'bat') return cachedUrl(`bat:${pose}`, () => drawBat(pose === 'attack' ? 0 : 1, pose === 'hurt'), scale);
+  if (FLYER_SPECS[sprite]) return cachedUrl(`fly:${sprite}:${pose}`, () => drawBat(pose === 'attack' ? 0 : 1, pose === 'hurt', sprite), scale);
   if (BEAST_SPECS[sprite]) return cachedUrl(`beast:${sprite}:${pose}`, () => drawBeast(sprite, pose === 'attack' ? 1 : 0, pose === 'hurt'), scale);
   const spec = MONSTER_SPECS[sprite] ?? MONSTER_SPECS.skeleton;
   return cachedUrl(`mon:${sprite}:${pose}`, () => drawHumanoid(spec, 0, pose), scale);
+}
+
+// ── Baldosas por subzona ───────────────────────────────────────────────
+// Marcadores hechos por código hasta que existan las baldosas definitivas (32×16 suelos, 32×38 muros).
+// Cada subzona elige un estilo de suelo y de muro y su paleta.
+export interface Tileset {
+  floor: 'flag' | 'mud' | 'rug' | 'wet' | 'bone' | 'marble' | 'blood' | 'lava';
+  wall: 'brick' | 'palisade' | 'bone' | 'marble' | 'rock';
+  /** Suelo: junta, base oscura, base, base clara, acento. */
+  f: [string, string, string, string, string];
+  /** Muro: luz, medio, sombra, junta, acento. */
+  w: [string, string, string, string, string];
+}
+
+export const TILESETS: Record<string, Tileset> = {
+  afueras: { floor: 'mud', wall: 'palisade', f: ['#241a12', '#3a2a1c', '#4a3524', '#5c4430', '#3c5130'], w: ['#7a5a3a', '#5c4128', '#3e2a18', '#24170c', '#9a7a4a'] },
+  castillo: { floor: 'rug', wall: 'brick', f: ['#2a2622', '#4a443e', '#5a534b', '#6e665c', '#7a1c22'], w: ['#7a7268', '#5e574f', '#46403a', '#2a2622', '#9a6b1a'] },
+  calabozos: { floor: 'wet', wall: 'brick', f: [PAL.stone1, '#2e332e', '#3a403a', '#4a524a', '#2a4a4a'], w: ['#55605a', '#414a44', '#2e3530', '#1c211e', PAL.moss1] },
+  osario: { floor: 'bone', wall: 'bone', f: ['#26241f', '#3e3a33', '#4d483f', '#5e584d', PAL.bone2], w: [PAL.bone2, PAL.bone1, PAL.bone0, '#3a362e', PAL.outline] },
+  catacumbas: { floor: 'wet', wall: 'brick', f: ['#162024', '#22323a', '#2a3e48', '#355060', '#2f7f8f'], w: ['#3f5a66', '#2f4650', '#20333b', '#121e24', PAL.moss1] },
+  panteon: { floor: 'marble', wall: 'marble', f: ['#8a857a', '#bfbab0', '#d0cbc1', '#e2ded6', PAL.gold1], w: ['#e8e4dc', '#c9c4ba', '#a49f95', '#6e6a62', PAL.gold2] },
+  carmesi: { floor: 'blood', wall: 'brick', f: ['#1e0e10', '#3a1a1c', '#4a2224', '#5c2c2c', PAL.threat1], w: ['#6b3434', '#522628', '#3a1a1c', '#200c0e', PAL.fire1] },
+  puertas: { floor: 'lava', wall: 'rock', f: ['#120c0c', '#241818', '#2e1f1e', '#3a2826', PAL.fire1], w: ['#3e302e', '#2e2220', '#1e1614', '#0e0a0a', PAL.fire1] },
+  rios: { floor: 'lava', wall: 'rock', f: ['#140a08', '#2a1610', '#341c14', '#40241a', PAL.fire2], w: ['#4a2e22', '#36201a', '#241410', '#120a08', PAL.fire2] },
+  trono: { floor: 'lava', wall: 'rock', f: ['#0e0a10', '#1e1620', '#281e2a', '#342636', PAL.threat2], w: ['#3a2e3e', '#2a2030', '#1a1420', '#0c0810', PAL.threat2] },
+};
+
+export function drawFloorTs(variant: number, ts: Tileset): Canvas {
+  const p = new Pix(TILE_W, TILE_H);
+  const [seamC, d, m, l, acc] = ts.f;
+  for (let y = 0; y < TILE_H; y++) {
+    for (let x = 0; x < TILE_W; x++) {
+      if (!inDiamond(x, y)) continue;
+      const a = (x / 16 + y / 8) / 2;
+      const b = (x / 16 - y / 8) / 2 + 0.5;
+      const n = hash(x, y, variant * 7 + 3);
+      const stone = (a > 0.5 ? 1 : 0) + (b > 0.5 ? 2 : 0);
+      const flagged = ts.floor !== 'mud' && ts.floor !== 'lava';
+      const seam = flagged && (Math.abs(a - 0.5) < 0.035 || Math.abs(b - 0.5) < 0.035);
+      const edge = a < 0.05 || b < 0.05 || a > 0.97 || b > 0.97;
+      const t = n * 0.6 + hash(stone, variant, 3) * 0.4;
+      let col = t < 0.2 ? d : t < 0.75 ? m : l;
+      if (seam || (edge && flagged)) col = seamC;
+      switch (ts.floor) {
+        case 'mud':
+          if (hash(Math.floor(x / 3), Math.floor(y / 2), variant + 11) > 0.72) col = n > 0.5 ? acc : shade(acc, -0.25);
+          if (variant === 3 && Math.abs(a - b) < 0.06) col = shade(m, 0.12);
+          break;
+        case 'rug':
+          if (variant >= 2 && Math.abs(b - 0.5) < 0.22 && !seam) col = Math.abs(b - 0.5) > 0.18 ? PAL.gold1 : n > 0.85 ? shade(acc, 0.15) : acc;
+          break;
+        case 'wet':
+          if (variant === 1 && Math.hypot(a - 0.45, b - 0.55) < 0.22) col = n > 0.8 ? shade(acc, 0.35) : acc;
+          if (variant === 2 && stone === 1 && n > 0.6) col = PAL.moss1;
+          break;
+        case 'bone':
+          if (!seam && hash(x, y, variant + 41) > 0.9) col = n > 0.5 ? acc : shade(acc, -0.3);
+          break;
+        case 'marble':
+          if (!seam && Math.abs(Math.sin((x + y * 2 + variant * 5) * 0.35)) < 0.08) col = shade(m, -0.25);
+          if (variant === 3 && Math.abs(a - 0.5) < 0.06 && Math.abs(b - 0.5) < 0.06) col = acc;
+          break;
+        case 'blood':
+          if (!seam && hash(Math.floor(x / 2), Math.floor(y / 2), variant + 17) > 0.8) col = acc;
+          break;
+        case 'lava': {
+          const crack = Math.abs(Math.sin(x * 0.4 + variant) * 3 + y - 8) < 0.6 && variant === 1;
+          if (crack) col = n > 0.5 ? acc : shade(acc, 0.3);
+          else if (variant === 3 && Math.hypot(a - 0.5, b - 0.5) < 0.2) col = n > 0.4 ? acc : shade(acc, 0.4);
+          break;
+        }
+        default:
+          break;
+      }
+      p.px(x, y, col);
+    }
+  }
+  return p.c;
+}
+
+export function drawWallTs(variant: number, ts: Tileset): Canvas {
+  const [l, m, d, mortar, acc] = ts.w;
+  const face = (u: number, v: number, right: boolean): string => {
+    const dk = (c: string) => (right ? shade(c, -0.22) : c);
+    if (v === WALL_H - 1) return mortar;
+    switch (ts.wall) {
+      case 'palisade': {
+        if (u % 4 === 0) return mortar;
+        const top = v < 3 && (u % 4 === 2) ? mortar : null;
+        if (top) return top;
+        const n = hash(Math.floor(u / 4), v, variant + 3);
+        return dk(n > 0.85 ? l : n < 0.2 ? d : m);
+      }
+      case 'bone': {
+        const c = brick(u, v, l, m, d, mortar, variant * 13 + (right ? 1 : 0));
+        if (c !== mortar && hash(Math.floor(u / 4), Math.floor(v / 5), variant + 7) > 0.7 && (u % 4 === 1 || u % 4 === 2) && v % 5 === 2) return acc;
+        return dk(c);
+      }
+      case 'marble': {
+        const row = Math.floor(v / 7);
+        if (v % 7 === 6 || (u + (row % 2) * 8) % 16 === 0) return mortar;
+        if (v < 2) return dk(acc);
+        return dk(Math.abs(Math.sin((u + v * 2) * 0.4)) < 0.1 ? d : m);
+      }
+      case 'rock': {
+        const n = hash(Math.floor(u / 3), Math.floor(v / 3), variant + 29);
+        if (v > WALL_H - 4 && hash(u, v, 61) > 0.55) return acc;
+        return dk(n > 0.8 ? l : n < 0.3 ? d : m);
+      }
+      default: {
+        const c = brick(u, v, l, m, d, mortar, variant * 13 + (right ? 1 : 0));
+        if (variant === 1 && v > WALL_H - 6 && hash(u, v, 5) > 0.6) return acc;
+        return dk(c);
+      }
+    }
+  };
+  return drawBlock({
+    height: WALL_H,
+    top: (x, y) => {
+      const n = hash(x, y, 91 + variant);
+      return ts.wall === 'palisade' ? (n > 0.6 ? l : m) : n > 0.85 ? l : n < 0.2 ? d : m;
+    },
+    left: (u, v) => face(u, v, false),
+    right: (u, v) => face(u, v, true),
+  });
+}
+
+/** Decorado de las subzonas (marcadores hasta el arte definitivo; 16×22 px como máximo). */
+function drawDecorExtra(kind: string): Canvas {
+  const p = new Pix(16, 22);
+  const b = 21; // línea del suelo
+  switch (kind) {
+    case 'grass':
+      for (const [x, h] of [[3, 3], [5, 5], [7, 4], [9, 6], [11, 3], [12, 4]]) p.rect(x, b - h, 1, h, h > 4 ? PAL.moss2 : PAL.moss1);
+      break;
+    case 'stake':
+      p.rect(6, 6, 4, 15, PAL.earth2); p.rect(9, 6, 1, 15, PAL.earth1); p.rect(7, 4, 2, 2, PAL.earth3); p.px(7, 3, PAL.earth3);
+      p.rect(5, 12, 6, 1, PAL.earth0);
+      break;
+    case 'puddle':
+      p.rect(2, b - 2, 12, 2, '#2a4a5a'); p.rect(4, b - 3, 8, 1, '#2a4a5a'); p.rect(5, b - 2, 3, 1, '#4a7a8a');
+      break;
+    case 'crate':
+      p.rect(3, 11, 10, 10, PAL.earth2); p.rect(3, 11, 10, 1, PAL.earth3); p.rect(11, 11, 2, 10, PAL.earth1);
+      for (let i = 0; i < 8; i++) p.px(4 + i, 12 + i, PAL.earth1);
+      break;
+    case 'banner':
+      p.rect(7, 1, 1, 20, PAL.earth1); p.rect(4, 2, 7, 1, PAL.gold1);
+      p.rect(4, 3, 7, 10, PAL.threat1); p.rect(4, 13, 3, 2, PAL.threat1); p.rect(8, 13, 3, 2, PAL.threat1); p.rect(6, 6, 3, 3, PAL.gold2);
+      break;
+    case 'cage':
+      for (const x of [3, 6, 9, 12]) p.rect(x, 6, 1, 15, PAL.steel1);
+      p.rect(3, 5, 10, 1, PAL.steel2); p.rect(3, 13, 10, 1, PAL.steel0); p.rect(7, 2, 1, 3, PAL.steel0);
+      p.rect(6, 17, 4, 3, PAL.bone2);
+      break;
+    case 'chain':
+      for (let y = 4; y < 20; y += 3) { p.rect(7, y, 2, 2, PAL.steel1); p.px(8, y + 2, PAL.steel0); }
+      p.rect(5, 19, 6, 2, PAL.steel0);
+      break;
+    case 'urn':
+      p.rect(5, 13, 6, 8, PAL.earth2); p.rect(4, 15, 8, 4, PAL.earth2); p.rect(6, 11, 4, 2, PAL.earth1); p.rect(10, 14, 2, 6, PAL.earth1); p.px(6, 16, PAL.gold1);
+      break;
+    case 'candles':
+      for (const [x, h] of [[4, 5], [7, 8], [10, 6]]) { p.rect(x, b - h, 2, h, PAL.bone2); p.px(x, b - h - 1, PAL.fire2); p.px(x + 1, b - h - 2, PAL.fire3); }
+      p.rect(3, b - 1, 10, 1, PAL.bone1);
+      break;
+    case 'roots':
+      for (let i = 0; i < 12; i++) p.px(2 + i, b - 1 - Math.round(Math.abs(Math.sin(i * 0.9)) * 3), PAL.earth1);
+      p.rect(2, b - 1, 12, 1, PAL.earth0); p.px(6, b - 4, PAL.moss1);
+      break;
+    case 'statue':
+      p.rect(4, 17, 8, 4, PAL.stone3); p.rect(5, 8, 6, 9, '#bfbab0'); p.rect(6, 4, 4, 4, '#d8d4cc'); p.rect(10, 8, 1, 9, '#8a857a'); p.px(7, 5, PAL.stone1); p.px(8, 5, PAL.stone1);
+      break;
+    case 'coffin':
+      p.rect(3, 13, 10, 7, PAL.earth1); p.rect(4, 12, 8, 1, PAL.earth2); p.rect(3, 13, 10, 1, PAL.earth2); p.rect(7, 14, 2, 5, PAL.gold1); p.rect(6, 15, 4, 1, PAL.gold1);
+      break;
+    case 'lava':
+      p.rect(2, b - 2, 12, 2, PAL.fire1); p.rect(4, b - 3, 7, 1, PAL.fire1); p.rect(5, b - 2, 4, 1, PAL.fire2); p.px(7, b - 3, PAL.fire3);
+      break;
+    case 'crystal':
+      p.rect(6, 9, 3, 12, PAL.magic1); p.rect(7, 6, 1, 3, PAL.magic2); p.rect(9, 13, 3, 8, PAL.magic0); p.rect(4, 15, 2, 6, PAL.magic2); p.px(7, 10, PAL.magic3);
+      break;
+    case 'brazier':
+      p.rect(7, 12, 2, 9, PAL.steel0); p.rect(4, 19, 8, 2, PAL.steel0); p.rect(4, 9, 8, 3, PAL.steel1);
+      p.rect(5, 6, 6, 3, PAL.fire1); p.rect(6, 4, 4, 2, PAL.fire2); p.px(7, 3, PAL.fire3);
+      break;
+    case 'spikes':
+      for (const x of [3, 6, 9, 12]) { p.rect(x, b - 3, 1, 3, PAL.steel1); p.px(x, b - 4, PAL.steel2); }
+      p.rect(2, b - 1, 12, 1, PAL.stone2);
+      break;
+    default:
+      p.rect(3, b - 3, 10, 3, PAL.stone3);
+  }
+  p.outline();
+  return p.c;
+}
+
+/** Triángulo de riesgo sobre la cabeza de un errante (9×8 px de dibujo). El símbolo va dentro para distinguirlo sin color. */
+export function drawRiskMarker(color: string, symbol: 'check' | 'one' | 'two' | 'skull' | 'swords'): Canvas {
+  const p = new Pix(11, 10);
+  for (let y = 0; y < 9; y++) { const half = Math.floor(y / 2); p.rect(5 - half, y, half * 2 + 1, 1, color); }
+  const k = PAL.outline;
+  if (symbol === 'check') { p.px(3, 6, k); p.px(4, 7, k); p.px(5, 6, k); p.px(6, 5, k); p.px(7, 4, k); }
+  if (symbol === 'one') { p.rect(5, 3, 1, 3, k); p.px(5, 7, k); }
+  if (symbol === 'two') { p.rect(4, 3, 1, 3, k); p.px(4, 7, k); p.rect(6, 3, 1, 3, k); p.px(6, 7, k); }
+  if (symbol === 'skull') { p.rect(4, 3, 3, 3, k); p.px(4, 6, k); p.px(6, 6, k); p.px(4, 4, color); p.px(6, 4, color); }
+  if (symbol === 'swords') { p.px(3, 3, k); p.px(4, 4, k); p.px(5, 5, k); p.px(6, 6, k); p.px(7, 7, k); p.px(7, 3, k); p.px(6, 4, k); p.px(4, 6, k); p.px(3, 7, k); }
+  p.outline();
+  return p.c;
+}
+
+/** Flecha dorada del tutorial (12×12 px), apunta hacia abajo. */
+export function drawTutorialArrow(): Canvas {
+  const p = new Pix(12, 12);
+  p.rect(4, 0, 4, 6, PAL.gold2);
+  for (let y = 0; y < 5; y++) p.rect(1 + y, 6 + y, 10 - y * 2, 1, y ? PAL.gold2 : PAL.gold3);
+  p.rect(5, 0, 1, 6, PAL.gold3);
+  p.outline();
+  return p.c;
 }

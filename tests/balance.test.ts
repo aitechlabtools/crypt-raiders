@@ -25,7 +25,8 @@ function simulate(cls: ClassId, enemyId: string, runs = 300, potions = 2, level 
       const offensive = me.skills.map(getSkill).filter((k) => k.target === 'enemy' && canUseSkill(me, k.id)).sort((x, y) => (y.power ?? 0) - (x.power ?? 0));
       const cheapest = Math.min(...me.skills.map(getSkill).filter((k) => k.target === 'enemy').map((k) => k.cost));
       let action: CombatAction = { type: 'attack', targetId: 'e' };
-      if (me.skills.includes('meditation') && me.mp < cheapest) action = { type: 'skill', skillId: 'meditation' };
+      void cheapest;
+      if (me.skills.includes('mana_shield') && canUseSkill(me, 'mana_shield') && !me.shield) action = { type: 'skill', skillId: 'mana_shield' };
       else if (me.skills.includes('war_cry') && canUseSkill(me, 'war_cry') && !me.statuses.some((x) => x.id === 'empower') && s.round <= 1) action = { type: 'skill', skillId: 'war_cry' };
       else if (offensive.length && (seed % 2 === 0 || me.mp >= me.stats.maxMp - 4)) action = { type: 'skill', skillId: offensive[0].id, targetId: 'e' };
       s = performAction(s, action);
@@ -110,6 +111,29 @@ describe('Balance por zona (nivel medio de la zona, su equipo)', () => {
         for (const r of normals) expect(r).toBeGreaterThanOrEqual(0.8);
         expect(boss).toBeGreaterThanOrEqual(0.2);
         expect(boss).toBeLessThanOrEqual(0.97);
+      });
+    }
+  }
+});
+
+// ── Subzonas: a la mitad de su rango, con el equipo de su zona ──
+import { SUBZONES, SUBZONE_ORDER } from '../src/core/data/subzones';
+describe('Balance por subzona', () => {
+  for (const id of SUBZONE_ORDER) {
+    const sz = SUBZONES[id];
+    const g = ZONE_GEAR[sz.zone];
+    const lv = Math.round((sz.levels[0] + sz.levels[1]) / 2);
+    for (const cls of ['warrior', 'mage'] as const) {
+      it(`${id} · ${cls} nivel ${lv}`, () => {
+        const normals = sz.enemies.map((e) => simulate(cls, e.id, 60, 2, lv, g[cls]));
+        const elite = simulate(cls, sz.elite, 80, 3, lv + 2, g[cls]);
+        const boss = simulate(cls, sz.boss, 80, 3, Math.min(sz.levels[1] + 3, lv + 3), g[cls]);
+        console.log(`${id} ${cls} nv${lv}: ${sz.enemies.map((e, i) => `${e.id} ${(normals[i] * 100).toFixed(0)}%`).join(' · ')} · élite ${(elite * 100).toFixed(0)}% · jefe ${(boss * 100).toFixed(0)}%`);
+        for (const r of normals) expect(r).toBeGreaterThanOrEqual(0.75);
+        expect(elite).toBeGreaterThanOrEqual(0.35);
+        // Belzar es el jefe final: con el equipo de nivel 80 de la prueba solo se espera alguna victoria
+        expect(boss).toBeGreaterThanOrEqual(id === 'trono' ? 0.05 : 0.15);
+        expect(boss).toBeLessThanOrEqual(0.99);
       });
     }
   }

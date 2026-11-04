@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Barra de combate: comparar</title>
+<style>
+  body { margin: 0; background: #0b0a0f; color: #e9e1cc; font: 16px Georgia, serif; }
+  header { padding: 16px 20px; border-bottom: 1px solid #3a3741; position: sticky; top: 0; background: #0b0a0fee; z-index: 2; }
+  h1 { margin: 0 0 6px; font-size: 22px; color: #e8b33a; letter-spacing: .06em; }
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+  .tabs button { background: #1c1922; color: #e9e1cc; border: 1px solid #3a3741; padding: 10px 16px; min-height: 44px; cursor: pointer; font: inherit; }
+  .tabs button.on { border-color: #e8b33a; color: #e8b33a; }
+  main { padding: 16px 20px 40px; display: grid; gap: 24px; }
+  section h2 { font-size: 18px; margin: 0 0 4px; color: #e8b33a; }
+  section p { margin: 0 0 10px; color: #c9c2b0; max-width: 90ch; }
+  .shots { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+  figure { margin: 0; }
+  figure img { width: 100%; border: 1px solid #3a3741; display: block; }
+  figcaption { font-size: 13px; color: #8c8693; margin-top: 4px; }
+  a { color: #e8b33a; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Barra de combate · 3 distribuciones</h1>
+  <div class="tabs" id="tabs"></div>
+</header>
+<main id="main"></main>
+<script>
+const L = {
+  A: ['A · Básico grande y cuadrícula', 'El ataque básico ocupa una casilla doble a la izquierda. Los cuatro especiales van en una cuadrícula de 2×2: arriba los de la mano derecha (borde rojo), abajo los de la mano izquierda (borde azul). A la derecha, la habilidad de clase (violeta) y debajo Mochila y Huir a media anchura. El registro queda a la izquierda en ordenador y tableta; en móvil sube a una línea sobre la barra.'],
+  B: ['B · Agrupado por manos', 'Tres columnas con cabecera que dice de qué arma u objeto vienen: Mano derecha (básico y sus dos especiales), Mano izquierda (sus dos especiales) y Clase (habilidad, Mochila y Huir). Es la más clara para aprender de dónde sale cada acción; en móvil se ocultan las cabeceras y queda el color de la mano.'],
+  D: ['D · Como ahora, con submenús (ELEGIDA)', 'Cuadrícula 2×2: Atacar · Ataque especial / Habilidad · Mochila y Huir. Ataque especial y Mochila se abren en el mismo sitio con una columna Volver (y Página en la Mochila).'],
+  C: ['C · Tira', 'Todos los botones en una sola fila bajo el registro de dos líneas (en móvil, dos filas de 4). Muy compacta en altura, pero en tableta los nombres se cortan y el registro tiene menos sitio.'],
+};
+const SIZES = [['escritorio', '1920×1080'], ['tableta', '1180×820'], ['movil', '844×390']];
+const tabs = document.getElementById('tabs'), main = document.getElementById('main');
+const show = (k) => {
+  [...tabs.children].forEach((b) => b.classList.toggle('on', b.dataset.k === k));
+  const ls = k === 'todas' ? ['D', 'A', 'B', 'C'] : [k];
+  main.innerHTML = ls.map((l) => `<section><h2>${L[l][0]}</h2><p>${L[l][1]}</p><div class="shots">${
+    SIZES.map(([s, d]) => `<figure><a href="capturas/${l}-${s}.png" target="_blank"><img src="capturas/${l}-${s}.png" alt="Distribución ${l} en ${s}"></a><figcaption>${s} · ${d}</figcaption></figure>`).join('')
+  }${(l === 'D' ? ['escritorio-especial', 'movil-especial', 'escritorio-mochila', 'movil-mochila'] : []).map((s) => `<figure><a href="capturas/${l}-${s}.png" target="_blank"><img src="capturas/${l}-${s}.png" alt=""></a><figcaption>${s.replace('-', ' · ')}</figcaption></figure>`).join('')}${(l === 'D' ? [] : ['escritorio', 'movil']).map((s) => `<figure><a href="capturas/${l}-${s}-ficha.png" target="_blank"><img src="capturas/${l}-${s}-ficha.png" alt="Ficha de una acción"></a><figcaption>${s} · ficha de la acción (ratón encima / mantener pulsado)</figcaption></figure>`).join('')}</div>
+  <p style="margin-top:8px">Versión viva: ${SIZES.map(([s]) => `<a href="barra.html?layout=${l}&size=${s}">${s}</a>`).join(' · ')}</p></section>`).join('');
+};
+for (const k of ['todas', 'D', 'A', 'B', 'C']) { const b = document.createElement('button'); b.textContent = k === 'todas' ? 'Todas' : L[k][0]; b.dataset.k = k; b.onclick = () => show(k); tabs.append(b); }
+show('todas');
+</script>
+</body>
+</html>

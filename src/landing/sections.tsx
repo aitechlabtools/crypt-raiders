@@ -6,49 +6,102 @@ import { ZONES as BACKDROPS, zoneBackdrop } from '../game/ui/combatZones';
 import { ROADMAP, ROADMAP_NOTE } from './roadmap';
 
 // ── VarkHollow ────────────────────────────────────────────────────────────────
+// Lore aprobado el 4/11 (versión B, directa). Los nombres de las subzonas son los del juego (core/data/subzones.ts).
 export const VARKHOLLOW = {
   title: 'Esto es VarkHollow',
-  text: 'Una tierra maldita donde el Bastión de Ceniza aún resiste. Bajo sus muros se abren las criptas de Umbravel, y bajo las criptas, algo peor. Los saqueadores bajan por el oro; la regla es la de siempre: baja, saquea y vuelve. Quien cae ahí abajo, ahí se queda.',
+  intro: 'VarkHollow es una tierra maldita. Su castillo, el Bastión de Ceniza, aún resiste; bajo él se abren las criptas de Umbravel y, más abajo, el Infierno. Tú eres un saqueador: bajas, saqueas y vuelves. Quien cae, se queda abajo.',
+  chronicle: [
+    'El castillo de VarkHollow ardió. Nadie sabe quién encendió el fuego, pero todos saben que empezó abajo. Su señor juró no morir mientras ardiera su casa, y cumplió.',
+    'El Bastión de Ceniza es lo que quedó en pie del castillo: unos muros, unos pocos mercaderes y una puerta. Fuera, sus afueras son de los bandidos. Dentro, los salones quemados siguen guardados por quien ya no respira. Debajo, sus mazmorras bajan hasta el Osario.',
+    'Las criptas de Umbravel eran de una orden de monjes. Tres criptas para tres clases de muertos: los monjes en el Osario, los pobres en las Catacumbas, los nobles en su Panteón. Ninguno descansa.',
+    'Debajo, la Cripta Carmesí: la piedra suda sangre y huele a azufre. Su puerta lleva al Infierno: las Puertas del Abismo, los Ríos de Fuego y el Trono de las Cadenas, donde espera Belzar.',
+    'Los saqueadores bajan por oro, por armas y por gloria. Arriba los esperan Orvel, Vesper, Garra Roja y Maese Brand. Abajo, mercenarios errantes que ofrecen su espada. Algunos cumplen. Kael el Errante, casi siempre. Los demás, mientras les convenga.',
+  ],
   steam: 'En Steam se llamará Crypt Raiders: VarkHollow.',
 };
 
-const DEPTHS = [
-  { id: 'mazmorra', name: 'La Mazmorra', levels: 'Nv 1–30', backdrop: 'osario' as const, boss: 'boss', bossName: 'Señor del Osario', color: '#c8a46a',
-    text: 'Galerías de piedra bajo el Bastión. Bandidos, bestias y los primeros muertos que no se quedan quietos.' },
-  { id: 'cripta', name: 'La Cripta', levels: 'Nv 30–60', backdrop: 'necropolis' as const, boss: 'veiled_queen', bossName: 'La Reina Velada', color: '#8fb8e8',
-    text: 'La necrópolis de Umbravel. Velas frías, sarcófagos abiertos y una reina que canta para los que no descansan.' },
-  { id: 'infierno', name: 'El Infierno', levels: 'Nv 60–100', backdrop: 'infierno' as const, boss: 'belzar', bossName: 'Belzar, Señor de las Cadenas', color: '#ff7a3a',
-    text: 'Obsidiana, lava y cadenas. Lo que vive aquí abajo nunca fue humano.' },
+interface Sub { name: string; levels: string; text: string }
+const DEPTHS: { id: string; name: string; levels: string; backdrop: keyof typeof BACKDROPS; boss: string; bossName: string; color: string; text: string; subs: Sub[] }[] = [
+  { id: 'mazmorra', name: 'La Mazmorra', levels: 'Nv 1–30', backdrop: 'osario', boss: 'boss', bossName: 'Señor del Osario', color: '#c8a46a',
+    text: 'El Bastión de Ceniza y lo que hay debajo. Bandidos, una guardia que no sabe que ha muerto y, al fondo, el primer trono de huesos.',
+    subs: [
+      { name: 'Afueras del Bastión', levels: '1–10', text: 'Murallas rotas y hogueras de bandidos.' },
+      { name: 'El Bastión en ruinas', levels: '10–20', text: 'Tapices quemados y una guardia muerta.' },
+      { name: 'Las mazmorras del Bastión', levels: '20–30', text: 'Celdas, cadenas y túneles húmedos.' },
+    ] },
+  { id: 'cripta', name: 'La Cripta', levels: 'Nv 30–60', backdrop: 'necropolis', boss: 'veiled_queen', bossName: 'La Reina Velada', color: '#8fb8e8',
+    text: 'Las criptas de Umbravel: tres tumbas para tres clases de muertos. Velas frías, agua negra y nobles que no quieren visitas.',
+    subs: [
+      { name: 'El Osario de Umbravel', levels: '30–40', text: 'Paredes de calaveras y polvo de hueso.' },
+      { name: 'Las Catacumbas Ahogadas', levels: '40–50', text: 'Agua negra hasta el tobillo.' },
+      { name: 'El Panteón de los Nobles', levels: '50–60', text: 'Mármol, oro sucio y sarcófagos.' },
+    ] },
+  { id: 'infierno', name: 'El Infierno', levels: 'Nv 60–100', backdrop: 'infierno', boss: 'belzar', bossName: 'Belzar, Señor de las Cadenas', color: '#ff7a3a',
+    text: 'Empieza en una cripta que sangra y acaba en un trono de cadenas sobre el vacío. Lo que vive aquí nunca fue humano.',
+    subs: [
+      { name: 'La Cripta Carmesí', levels: '60–70', text: 'La piedra suda sangre y huele a azufre.' },
+      { name: 'Las Puertas del Abismo', levels: '70–80', text: 'Roca negra y puentes de obsidiana.' },
+      { name: 'Los Ríos de Fuego', levels: '80–90', text: 'Lagos de lava y ceniza que no cesa.' },
+      { name: 'El Trono de las Cadenas', levels: '90–100', text: 'Más abajo no hay nada.' },
+    ] },
 ];
 
+const isPhone = () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches;
+
 export function VarkHollowSection() {
+  const [open, setOpen] = useState(false);
+  const [unfold, setUnfold] = useState<Record<string, boolean>>({});
+  const [phone, setPhone] = useState(isPhone);
+  useEffect(() => { const m = window.matchMedia('(max-width: 767px)'); const on = () => setPhone(m.matches); m.addEventListener('change', on); return () => m.removeEventListener('change', on); }, []);
   return (
-    <section id="varkhollow" className="relative overflow-hidden">
+    <section id="varkhollow" className="relative overflow-hidden scroll-mt-14">
       <div className="absolute inset-0 vh-glow pointer-events-none" />
       <div className="relative max-w-6xl mx-auto px-4 pt-24 pb-8">
         <p className="font-display text-gold tracking-[0.3em] text-sm uppercase">El mundo</p>
         <h2 className="font-display text-4xl md:text-6xl text-parchment mt-2 leading-tight">{VARKHOLLOW.title}</h2>
-        <p className="font-body text-xl md:text-2xl text-stone-300 mt-5 max-w-3xl leading-relaxed">{VARKHOLLOW.text}</p>
-        <ol className="depths mt-12" aria-label="Las tres profundidades de VarkHollow">
-          {DEPTHS.map((d, i) => (
-            <li key={d.id} className="depth" style={{ ['--depth' as string]: d.color }}>
-              <div className="depth-art">
-                <img src={zoneBackdrop(BACKDROPS[d.backdrop])} alt="" className="pixelated depth-bg" />
-                <img src={monsterUrl(d.boss, 4)} alt={d.bossName} title={d.bossName} className="pixelated depth-boss" />
-                <span className="depth-step">{i + 1}</span>
-              </div>
-              <div className="p-5">
-                <div className="flex items-baseline justify-between gap-3">
-                  <h3 className="font-display text-2xl" style={{ color: d.color }}>{d.name}</h3>
-                  <span className="font-display text-sm text-stone-400 whitespace-nowrap">{d.levels}</span>
+        <p className="font-body text-xl md:text-2xl text-stone-300 mt-5 max-w-3xl leading-relaxed">{VARKHOLLOW.intro}</p>
+        <button className="chron-btn mt-5" aria-expanded={open} aria-controls="cronica" onClick={() => setOpen(!open)} data-testid="btn-chronicle">
+          {open ? '▴ Cerrar la crónica' : '▾ Leer la crónica de VarkHollow'}
+        </button>
+        <div id="cronica" hidden={!open} className="chron" data-testid="chronicle">
+          {VARKHOLLOW.chronicle.map((p, i) => <p key={i}>{p}</p>)}
+        </div>
+        <ol className="depths mt-12" aria-label="El descenso por VarkHollow">
+          {DEPTHS.map((d, i) => {
+            const shown = unfold[d.id] ?? !phone;
+            return (
+              <li key={d.id} className="depth" style={{ ['--depth' as string]: d.color }}>
+                <div className="depth-art">
+                  <img src={zoneBackdrop(BACKDROPS[d.backdrop])} alt="" className="pixelated depth-bg" />
+                  <img src={monsterUrl(d.boss, 4)} alt={d.bossName} title={d.bossName} className="pixelated depth-boss" />
+                  <span className="depth-step">{i + 1}</span>
                 </div>
-                <p className="font-body text-lg text-stone-300 leading-snug mt-2">{d.text}</p>
-                <p className="font-body text-sm text-stone-500 mt-3">Jefe: {d.bossName}</p>
-              </div>
-            </li>
-          ))}
+                <div className="p-5">
+                  <div className="flex items-baseline justify-between gap-3">
+                    <h3 className="font-display text-2xl" style={{ color: d.color }}>{d.name}</h3>
+                    <span className="font-display text-sm text-stone-400 whitespace-nowrap">{d.levels}</span>
+                  </div>
+                  <p className="font-body text-lg text-stone-300 leading-snug mt-2">{d.text}</p>
+                  <p className="font-body text-sm text-stone-400 mt-3">Jefe final: {d.bossName}</p>
+                  <button className="sub-toggle" aria-expanded={shown} aria-controls={`descenso-${d.id}`} onClick={() => setUnfold({ ...unfold, [d.id]: !shown })}>
+                    {shown ? 'Ocultar el descenso' : `Ver el descenso (${d.subs.length})`}
+                  </button>
+                  <ol id={`descenso-${d.id}`} hidden={!shown} className="descent" aria-label={`Subzonas de ${d.name}`}>
+                    {d.subs.map((s, k) => (
+                      <li key={s.name} style={{ ['--k' as string]: (i * 3 + k) / 9 }}>
+                        <span className="descent-mark" aria-hidden />
+                        <span className="flex items-baseline justify-between gap-2"><b className="font-display text-[15px] text-parchment font-normal">{s.name}</b><span className="text-xs text-stone-400 whitespace-nowrap">Nv {s.levels}</span></span>
+                        <span className="block text-[15px] text-stone-300 leading-snug">{s.text}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              </li>
+            );
+          })}
         </ol>
-        <p className="font-body text-stone-500 mt-6 text-base">{VARKHOLLOW.steam}</p>
+        <p className="font-body text-stone-300 mt-6 text-lg">Cuanto más bajas, más peligro… y mejor botín.</p>
+        <p className="font-body text-stone-400 mt-1 text-base">{VARKHOLLOW.steam}</p>
       </div>
     </section>
   );
@@ -122,7 +175,7 @@ const RM_COLOR: Record<string, string> = { ahora: '#5fd19a', pronto: '#e8b33a', 
 
 export function RoadmapSection() {
   return (
-    <section id="hoja-de-ruta" className="border-t border-stone-800">
+    <section id="hoja-de-ruta" className="border-t border-stone-800 scroll-mt-14">
       <div className="max-w-6xl mx-auto px-4 py-24">
         <h2 className="font-display text-3xl md:text-5xl text-parchment">El camino hacia las profundidades</h2>
         <p className="font-body text-xl text-stone-300 mt-3 max-w-2xl">Hacia dónde va Crypt Raiders.</p>

@@ -24,6 +24,15 @@ export type ItemEffect =
   | { kind: 'mana'; amount: number }
   | { kind: 'cleanse' };
 
+/** Familias de armas y objetos de mano izquierda (ver data/weapons.ts). */
+export type WeaponFamily =
+  | 'sword' | 'axe' | 'mace' | 'spear' | 'dagger' | 'greatsword' | 'greataxe'
+  | 'staff' | 'wand' | 'scepter' | 'greatstaff'
+  | 'shield' | 'tome' | 'orb' | 'torch';
+
+/** Recurso de combate: Ímpetu para lo físico (Guerrero), Maná para lo mágico (Mago y futuras clases mágicas). */
+export type ResourceKind = 'impetus' | 'mana';
+
 export interface ItemDef {
   id: string;
   name: string;
@@ -42,7 +51,15 @@ export interface ItemDef {
   size?: { w: number; h: number };
   use?: ItemEffect;
   /** Familia del arma o de la secundaria (decide quién puede llevarla y su estilo). */
-  family?: 'sword' | 'axe' | 'dagger' | 'staff' | 'mace' | 'shield' | 'tome';
+  family?: WeaponFamily;
+  /** Armas a dos manos: dan sus 4 especiales y no dejan llevar nada en la mano izquierda. */
+  hands?: 1 | 2;
+  /** Ataques especiales que da en combate (2, o 4 si es a dos manos). Sin valor: los primeros de `grants`. */
+  specials?: string[];
+  /** Pociones: recurso que recuperan (solo las puede beber quien usa ese recurso). */
+  resource?: ResourceKind;
+  /** Rareza mínima y máxima con la que puede salir (por defecto, solo la suya). */
+  rarityRange?: [Rarity, Rarity];
   /** Ataque básico que da el arma (solo mano principal). */
   attack?: AttackDef;
   /** Herramientas: usos que tiene nueva. */
@@ -63,12 +80,16 @@ export interface ItemStack {
   forgedBy?: string;
   /** Usos que le quedan a una herramienta (p. ej. un pico). Sin valor = nueva. */
   uses?: number;
+  /** Rareza de este ejemplar (sin valor: la del objeto). */
+  rarity?: Rarity;
+  /** Atributos aleatorios de este ejemplar (ids de data/rarity.ts, p. ej. «vampire»). */
+  affixes?: string[];
 }
 
 export type Grid = (ItemStack | null)[];
 export type Equipment = Record<EquipSlot, ItemStack | null>;
 
-export type StatusId = 'poison' | 'burn' | 'freeze' | 'stun' | 'bleed' | 'protect' | 'regen' | 'empower' | 'block';
+export type StatusId = 'poison' | 'burn' | 'freeze' | 'stun' | 'bleed' | 'protect' | 'regen' | 'empower' | 'block' | 'endure' | 'evade' | 'weaken' | 'ward' | 'sunder';
 
 export interface StatusInstance {
   id: StatusId;
@@ -103,6 +124,18 @@ export interface SkillDef {
   armorPierce?: number;
   /** Recurso que recupera el lanzador. */
   manaGain?: number;
+  /** Turnos que hay que esperar para volver a usarla (0 o sin valor: sin espera). */
+  cooldown?: number;
+  /** Golpea a todos los enemigos. */
+  aoe?: boolean;
+  /** Te curas esta fracción del daño hecho. */
+  lifesteal?: number;
+  /** Pierdes esta fracción de tu vida máxima al usarla (nunca te mata). */
+  selfDamagePct?: number;
+  /** Deja todas tus otras recargas a 0. */
+  resetCooldowns?: boolean;
+  /** Escudo que absorbe daño: fracción de tu vida máxima (dura lo que el estado «Escudo de maná»). */
+  shieldPct?: number;
   fx: 'slash' | 'fire' | 'frost' | 'shield' | 'poison' | 'holy' | 'dark' | 'bite' | 'smash';
 }
 
@@ -183,6 +216,14 @@ export interface Profile {
   /** Marca de expedición en curso, para detectar recargas a mitad de partida. */
   activeExpedition: { startedAt: number } | null;
   tutorialSeen: { lobby: boolean; dungeon: boolean };
+  /** Tutorial guiado de la primera expedición completado (o saltado). Las partidas con expediciones lo tienen hecho. */
+  tutorialDone: boolean;
+  /** Kael el Errante: expediciones a la Mazmorra seguidas sin encontrarlo (para la aparición garantizada). */
+  kael: { missStreak: number; met?: number };
+  /** Habilidades de clase: las desbloqueadas (la primera es la inicial) y la que llevas equipada. */
+  classSkills: { unlocked: string[]; equipped: string };
+  /** Última subzona a la que se bajó (la tarjeta de Jugar la propone de nuevo). */
+  lastSubzone: string | null;
   settings: Settings;
   createdAt: number;
 }

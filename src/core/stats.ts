@@ -2,7 +2,7 @@ import type { ClassId, Equipment, Stats } from './types';
 import { STAT_KEYS } from './types';
 import { CLASSES } from './data/classes';
 import { getItem } from './data/items';
-import { qualityStats } from './forge';
+import { stackStats } from './data/rarity';
 import { MAX_LEVEL, STAT_GROWTH_PER_LEVEL, XP_BASE, XP_EXPONENT } from '../config/progression';
 
 export { MAX_LEVEL };
@@ -23,7 +23,7 @@ export function equipmentBonus(equipment: Equipment): Stats {
   for (const stack of Object.values(equipment)) {
     if (!stack) continue;
     const def = getItem(stack.itemId);
-    const st = qualityStats(def.stats, stack.quality);
+    const st = stackStats(stack, def);
     for (const k of STAT_KEYS) s[k] += st[k] ?? 0;
   }
   return s;

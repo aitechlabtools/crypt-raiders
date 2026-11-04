@@ -16,6 +16,7 @@ export function Logo({ size = 'text-6xl md:text-8xl' }: { size?: string }) {
 
 export function SettingsModal({ onClose, onExit }: { onClose: () => void; onExit?: () => void }) {
   const profile = useGame((s) => s.profile);
+  const screen = useGame((s) => s.screen);
   const [confirmDelete, setConfirmDelete] = useState(false);
   return (
     <Modal onClose={onClose} testId="settings">
@@ -30,6 +31,12 @@ export function SettingsModal({ onClose, onExit }: { onClose: () => void; onExit
             <input type="checkbox" checked={profile.settings.music} onChange={(e) => actions.setSettings({ music: e.target.checked })} className="accent-[#e8b33a] w-4 h-4" />
             <span>Música ambiental</span>
           </label>
+          {screen === 'lobby' && profile.tutorialDone && (
+            <div className="pt-3 border-t border-stone-700">
+              <button className="btn text-sm" onClick={() => { onClose(); actions.replayTutorial(); }} data-testid="btn-replay-tutorial">Repetir el tutorial</button>
+              <p className="text-xs text-stone-400 mt-1">Sin recompensas y sin tocar tu inventario.</p>
+            </div>
+          )}
           <div className="pt-3 border-t border-stone-700">
             {!confirmDelete ? (
               <button className="btn btn-danger text-sm" onClick={() => setConfirmDelete(true)}>Borrar personaje y empezar de cero</button>
@@ -91,7 +98,7 @@ export function TitleScreen() {
           <button className="btn" onClick={() => setSettings(true)} data-testid="btn-settings">Ajustes</button>
           <a className="btn text-center" href="../">Volver a la web</a>
         </div>
-        <p className="mt-10 text-xs text-stone-400 max-w-md mx-auto">Demo v0.1 · Un jugador con aventureros simulados por IA. El progreso se guarda en este navegador.</p>
+        <p className="mt-10 text-xs text-stone-400 max-w-md mx-auto">Alpha v0.1 · En desarrollo: puede tener fallos y cambiar. El progreso se guarda en este navegador.</p>
       </div>
       {notice && (
         <Modal onClose={() => actions.dismissNotice()}>
@@ -103,7 +110,7 @@ export function TitleScreen() {
       {confirmNew && (
         <Modal onClose={() => setConfirmNew(false)}>
           <h2 className="panel-title text-lg mb-2">¿Nuevo personaje?</h2>
-          <p className="font-body text-lg">La demo guarda un único aventurero. Crear uno nuevo borrará a {profile?.character.name} y su almacén.</p>
+          <p className="font-body text-lg">La alpha guarda un único aventurero. Crear uno nuevo borrará a {profile?.character.name} y su almacén.</p>
           <div className="flex gap-2 mt-4">
             <button className="btn btn-danger" onClick={() => { void actions.deleteCharacter().then(() => actions.goto('create')); }}>Borrar y crear</button>
             <button className="btn" onClick={() => setConfirmNew(false)}>Cancelar</button>

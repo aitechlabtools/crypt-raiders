@@ -19,12 +19,16 @@ import { HudIcon } from './hudIcons';
 import { TOUCH_CFG, safe, useTouchSize } from '../../config/touch';
 import { getMerc } from '../../core/data/mercenaries';
 import { mercBaseStats, STANCE_DESC, STANCE_NAME } from '../../core/mercenaries';
+import { getWanderer } from '../../core/data/wanderers';
+import { TUTORIAL_STEPS } from '../../core/data/tutorial';
+import { RISK, GOLD_SHARE, type RiskLevel } from '../../config/wanderers';
 
 export function DungeonScreen() {
   const host = useRef<HTMLDivElement>(null);
   const touch = useIsTouch();
   const modal = useGame((s) => s.modal);
   const combat = useGame((s) => s.combat);
+  const tutorial = useGame((s) => s.tutorial);
   const profile = useGame((s) => s.profile)!;
 
   useEffect(() => {
@@ -99,13 +103,15 @@ export function DungeonScreen() {
       {modal?.type === 'captive' && <CaptiveModal mercId={modal.mercId} />}
       {modal?.type === 'merc' && <MercModal />}
       {combat && <CombatScreen />}
-      {!profile.tutorialSeen.dungeon && !modal && !combat && <DungeonTutorial />}
+      {!profile.tutorialSeen.dungeon && !tutorial && !modal && !combat && <DungeonTutorial />}
+      {tutorial && <TutorialGuide />}
     </div>
   );
 }
 
 function Hud() {
   const s = useGame((x) => x);
+  const tutorial = s.tutorial;
   const touch = useIsTouch();
   const exp = s.expedition;
   if (!exp || !s.profile) return null;
@@ -128,14 +134,14 @@ function Hud() {
             </div>
             <Bar value={exp.hp} max={stats.maxHp} color="#c4283b" label="Vida" testId="hud-hp" />
             <div className="h-1" />
-            <Bar value={exp.mp} max={stats.maxMp} color="#3d7be0" label={CLASSES[ch.classId].resourceName} />
-            <button className="btn w-full mt-2 text-sm flex items-center justify-center gap-2" onClick={() => actions.drinkPotion()} disabled={!potions}>
+            <Bar value={exp.mp} max={stats.maxMp} color={CLASSES[ch.classId].resource === 'impetus' ? '#e08a3d' : '#3d7be0'} label={CLASSES[ch.classId].resourceName} />
+            <button className="btn w-full mt-2 text-sm flex items-center justify-center gap-2" onClick={() => actions.drinkPotion()} disabled={!potions} data-testid="btn-potion">
               <ItemIcon itemId="health_potion" size={20} /> Poción ({potions}) <kbd className="text-xs opacity-60">Q</kbd>
             </button>
           </div>
 
           <div className="absolute left-1/2 -translate-x-1/2 top-3 text-center z-10 pointer-events-none">
-            <div className={`panel px-5 py-1 font-display text-3xl ${urgent ? 'text-blood animate-pulse' : 'text-parchment'}`} data-testid="hud-timer">{formatTime(left)}</div>
+            <div className={`panel px-5 py-1 font-display text-3xl ${urgent ? 'text-blood animate-pulse' : 'text-parchment'}`} data-testid="hud-timer">{tutorial ? 'Tutorial' : formatTime(left)}</div>
             <div className="mt-1 text-sm text-stone-300 tracking-widest uppercase font-display" data-testid="hud-room">{s.hud.room}</div>
             {s.dungeon && <div className="text-[11px] text-stone-500 mt-0.5" data-testid="hud-dungeon">{s.dungeon.name}{s.dungeon.seed !== undefined ? ` · mapa ${s.dungeon.seed}` : ''}</div>}
           </div>
@@ -179,10 +185,10 @@ function Companions({ width }: { width: string }) {
   return (
     <>
       {rival.disposition === 'allied' && (
-        <div className={`panel p-2 ${width} border-heal`} data-testid="hud-ally">
-          <div className="text-xs text-heal mb-1 truncate">Aliado · Kael el Errante</div>
-          <Bar value={rival.hp} max={105} color="#5fd19a" />
-        </div>
+        <button className={`panel p-2 ${width} border-heal text-left`} onClick={() => actions.interactRival()} data-testid="hud-ally">
+          <div className="text-xs text-heal mb-1 flex items-center gap-1.5"><RiskBadge risk={rival.risk} size={14} /><span className="truncate">Aliado · {getWanderer(rival.who).name}</span></div>
+          <Bar value={rival.hp} max={getWanderer(rival.who).stats.maxHp} color="#5fd19a" />
+        </button>
       )}
       {merc?.alive && (() => {
         const m = getMerc(merc.id);
@@ -193,7 +199,8 @@ function Companions({ width }: { width: string }) {
           </button>
         );
       })()}
-      {rival.disposition === 'hostile' && <div className="panel px-3 py-1 text-sm text-blood border-blood">Kael es hostil</div>}
+      {rival.disposition === 'hostile' && <div className="panel px-3 py-1 text-sm text-blood border-blood" data-testid="hud-rival-hostile">{getWanderer(rival.who).name.split(' ')[0]} es hostil</div>}
+      {rival.disposition === 'fleeing' && <div className="panel px-3 py-1 text-sm text-ember border-blood" data-testid="hud-rival-fleeing">¡{getWanderer(rival.who).name.split(' ')[0]} huye con tu botín!</div>}
     </>
   );
 }
@@ -205,6 +212,7 @@ function Companions({ width }: { width: string }) {
  */
 function TouchTopHud() {
   const s = useGame((x) => x);
+  const tutorial = s.tutorial;
   const size = useTouchSize();
   const exp = s.expedition!;
   const ch = s.profile!.character;
@@ -226,12 +234,12 @@ function TouchTopHud() {
         </div>
         <Bar value={exp.hp} max={stats.maxHp} color="#c4283b" label={phone ? undefined : 'Vida'} testId="hud-hp" />
         <div className="h-1" />
-        <Bar value={exp.mp} max={stats.maxMp} color="#3d7be0" label={phone ? undefined : CLASSES[ch.classId].resourceName} />
+        <Bar value={exp.mp} max={stats.maxMp} color={CLASSES[ch.classId].resource === 'impetus' ? '#e08a3d' : '#3d7be0'} label={phone ? undefined : CLASSES[ch.classId].resourceName} />
         <div className="text-[11px] mt-1.5 flex items-center gap-1 flex-wrap">Botín: <span className="text-gold" data-testid="hud-loot-value">{gridValue(exp.backpack)}</span> · Oro: <GoldAmount value={exp.goldFound} /></div>
       </div>
 
       <div className="absolute left-1/2 -translate-x-1/2 z-10 text-center pointer-events-none" style={{ top: safe('top', edge) }}>
-        <div className={`panel font-display ${phone ? 'px-3 text-xl' : 'px-4 py-0.5 text-2xl'} ${urgent ? 'text-blood animate-pulse' : 'text-parchment'}`} data-testid="hud-timer">{formatTime(left)}</div>
+        <div className={`panel font-display ${phone ? 'px-3 text-xl' : 'px-4 py-0.5 text-2xl'} ${urgent ? 'text-blood animate-pulse' : 'text-parchment'}`} data-testid="hud-timer">{tutorial ? 'Tutorial' : formatTime(left)}</div>
         <div className={`mt-1 text-stone-300 tracking-widest uppercase font-display ${phone ? 'text-[10px]' : 'text-xs'}`} data-testid="hud-room">{s.hud.room}</div>
       </div>
 
@@ -286,9 +294,9 @@ function LootModal() {
       </div>
       {share && (
         <div className="panel p-3 mb-3 border-heal flex items-center gap-3">
-          <MonsterSprite sprite="rival" scale={2} />
+          <MonsterSprite sprite={getWanderer(s.rival.who).sprite} scale={2} />
           <div className="font-body text-base flex-1">
-            <b className="text-heal">Kael espera su parte.</b> Selecciona un objeto y pulsa «Dar a Kael». Si te lo quedas todo, lo recordará.
+            <b className="text-heal">{getWanderer(s.rival.who).name.split(' ')[0]} espera su parte.</b> Selecciona un objeto y pulsa «Dar». Repartir baja su riesgo de traición; quedártelo todo lo sube.
             {session.given.length > 0 && <div className="text-heal">Le has dado: {session.given.map((id) => getItem(id).name).join(', ')}.</div>}
           </div>
         </div>
@@ -303,7 +311,7 @@ function LootModal() {
             <div className="flex gap-2 mt-3 items-center flex-wrap">
               <span style={{ color: RARITY_INFO[getItem(selStack.itemId).rarity].color }}>{getItem(selStack.itemId).name}</span>
               <button className="btn btn-gold text-sm" onClick={() => { actions.quickMove(sel!, 'backpack', session.id); setSel(null); }}>Coger</button>
-              {share && <button className="btn text-sm" onClick={() => { actions.giveToRival(session.id, (sel as { index: number }).index); setSel(null); }} data-testid="btn-give">Dar a Kael</button>}
+              {share && <button className="btn text-sm" onClick={() => { actions.giveToRival(session.id, (sel as { index: number }).index); setSel(null); }} data-testid="btn-give">Dar a {getWanderer(s.rival.who).name.split(' ')[0]}</button>}
             </div>
           )}
         </div>
@@ -319,11 +327,14 @@ function LootModal() {
   );
 }
 
-function trustLabel(t: number) {
-  if (t >= 70) return { text: 'Confía en ti', cls: 'text-heal' };
-  if (t >= 45) return { text: 'Cordial', cls: 'text-heal' };
-  if (t >= 30) return { text: 'Cauto', cls: 'text-gold' };
-  return { text: 'Desconfiado', cls: 'text-ember' };
+/** Triángulo de riesgo de traición: color y símbolo (se distingue sin color). */
+export function RiskBadge({ risk, size = 22 }: { risk: RiskLevel; size?: number }) {
+  const r = RISK[risk];
+  return (
+    <span className="risk-badge" style={{ width: size, height: size, ['--risk' as string]: r.color, fontSize: Math.round(size * (r.symbol.length > 1 ? 0.36 : 0.46)) }} title={r.label} aria-label={r.label} data-testid="risk-badge" data-risk={risk}>
+      <span>{r.symbol}</span>
+    </span>
+  );
 }
 
 function CaptiveModal({ mercId }: { mercId: string }) {
@@ -384,32 +395,39 @@ function RivalModal() {
   const rival = useGame((s) => s.rival);
   const line = useGame((s) => s.rivalLine);
   const allied = rival.disposition === 'allied';
-  const tl = trustLabel(rival.trust);
+  const w = getWanderer(rival.who);
+  const r = RISK[rival.risk];
+  const first = w.name.split(' ')[0];
   return (
     <Modal onClose={() => actions.closeModal()} testId="rival-modal">
       <div className="flex gap-4">
-        <div className="shrink-0 w-28 h-36 bg-black/40 border-2 border-stone-700 flex items-end justify-center"><MonsterSprite sprite="rival" scale={5} /></div>
+        <div className="shrink-0 w-28 h-36 bg-black/40 border-2 border-stone-700 flex flex-col items-center justify-end relative">
+          <span className="absolute top-1.5"><RiskBadge risk={rival.risk} size={26} /></span>
+          <MonsterSprite sprite={w.sprite} scale={5} />
+        </div>
         <div className="flex-1 min-w-0">
-          <h2 className="font-display text-2xl">Kael el Errante</h2>
+          <h2 className="font-display text-2xl" data-testid="rival-name">{w.name}</h2>
           <div className="text-sm">
-            {allied ? <span className="text-heal">● Aliado</span> : <span className="text-gold">● Neutral</span>}
-            <span className="text-stone-400"> · Actitud: </span><span className={tl.cls}>{tl.text}</span>
+            {allied ? <span className="text-heal">● Aliado</span> : <span className="text-gold">● {w.title}</span>}
+            <span className="text-stone-400"> · </span><span style={{ color: r.color }}>{r.symbol} {r.label} de traición</span>
           </div>
           <p className="font-body text-lg mt-3 leading-snug min-h-[3.5rem]" data-testid="rival-line">
-            {line ?? (allied ? 'Kael: «¿Qué pasa? Mantén los ojos abiertos.»' : 'Un aventurero encapuchado te observa, la mano cerca de la daga. No parece hostil… todavía.')}
+            {line ?? (allied ? `${first}: «¿Qué pasa? Mantén los ojos abiertos.»` : `${first} te observa, la mano cerca del arma. No parece hostil… todavía.`)}
           </p>
         </div>
       </div>
       <div className="grid sm:grid-cols-2 gap-2 mt-4">
         <button className="btn" onClick={() => actions.rivalTalk()} data-testid="rival-talk">Hablar</button>
-        {!allied && <button className="btn btn-gold" onClick={() => actions.rivalPropose()} data-testid="rival-ally">Proponer alianza</button>}
-        {!allied && <button className="btn" onClick={() => actions.rivalDuel()} data-testid="rival-duel">Proponer duelo amistoso</button>}
-        {!allied && <button className="btn" onClick={() => actions.rivalIgnore()} data-testid="rival-ignore">Ignorar y seguir tu camino</button>}
+        {!allied && <button className="btn btn-gold" onClick={() => actions.rivalPropose()} data-testid="rival-ally">Aliarse</button>}
+        {!allied && <button className="btn" onClick={() => actions.rivalIgnore()} data-testid="rival-ignore">Seguir tu camino</button>}
         {allied && <button className="btn" onClick={() => actions.rivalLeave()} data-testid="rival-leave">Separar vuestros caminos</button>}
-        {!allied && <button className="btn btn-danger" onClick={() => actions.rivalAttack()} data-testid="rival-attack">Atacar (combate hostil)</button>}
+        {!allied && <button className="btn btn-danger" onClick={() => actions.rivalAttack()} data-testid="rival-attack">Atacar</button>}
         {allied && <button className="btn btn-danger" onClick={() => actions.askBetray()} data-testid="rival-betray">Traicionar…</button>}
       </div>
-      <p className="text-xs text-stone-400 mt-3 font-body text-sm">Un duelo amistoso no mata a nadie ni roba nada. Una traición es a muerte y sin huida: el que gana se queda con todo.</p>
+      <p className="text-stone-400 mt-3 font-body text-sm" data-testid="rival-terms">
+        {allied ? `Lucha a tu lado. Quiere su parte de cada cofre y el ${Math.round(GOLD_SHARE * 100)} % del oro que encontréis juntos.` : `Si os aliáis, lucha a tu lado a cambio de su parte de los cofres y el ${Math.round(GOLD_SHARE * 100)} % del oro. El triángulo indica cuánto puedes fiarte.`}
+        {' '}Una traición es a muerte y sin huida.
+      </p>
       <button className="btn mt-3 text-sm" onClick={() => actions.closeModal()}>Cerrar</button>
     </Modal>
   );
@@ -418,8 +436,8 @@ function RivalModal() {
 function ConfirmBetray() {
   return (
     <Modal onClose={() => actions.closeModal()} testId="confirm-betray">
-      <h2 className="panel-title text-xl text-blood mb-2">¿Traicionar a Kael?</h2>
-      <p className="font-body text-lg">Romperás la alianza y lo atacarás por sorpresa (empezará aturdido). <b className="text-blood">Lucharéis a muerte, sin posibilidad de huir.</b> Si ganas, te quedas con todo lo que lleva: su daga, su capucha, sus botas y su oro. Si pierdes, mueres aquí y la cripta se queda con tu equipo.</p>
+      <h2 className="panel-title text-xl text-blood mb-2">¿Traicionar a {getWanderer(getState().rival.who).name.split(' ')[0]}?</h2>
+      <p className="font-body text-lg">Romperás la alianza y lo atacarás por sorpresa (empezará aturdido). <b className="text-blood">Lucharéis a muerte, sin posibilidad de huir.</b> Si ganas, te quedas con todo lo que lleva y su oro. Si pierdes, mueres aquí y la mazmorra se queda con tu equipo.</p>
       <div className="flex gap-2 mt-4">
         <button className="btn btn-danger" onClick={() => actions.confirmBetray()} data-testid="confirm-betray-yes">Sí, es una traición</button>
         <button className="btn" onClick={() => actions.closeModal()}>No, era un error</button>
@@ -514,6 +532,36 @@ function InteractMenu({ options }: { options: string[] }) {
         ))}
       </div>
       <button className="btn w-full mt-2 text-sm" onClick={() => actions.closeModal()}>Cancelar <kbd className="opacity-60">Esc</kbd></button>
+    </div>
+  );
+}
+
+/**
+ * Indicaciones del tutorial: un cartel arriba con el paso actual (texto de ratón o de toque según el dispositivo)
+ * y el botón que hay que pulsar resaltado. La flecha sobre el mapa la pone la escena.
+ */
+function TutorialGuide() {
+  const t = useGame((s) => s.tutorial)!;
+  const combat = useGame((s) => s.combat);
+  const touch = useIsTouch();
+  const step = TUTORIAL_STEPS[t.step];
+  const target = step?.target && 'ui' in step.target ? (touch && step.target.ui === 'btn-potion' ? 'touch-potion' : step.target.ui) : null;
+  useEffect(() => {
+    if (!target) return;
+    let el: Element | null = null;
+    const find = () => {
+      const now = document.querySelector(`[data-testid="${target}"]`);
+      if (now !== el) { el?.classList.remove('tut-pulse'); el = now; el?.classList.add('tut-pulse'); }
+    };
+    find();
+    const iv = setInterval(find, 300);
+    return () => { clearInterval(iv); el?.classList.remove('tut-pulse'); };
+  }, [target]);
+  if (!step || combat) return null;
+  return (
+    <div className="tut-guide panel panel-gold" role="status" aria-live="polite" data-testid="tutorial-guide" data-step={step.id}>
+      <div className="font-display text-gold text-[11px] tracking-[0.2em] uppercase">Tutorial · {t.step + 1}/{TUTORIAL_STEPS.length}</div>
+      <div className="font-body text-parchment leading-snug mt-0.5" data-testid="tutorial-text">{touch ? step.touch : step.desktop}</div>
     </div>
   );
 }

@@ -9,7 +9,7 @@ const [,, url, out, dev] = process.argv;
   await p.evaluate(() => { const s = window.__CRYPTRAIDERS__.getState(); s.profile.character.level = 45; s.profile.stats.expeditions = 3; s.profile.bossesDefeated = ['ossuary_lord']; s.profile.tutorialSeen.dungeon = true;
     const set = (sl, id) => (s.profile.equipment[sl] = { uid: 'x' + id, itemId: id, qty: 1 }); set('mainHand', 'gravewarden_blade'); set('offHand', 'headstone_shield'); set('helmet', 'silver_helm'); set('armor', 'silver_plate'); });
   await tap('[data-testid=tab-character]'); await tap('[data-testid=tab-play]'); await p.waitForTimeout(300);
-  await tap('[data-testid=btn-zone-map]'); await tap('[data-testid=zone-cripta]'); await p.waitForTimeout(200); await p.screenshot({ path: out + '-picker.png' });
+  await tap('[data-testid=btn-zone-map]'); await tap('[data-testid=sub-osario]'); await p.waitForTimeout(200); await p.screenshot({ path: out + '-picker.png' });
   await tap('[data-testid=btn-enter-dungeon]'); await p.waitForTimeout(1800); await p.screenshot({ path: out + '-map.png' });
   for (const [id, en] of [['e_g', 'ghoul'], ['e_w', 'wraith'], ['e_q', 'veiled_queen']]) {
     await p.evaluate(([i, e]) => window.__CRYPTRAIDERS__.actions.startCombat('pve', i, e), [id, en]);

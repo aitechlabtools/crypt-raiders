@@ -1,6 +1,7 @@
 import { POCKETABLE } from './data/chests';
 import type { ClassId, EquipSlot, Equipment, Grid, ItemStack } from './types';
 import { EQUIP_SLOTS } from './types';
+import { isTwoHanded } from './data/weapons';
 import { getItem, maxStack, RARITY_INFO } from './data/items';
 import { makeUid } from './rng';
 
@@ -190,7 +191,25 @@ export function transfer(c: Containers, from: Loc, to: Loc, ctx: EquipContext): 
   }
   setAt(n, to, { ...src });
   setAt(n, from, dst ? { ...dst } : null);
+  if (to.kind === 'equip' && (to.slot === 'mainHand' || to.slot === 'offHand')) return fixHands(n, to.slot);
   return { ok: true, containers: n };
+}
+
+/** Un arma a dos manos no deja llevar nada en la izquierda: lo que sobre va a la mochila (o al almacén si no cabe). */
+function fixHands(n: Containers, placed: 'mainHand' | 'offHand'): TransferResult {
+  const main = n.equipment.mainHand;
+  if (!main || !n.equipment.offHand || !isTwoHanded(getItem(main.itemId))) return { ok: true, containers: n };
+  const freeSlot = placed === 'mainHand' ? 'offHand' : 'mainHand';
+  const out = n.equipment[freeSlot]!;
+  for (const g of ['backpack', 'stash'] as const) {
+    const r = addToGrid(n[g], out);
+    if (!r.leftover) {
+      n[g] = r.grid;
+      n.equipment[freeSlot] = null;
+      return { ok: true, containers: n };
+    }
+  }
+  return { ok: false, error: 'Es un arma a dos manos: haz sitio en la mochila para lo que llevas en la otra mano.' };
 }
 
 /** Equipa desde una casilla del inventario a su ranura natural. */

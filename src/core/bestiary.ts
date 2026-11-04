@@ -1,6 +1,7 @@
 // Bestiario: lo que sabes de cada criatura según cuántas veces la has visto y derrotado.
 import { ENEMIES } from './data/enemies';
-import { ZONES, ZONE_ORDER, type ZoneId } from './data/zones';
+import { ZONE_ORDER, type ZoneId } from './data/zones';
+import { subzonesOf } from './data/subzones';
 import { BESTIARY_BASIC_KILLS, BESTIARY_FULL_KILLS } from '../config/bestiary';
 
 export type BestiaryRecord = Record<string, { seen: number; kills: number }>;
@@ -17,9 +18,11 @@ export function knowledge(rec: BestiaryRecord, id: string): Knowledge {
 
 /** Criaturas de cada zona, en orden: normales, élite y jefe. */
 export function bestiaryByZone(): { zone: ZoneId; ids: string[] }[] {
+  // Por subzonas, en el orden en que se encuentran: comunes, élite y jefe de cada una
   return ZONE_ORDER.map((z) => {
-    const def = ZONES[z];
-    return { zone: z, ids: [...def.enemies.map((e) => e.id), def.elite, def.boss].filter((id) => ENEMIES[id]) };
+    const ids: string[] = [];
+    for (const s of subzonesOf(z)) for (const id of [...s.enemies.map((e) => e.id), s.elite, s.boss]) if (ENEMIES[id] && !ids.includes(id)) ids.push(id);
+    return { zone: z, ids };
   });
 }
 

@@ -48,23 +48,23 @@ export interface PageDef { title: string; intro: ReactNode; sections: LegalSecti
 // ─────────────────────────────────────────────────────────────────────────────
 export const AVISO: PageDef = {
   title: 'Aviso legal',
-  intro: <p>Aquí tienes quién está detrás de Crypt Raiders y las condiciones para usar esta web y la demo del juego.</p>,
+  intro: <p>Aquí tienes quién está detrás de Crypt Raiders y las condiciones para usar esta web y la alpha del juego.</p>,
   sections: [
     { id: 'titular', title: 'Datos del titular', body: <>
       <p>En cumplimiento del artículo 10 de la Ley 34/2002, de servicios de la sociedad de la información y de comercio electrónico (LSSI-CE), estos son los datos del titular de esta web:</p>
       <Titular />
     </> },
     { id: 'objeto', title: 'Objeto de la web', body: <>
-      <p>Esta web presenta <strong>Crypt Raiders</strong>, un videojuego independiente en desarrollo, y da acceso gratuito a una demo jugable en el navegador, en ordenador y en el móvil.</p>
-      <p>La web no vende nada. Dentro de la demo, la Tienda de atuendos solo usa el oro que se consigue jugando: no hay pagos con dinero real, y los atuendos son solo estéticos, no dan ventajas.</p>
+      <p>Esta web presenta <strong>Crypt Raiders</strong>, un videojuego independiente en desarrollo, y da acceso gratuito a una versión alpha jugable en el navegador, en ordenador y en el móvil.</p>
+      <p>La web no vende nada. Dentro de la alpha, la Tienda de atuendos solo usa el oro que se consigue jugando: no hay pagos con dinero real, y los atuendos son solo estéticos, no dan ventajas.</p>
       {DONATE_URL && <p>Si quieres, puedes apoyar el desarrollo con una aportación voluntaria desde el botón «Apoyar», que lleva a la página de pago de Stripe. Es una aportación libre: no compra nada ni da ninguna ventaja en el juego. Las condiciones del pago son las que indica Stripe en esa página.</p>}
     </> },
     { id: 'uso', title: 'Condiciones de uso', body: <>
-      <p>Usar la web y la demo es gratis y no exige registro. Al usarlas aceptas este aviso legal. Te comprometes a usarlas de forma lícita y a no hacer nada que pueda dañarlas, sobrecargarlas o impedir que otras personas las usen, como intentar acceder a sistemas o datos ajenos o introducir programas dañinos.</p>
-      <p>El titular puede cambiar, ampliar o retirar en cualquier momento los contenidos de la web y de la demo, y también estas condiciones. La versión vigente es siempre la publicada en esta página.</p>
+      <p>Usar la web y la alpha es gratis y no exige registro. Al usarlas aceptas este aviso legal. Te comprometes a usarlas de forma lícita y a no hacer nada que pueda dañarlas, sobrecargarlas o impedir que otras personas las usen, como intentar acceder a sistemas o datos ajenos o introducir programas dañinos.</p>
+      <p>El titular puede cambiar, ampliar o retirar en cualquier momento los contenidos de la web y de la alpha, y también estas condiciones. La versión vigente es siempre la publicada en esta página.</p>
     </> },
-    { id: 'demo', title: 'La demo y tu progreso', body: <>
-      <p>Crypt Raiders es una <strong>demo en desarrollo</strong>: puede tener errores, y su contenido, su equilibrio y sus reglas pueden cambiar entre versiones.</p>
+    { id: 'alpha', title: 'La alpha y tu progreso', body: <>
+      <p>Crypt Raiders es una <strong>alpha en desarrollo</strong>: puede tener errores, y su contenido, su equilibrio y sus reglas pueden cambiar entre versiones.</p>
       <p>Tu progreso (personaje, equipo, oro, ajustes) se guarda <strong>solo en tu navegador</strong>, en tu dispositivo. No se guarda en ningún servidor y el titular no tiene copia. Por eso puede perderse si:</p>
       <ul>
         <li>borras los datos de navegación o los datos de este sitio;</li>
@@ -79,7 +79,7 @@ export const AVISO: PageDef = {
       <p>Algunos elementos son de terceros y se usan con su licencia: las tipografías Cinzel, Crimson Pro y Pixelify Sans (SIL Open Font License) y las bibliotecas de software libre con las que está hecha la web (por ejemplo React y Phaser, con licencia MIT).</p>
     </> },
     { id: 'responsabilidad', title: 'Exclusión de responsabilidad', body: <>
-      <p>El titular intenta que la web y la demo funcionen bien y estén siempre disponibles, pero no lo garantiza: puede haber interrupciones, errores o pérdidas de progreso. En la medida en que lo permita la ley, el titular no responde de los daños que se deriven de ello, ni del mal uso que otras personas hagan de la web.</p>
+      <p>El titular intenta que la web y la alpha funcionen bien y estén siempre disponibles, pero no lo garantiza: puede haber interrupciones, errores o pérdidas de progreso. En la medida en que lo permita la ley, el titular no responde de los daños que se deriven de ello, ni del mal uso que otras personas hagan de la web.</p>
       <p>La hoja de ruta de la web indica intenciones, no compromisos: puede cambiar y no tiene fechas cerradas.</p>
     </> },
     { id: 'enlaces', title: 'Enlaces a otras webs', body: <>
@@ -167,7 +167,7 @@ export const COOKIES: PageDef = {
       <p>Las cookies son pequeños archivos que una web guarda en tu navegador para recordar algo, como una preferencia o tu sesión. Hay otras tecnologías que funcionan parecido, como el almacenamiento local (localStorage) o IndexedDB, una pequeña base de datos dentro del navegador. La ley trata igual todas estas tecnologías.</p>
     </> },
     { id: 'que-usamos', title: 'Qué guarda esta web', body: <>
-      <p>La portada y las páginas legales no guardan nada en tu navegador. La demo del juego guarda lo siguiente, y solo cuando creas un personaje:</p>
+      <p>La portada y las páginas legales no guardan nada en tu navegador. La alpha del juego guarda lo siguiente, y solo cuando creas un personaje:</p>
       <StorageTable rows={STORAGE_ROWS} />
       <p>Todo es <strong>propio</strong>: lo crea esta web, se queda en tu dispositivo y nadie más lo lee, tampoco el titular.</p>
     </> },

@@ -9,7 +9,7 @@ import { getItem } from '../core/data/items';
 import { PAL } from './palette';
 
 export type GearLook =
-  | { slot: 'mainHand'; shape: 'sword' | 'axe' | 'staff' | 'dagger' | 'mace'; color: string; orb?: string }
+  | { slot: 'mainHand'; shape: 'sword' | 'axe' | 'staff' | 'dagger' | 'mace' | 'greatsword'; color: string; orb?: string }
   | { slot: 'offHand'; shape: 'shield'; color: string; rim: string; emblem: string }
   | { slot: 'offHand'; shape: 'tome'; color: string }
   | { slot: 'helmet'; shape: 'hood' | 'helmet' | 'wizard'; color: string; trim?: string }
@@ -107,6 +107,57 @@ export const GEAR_LOOKS: Record<string, GearLook> = {
   obsidian_greatblade: { slot: 'mainHand', shape: 'sword', color: '#2a1a2a' },
   brimstone_scepter: { slot: 'mainHand', shape: 'staff', color: PAL.earth0, orb: '#ffef6a' },
   demonblood_plate: { slot: 'armor', style: 'mail', color: '#6a1414', trim: PAL.fire2 },
+  // ── Subzonas (C4). Provisional: lanzas y varitas se dibujan como bastón; orbes, antorchas y dagas de la
+  //    izquierda, como tomo. Ver la lista de assets en docs/plan-combate.md ──
+  guard_spear: { slot: 'mainHand', shape: 'staff', color: PAL.earth2, orb: PAL.steel3 },
+  birch_wand: { slot: 'mainHand', shape: 'staff', color: PAL.bone1, orb: PAL.ice },
+  pitch_torch: { slot: 'offHand', shape: 'tome', color: PAL.fire1 },
+  war_mace: { slot: 'mainHand', shape: 'mace', color: PAL.steel2 },
+  parry_dagger: { slot: 'offHand', shape: 'tome', color: PAL.steel3 },
+  murky_orb: { slot: 'offHand', shape: 'tome', color: '#6f7f96' },
+  jailer_greatsword: { slot: 'mainHand', shape: 'greatsword', color: PAL.steel2 },
+  jailer_greatstaff: { slot: 'mainHand', shape: 'staff', color: PAL.steel1, orb: PAL.ice },
+  femur_spear: { slot: 'mainHand', shape: 'staff', color: PAL.bone2, orb: PAL.bone3 },
+  vertebra_wand: { slot: 'mainHand', shape: 'staff', color: PAL.bone1, orb: '#7cff9a' },
+  ossuary_orb: { slot: 'offHand', shape: 'tome', color: PAL.bone2 },
+  drowned_trident: { slot: 'mainHand', shape: 'staff', color: '#3d6a6a', orb: '#bff0e8' },
+  ferryman_lantern: { slot: 'offHand', shape: 'tome', color: '#2a5a3a' },
+  dukes_rapier: { slot: 'mainHand', shape: 'sword', color: '#e8ecf2' },
+  queens_veil: { slot: 'offHand', shape: 'tome', color: PAL.ice },
+  blood_mace: { slot: 'mainHand', shape: 'mace', color: PAL.threat2 },
+  umbral_ritual_dagger: { slot: 'offHand', shape: 'tome', color: PAL.threat1 },
+  ignaroth_hammer: { slot: 'mainHand', shape: 'mace', color: '#3a2a3a' },
+  magma_orb: { slot: 'offHand', shape: 'tome', color: PAL.fire1 },
+  chain_shield: { slot: 'offHand', shape: 'shield', color: PAL.steel1, rim: PAL.outline, emblem: PAL.fire1 },
+  sulfur_greataxe: { slot: 'mainHand', shape: 'axe', color: '#e8d24a' },
+  ash_wand: { slot: 'mainHand', shape: 'staff', color: '#4a4448', orb: PAL.fire2 },
+  infernal_torch: { slot: 'offHand', shape: 'tome', color: PAL.threat2 },
+  belzar_chain: { slot: 'mainHand', shape: 'mace', color: PAL.steel1 },
+  throne_greatsword: { slot: 'mainHand', shape: 'greatsword', color: '#3a2a3a' },
+  abyss_eye: { slot: 'offHand', shape: 'tome', color: PAL.threat0 },
+  abyss_greatstaff: { slot: 'mainHand', shape: 'staff', color: PAL.outline, orb: PAL.fire2 },
+  sentinel_cap: { slot: 'helmet', shape: 'hood', color: PAL.earth1 },
+  guard_helm: { slot: 'helmet', shape: 'helmet', color: PAL.steel2 },
+  jailer_hood: { slot: 'helmet', shape: 'hood', color: '#2a2830' },
+  bone_mask: { slot: 'helmet', shape: 'helmet', color: PAL.bone2 },
+  dukes_crown: { slot: 'helmet', shape: 'helmet', color: '#cfd8e3' },
+  cult_hood: { slot: 'helmet', shape: 'hood', color: PAL.threat1 },
+  obsidian_helm: { slot: 'helmet', shape: 'helmet', color: '#3a2a3a' },
+  belzar_broken_crown: { slot: 'helmet', shape: 'helmet', color: PAL.threat2 },
+  soaked_robe: { slot: 'armor', style: 'robe', color: '#3d6a6a', trim: '#7cd0c0' },
+  dried_blood_cuirass: { slot: 'armor', style: 'mail', color: PAL.threat1, trim: PAL.bone2 },
+  chain_cuirass: { slot: 'armor', style: 'mail', color: PAL.steel1, trim: PAL.fire2 },
+  leather_bracers: { slot: 'gloves', color: PAL.earth2 },
+  funeral_silk_gloves: { slot: 'gloves', color: '#e8ecf2' },
+  forge_gauntlets: { slot: 'gloves', color: '#3a2a3a' },
+  courtyard_boots: { slot: 'boots', color: PAL.earth1 },
+  silt_boots: { slot: 'boots', color: '#3d4a3a' },
+  ash_boots: { slot: 'boots', color: '#5a5458' },
+  phalanx_rosary: { slot: 'amulet', color: PAL.bone2 },
+  sulfur_amulet: { slot: 'amulet', color: '#e8d24a' },
+  broken_shackles: { slot: 'ring' },
+  black_coral_ring: { slot: 'ring' },
+  condemned_ring: { slot: 'ring' },
 };
 
 export function lookOf(itemId: string): GearLook | null {

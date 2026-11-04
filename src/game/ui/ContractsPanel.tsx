@@ -106,7 +106,7 @@ export function ContractsPanel() {
           )}
         </div>
       </div>
-      <p className="font-body text-sm text-stone-400 italic">Un mercenario te sigue por la mazmorra y lucha a tu lado. Puedes llevar a Kael y a un mercenario a la vez. Si cae en combate, el contrato se rompe y no se devuelve el oro.</p>
+      <p className="font-body text-sm text-stone-400 italic">Un mercenario te sigue por la mazmorra y lucha a tu lado. Puedes llevar a la vez un mercenario contratado y uno errante de los que encuentres abajo. Si cae en combate, el contrato se rompe y no se devuelve el oro.</p>
     </div>
   );
 }

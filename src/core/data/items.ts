@@ -13,6 +13,7 @@ import { SLASH, CHOP, STAB, BOLT, SMITE } from './attacks';
 import { CRIPTA_ITEMS } from './zones/cripta';
 import { INFIERNO_ITEMS } from './zones/infierno';
 import { FORGED_ITEMS } from './forge';
+import { SUBZONE_ITEMS } from './subzoneItems';
 
 // Clases que pueden usar cada familia: la clase define quién eres, el arma cómo luchas.
 const W = ['warrior'] as const;
@@ -73,7 +74,8 @@ const list: ItemDef[] = [
 
   // ── Consumibles ───────────────────────────────────────
   { id: 'health_potion', name: 'Poción de vida', description: 'Restaura 45 puntos de vida (o el 18% de tu vida máxima, si es más).', icon: 'potion_red', category: 'potion', rarity: 'common', value: 20, stack: 5, use: { kind: 'heal', amount: 45 } },
-  { id: 'mana_potion', name: 'Poción de maná', description: 'Restaura 25 puntos de maná o aguante (o el 18% del máximo, si es más).', icon: 'potion_blue', category: 'potion', rarity: 'common', value: 20, stack: 5, use: { kind: 'mana', amount: 25 } },
+  { id: 'mana_potion', name: 'Poción de maná', description: 'Restaura 25 puntos de maná (o el 18% del máximo, si es más). Para magos.', icon: 'potion_blue', category: 'potion', rarity: 'common', value: 20, stack: 5, use: { kind: 'mana', amount: 25 }, resource: 'mana' },
+  { id: 'focus_tonic', name: 'Tónico de concentración', description: 'Restaura 25 puntos de ímpetu (o el 18% del máximo, si es más). Para guerreros.', icon: 'potion_orange', category: 'potion', rarity: 'common', value: 20, stack: 5, use: { kind: 'mana', amount: 25 }, resource: 'impetus' },
   { id: 'antidote', name: 'Antídoto amargo', description: 'Elimina veneno, quemadura y sangrado.', icon: 'potion_green', category: 'potion', rarity: 'uncommon', value: 25, stack: 5, use: { kind: 'cleanse' } },
 
   // ── Tesoros y materiales ──────────────────────────────
@@ -97,7 +99,7 @@ const list: ItemDef[] = [
 ];
 
 // Objetos de la Mazmorra (arriba) + los de cada zona más profunda (archivos de zones/)
-export const ITEMS: Record<string, ItemDef> = Object.fromEntries([...list, ...CRIPTA_ITEMS, ...INFIERNO_ITEMS, ...FORGED_ITEMS].map((i) => [i.id, i]));
+export const ITEMS: Record<string, ItemDef> = Object.fromEntries([...list, ...CRIPTA_ITEMS, ...INFIERNO_ITEMS, ...FORGED_ITEMS, ...SUBZONE_ITEMS].map((i) => [i.id, i]));
 
 export function getItem(id: string): ItemDef {
   const def = ITEMS[id];

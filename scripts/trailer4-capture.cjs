@@ -56,7 +56,7 @@ async function session(b, vp, touch) {
     console.log(name, n, 'fotogramas (paso a paso)');
   }
   const start = async () => {
-    await page.goto(BASE + '?debug');
+    await page.goto(BASE + '?debug&noclass');
     await ev(() => indexedDB.deleteDatabase('cryptraiders'));
     await page.reload(); await wait(700);
     await act('btn-play');
@@ -98,8 +98,8 @@ async function session(b, vp, touch) {
   await act('tab-play', 500);
   await record('n-jugar', async () => {
     await wait(700); await act('btn-zone-map', 900);
-    await hover('zone-cripta', 450); await hover('zone-infierno', 400);
-    await act('zone-infierno', 900);
+    await hover('sub-osario', 450); await hover('sub-puertas', 400);
+    await act('sub-rios', 900);
   });
   await act('tab-stash', 500);
   await record('n-alijo', async () => {

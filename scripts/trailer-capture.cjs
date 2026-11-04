@@ -88,9 +88,9 @@ const W = 1280, H = 720;
   await record('03-combate', async () => {
     await page.evaluate(() => window.__CRYPTRAIDERS__.actions.startCombat('pve', 'e_boss', 'ossuary_lord'));
     for (let i = 0; i < 4; i++) {
-      for (let k = 0; k < 15 && !(await page.$('[data-testid=act-skills]')); k++) await wait(200);
-      if (await page.$('[data-testid=act-skills]')) {
-        await page.click('[data-testid=act-skills]');
+      for (let k = 0; k < 15 && !(await page.$('[data-testid=act-special]')); k++) await wait(200);
+      if (await page.$('[data-testid=act-special]')) {
+        await page.click('[data-testid=act-special]');
         const id = i === 0 ? 'war_cry' : i === 1 ? 'rending_slash' : 'shield_bash';
         const btn = await page.$(`[data-testid=skill-${id}]:not([disabled])`);
         if (btn) await btn.click(); else { await page.keyboard.press('Escape'); await page.click('[data-testid=act-attack]'); }

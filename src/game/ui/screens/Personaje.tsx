@@ -14,6 +14,7 @@ import { PlayerSprite } from '../common';
 import { ActionIcon } from '../combatActions';
 import { Panel, Segmented, usePixelScale } from '../kit';
 import { useLayout } from '../../../config/ui';
+import { ClassSkillCards } from '../ClassSkills';
 
 /** Máximo de habilidades en el arco (si hubiera más, se ven todas en la lista). */
 const ARC_MAX = 8;
@@ -26,11 +27,11 @@ export function Personaje() {
   const profile = useGame((s) => s.profile)!;
   const layout = useLayout();
   const phone = layout === 'phone';
-  const [view, setView] = useState<'attrs' | 'skills'>('skills');
+  const [view, setView] = useState<'attrs' | 'skills' | 'class'>('skills');
   const [focus, setFocus] = useState<string | null>(null);
   const ch = profile.character;
   const cls = CLASSES[ch.classId];
-  const kit = combatLoadout(ch.classId, profile.equipment);
+  const kit = combatLoadout(ch.classId, profile.equipment, profile.classSkills.equipped);
   const res = cls.resourceName.toLowerCase();
   const nodes: Node[] = [
     { id: 'basic', name: kit.basicAttack.name, desc: 'Ataque básico del arma que llevas. No gasta nada.', cost: 0, fx: kit.basicAttack.fx ?? 'slash', source: 'basic', group: 'Ataque básico' },
@@ -45,9 +46,11 @@ export function Personaje() {
   if (phone) {
     return (
       <div className="h-full flex flex-col items-center" style={pad} data-testid="screen-character">
-        <Segmented options={[{ id: 'attrs', label: 'Atributos' }, { id: 'skills', label: 'Habilidades' }]} value={view} onChange={setView} testId="character-seg" />
+        <Segmented options={[{ id: 'attrs', label: 'Atributos' }, { id: 'skills', label: 'Habilidades' }, { id: 'class', label: 'De clase' }]} value={view} onChange={setView} testId="character-seg" />
         {view === 'attrs'
           ? <Panel className="flex-1 min-h-0 w-full max-w-xl" bodyClassName="overflow-y-auto scroll-thin" testId="character-attrs">{attrs}</Panel>
+          : view === 'class'
+          ? <Panel className="flex-1 min-h-0 w-full max-w-xl" bodyClassName="overflow-y-auto scroll-thin" testId="character-class">{<ClassSkillCards compact />}</Panel>
           : (
             <div className="flex-1 min-h-0 w-full grid" style={{ gridTemplateColumns: 'minmax(0,1fr) minmax(0,1fr)', gap: 'var(--gap)' }}>
               <div className="min-h-0 relative">{arc}</div>
@@ -64,9 +67,12 @@ export function Personaje() {
       <Panel title="Atributos" className="min-h-0" bodyClassName="overflow-y-auto scroll-thin" testId="character-attrs">{attrs}</Panel>
       <div className="min-h-0 flex flex-col">
         <div className="flex-1 min-h-0 relative">{arc}</div>
-        <p className="font-body text-stone-400 text-center text-[15px] leading-snug max-w-lg mx-auto pt-2">Tus habilidades vienen de tu clase y de lo que empuñas. Cambia de arma o de secundaria en el Alijo y cambiarán.</p>
+        <p className="font-body text-stone-400 text-center text-[15px] leading-snug max-w-lg mx-auto pt-2">Los ataques especiales vienen de lo que empuñas en cada mano; cámbialos en el Alijo. La habilidad de clase la eliges a la derecha.</p>
       </div>
-      <Panel title="Habilidades" className="min-h-0" bodyClassName="overflow-y-auto scroll-thin" testId="character-skills">{list}</Panel>
+      <div className="min-h-0 flex flex-col" style={{ gap: 'var(--gap)' }}>
+        <Panel title="Habilidad de clase" className="min-h-0 flex-[3]" bodyClassName="overflow-y-auto scroll-thin" testId="character-class">{<ClassSkillCards />}</Panel>
+        <Panel title="Habilidades" className="min-h-0 flex-[2]" bodyClassName="overflow-y-auto scroll-thin" testId="character-skills">{list}</Panel>
+      </div>
     </div>
   );
 }

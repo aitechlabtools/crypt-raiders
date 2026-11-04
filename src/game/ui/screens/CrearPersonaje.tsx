@@ -2,7 +2,7 @@
 // Derecha: sobre la clase (descripción, arma, puntos fuertes y débiles, habilidades y equipo inicial).
 // Abajo: Volver, el nombre del personaje y Confirmar.
 import { useEffect, useRef, useState } from 'react';
-import { actions } from '../../state/store';
+import { actions, tutorialDoneOnDevice } from '../../state/store';
 import { CLASSES } from '../../../core/data/classes';
 import type { ClassId } from '../../../core/types';
 import { CLOAK_COLORS, CLOAK_NAMES, SKIN_COLORS, SKIN_NAMES } from '../../../shared/palette';
@@ -32,7 +32,10 @@ export function CrearPersonaje() {
   const def = CLASSES[cls];
   const ap = { cloak, skin };
   const valid = name.trim().length >= 2;
-  const create = () => { if (!valid) return; sfx('equip'); void actions.createCharacter(name, cls, ap); };
+  // Si en este navegador ya se completó el tutorial alguna vez, se puede saltar
+  const canSkip = tutorialDoneOnDevice();
+  const [skip, setSkip] = useState(false);
+  const create = () => { if (!valid) return; sfx('equip'); void actions.createCharacter(name, cls, ap, canSkip && skip); };
   const side = phone ? 236 : layout === 'tablet' ? 268 : 340;
 
   return (
@@ -114,6 +117,12 @@ export function CrearPersonaje() {
             placeholder={phone ? 'Nombre del personaje' : 'Escribe un nombre'} aria-label="Nombre del personaje"
             className="w-full text-center bg-[#0d0c11] border-2 border-[#6b4a12] px-3 font-display text-parchment tracking-[0.08em] focus:outline-none focus:border-gold"
             style={{ height: 'var(--cta-h)', fontSize: phone ? 16 : 22 }} />
+          {canSkip && (
+            <span className="flex items-center gap-2 mt-1 text-sm text-stone-300 cursor-pointer" style={{ minHeight: 44 }}>
+              <input type="checkbox" checked={skip} onChange={(e) => setSkip(e.target.checked)} className="accent-[#e8b33a] w-5 h-5" data-testid="skip-tutorial" />
+              <span onClick={() => setSkip(!skip)}>Saltar el tutorial</span>
+            </span>
+          )}
         </label>
         <button className="btn btn-gold cta self-stretch" style={{ fontSize: phone ? 14 : 18, letterSpacing: '.1em' }} disabled={!valid} onClick={create} data-testid="btn-create"
           title={valid ? undefined : 'Escribe un nombre (mín. 2 letras)'}>Confirmar</button>

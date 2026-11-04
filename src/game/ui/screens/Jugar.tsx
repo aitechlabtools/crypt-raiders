@@ -3,7 +3,10 @@
 import { useEffect, useState } from 'react';
 import { actions, useGame } from '../../state/store';
 import { CLASSES } from '../../../core/data/classes';
-import { ZONES, ZONE_ORDER, zoneLock, type ZoneId } from '../../../core/data/zones';
+import { ZONES, ZONE_ORDER, defaultSubzone, subzoneLock, zoneLock, type ZoneId } from '../../../core/data/zones';
+import { SUBZONE_ORDER, getSubzone, isSubzoneId, subzonesOf, type SubzoneDef, type SubzoneId } from '../../../core/data/subzones';
+import { overlevelPenalty } from '../../../config/subzones';
+import { Segmented } from '../kit';
 import { getEnemy } from '../../../core/data/enemies';
 import { countItem, equippedValue, gridValue } from '../../../core/inventory';
 import { EXPEDITION_DURATION_MS } from '../../../core/expedition';
@@ -17,8 +20,8 @@ import { usePixelScale } from '../kit';
 import { useLayout } from '../../../config/ui';
 import { sfx, startMusic } from '../../audio';
 
-/** La zona elegida se recuerda mientras dure la sesión (al cambiar de pestaña y volver). */
-let lastZone: ZoneId = 'mazmorra';
+/** La subzona elegida se recuerda mientras dure la sesión (al cambiar de pestaña y volver). */
+let lastPick: SubzoneId | null = null;
 
 export type QuickTarget = 'quests' | 'merchants' | 'bestiary' | 'contracts';
 
@@ -30,11 +33,21 @@ export function Jugar({ onNavigate }: { onNavigate: (t: QuickTarget) => void }) 
   const merc0 = profile.contract ? getMerc(profile.contract.mercId) : null;
   const heroScale = useHeroScale(usePixelScale('hero'), !!merc0, phone);
   const firstTime = profile.stats.expeditions === 0;
-  const [zoneId, setZoneIdRaw] = useState<ZoneId>(firstTime ? 'mazmorra' : lastZone);
-  const setZoneId = (z: ZoneId) => { lastZone = z; setZoneIdRaw(z); };
+  // Subzona propuesta: la elegida en esta sesión, si no la última a la que bajaste, si no la que toca por nivel
+  const initial = (): SubzoneId => {
+    const open = SUBZONE_ORDER.filter((id) => !subzoneLock(getSubzone(id), ch.level, profile.bossesDefeated));
+    const fallback = open[open.length - 1] ?? defaultSubzone('mazmorra', ch.level, profile.bossesDefeated).id;
+    if (firstTime) return 'afueras';
+    for (const c of [lastPick, profile.lastSubzone]) if (isSubzoneId(c) && !subzoneLock(getSubzone(c), ch.level, profile.bossesDefeated)) return c;
+    return fallback;
+  };
+  const [subId, setSubIdRaw] = useState<SubzoneId>(initial);
+  const setSubId = (z: SubzoneId) => { lastPick = z; setSubIdRaw(z); };
   const [map, setMap] = useState(false);
-  const zone = ZONES[zoneId];
-  const lock = firstTime ? null : zoneLock(zone, ch.level, profile.bossesDefeated);
+  const sub = getSubzone(subId);
+  const zone = ZONES[sub.zone];
+  const lock = firstTime ? null : subzoneLock(sub, ch.level, profile.bossesDefeated);
+  const easy = !firstTime && overlevelPenalty(sub.levels[1], ch.level);
   const potions = countItem(profile.backpack, 'health_potion');
   const risk = gridValue(profile.backpack) + equippedValue(profile.equipment);
   const merc = profile.contract ? getMerc(profile.contract.mercId) : null;
@@ -47,7 +60,7 @@ export function Jugar({ onNavigate }: { onNavigate: (t: QuickTarget) => void }) 
     if (lock) return;
     sfx('portal');
     if (profile.settings.music) startMusic('dungeon');
-    void actions.enterDungeon(firstTime ? 'mazmorra' : zoneId);
+    void actions.enterDungeon(firstTime ? 'mazmorra' : subId);
   };
 
   const edge = { left: 'max(var(--pad), env(safe-area-inset-left))', right: 'max(var(--pad), env(safe-area-inset-right))', bottom: 'max(var(--pad), env(safe-area-inset-bottom))' };
@@ -71,14 +84,15 @@ export function Jugar({ onNavigate }: { onNavigate: (t: QuickTarget) => void }) 
       <div className="absolute flex flex-col" style={{ left: edge.left, bottom: edge.bottom, width: phone ? 250 : 324, gap: 'var(--gap)' }}>
       {/* Tarjeta de zona */}
       <section className="panel panel-gold overflow-hidden" data-testid="zone-card">
-        <button className="block w-full text-left relative" onClick={() => !firstTime && setMap(true)} aria-label={`Zona: ${zone.name}. Abrir el mapa de zonas`} disabled={firstTime}>
-          <ZoneArt id={zoneId} height={phone ? 44 : 96} />
-          {profile.bossesDefeated.includes(zone.boss) && <span className="absolute top-2 left-2 ui-tag on bg-black/70">Jefe derrotado ✓</span>}
+        <button className="block w-full text-left relative" onClick={() => !firstTime && setMap(true)} aria-label={`Destino: ${sub.name}, ${zone.name}. Abrir el mapa de zonas`} disabled={firstTime}>
+          <ZoneArt sub={sub} height={phone ? 44 : 96} />
+          {!phone && <span className="absolute top-2 left-2 ui-tag bg-black/70" data-testid="zone-zone">{zone.name} · {sub.index}/10</span>}
+          {easy && <span className="absolute top-2 right-2 ui-tag bg-black/70 text-ember" data-testid="zone-easy">Demasiado fácil</span>}
         </button>
         <div className={`flex items-center gap-3 ${phone ? 'px-3 py-1.5' : 'p-3'}`}>
           <div className="flex-1 min-w-0">
-            <div className={`font-display text-parchment leading-tight ${phone ? 'text-base' : 'text-xl'}`} data-testid="zone-name">{zone.name}</div>
-            {!phone && <div className="text-[11px] text-stone-300 leading-tight mt-0.5">Niveles {zone.levels[0]}–{zone.levels[1]} · mapa nuevo cada vez</div>}
+            <div className={`font-display text-parchment leading-tight ${phone ? 'text-base' : 'text-xl'}`} data-testid="zone-name">{sub.name}</div>
+            {!phone && <div className="text-[11px] text-stone-300 leading-tight mt-0.5">Niveles {sub.levels[0]}–{sub.levels[1]} · mapa nuevo cada vez</div>}
           </div>
           {!firstTime && <button className="btn text-xs shrink-0" onClick={() => { setMap(true); sfx('click'); }} data-testid="btn-zone-map">Mapa de zonas</button>}
         </div>
@@ -88,7 +102,8 @@ export function Jugar({ onNavigate }: { onNavigate: (t: QuickTarget) => void }) 
       <section className="panel panel-gold" data-testid="expedition-panel">
         <div className={phone ? 'p-2.5' : 'p-4'}>
           <h2 className="panel-title text-sm">Expedición</h2>
-          <div className="font-body text-parchment leading-tight mt-1">{zone.name} · Nv {zone.levels[0]}–{zone.levels[1]}</div>
+          <div className="font-body text-parchment leading-tight mt-1">{phone ? sub.name : zone.name} · Nv {sub.levels[0]}–{sub.levels[1]}</div>
+          {easy && <div className="text-xs text-ember mt-1" data-testid="zone-easy-note">Demasiado fácil para ti: {Math.round(easy.xp * 100)} % de experiencia y {Math.round(easy.gold * 100)} % de oro.</div>}
           {!phone && (
             <div className="font-body text-stone-300 text-[15px] leading-snug mt-0.5" data-testid="expedition-summary">
               {potions} {potions === 1 ? 'poción' : 'pociones'} · {risk} de oro en riesgo{merc ? ` · ${merc.name} te acompaña` : ''}
@@ -116,7 +131,7 @@ export function Jugar({ onNavigate }: { onNavigate: (t: QuickTarget) => void }) 
         </div>
       </div>
 
-      {map && <ZoneMap current={zoneId} onPick={(z) => { setZoneId(z); setMap(false); sfx('click'); }} onClose={() => setMap(false)} />}
+      {map && <ZoneMap current={subId} onPick={(z) => { setSubId(z); setMap(false); sfx('click'); }} onClose={() => setMap(false)} />}
       {firstTime && !phone && <FirstTimeHint className={CLASSES[ch.classId].name} />}
     </div>
   );
@@ -159,9 +174,9 @@ function Figure({ label, scale, phone, children, testId }: { label: React.ReactN
   );
 }
 
-function ZoneArt({ id, height }: { id: ZoneId; height: number }) {
-  // Ilustración provisional: el fondo de combate de la zona (320×180), recortado. La definitiva (160×90) la dibujará el usuario.
-  const src = zoneBackdrop(zoneFor(ZONES[id].backdrops, '', 0, true));
+function ZoneArt({ sub, height }: { sub: SubzoneDef; height: number }) {
+  // Ilustración provisional: el fondo de combate de la subzona (320×180), recortado. La definitiva (240×120) la dibujará el usuario.
+  const src = zoneBackdrop(zoneFor(sub.backdrops, '', 0, true));
   return <div className="w-full overflow-hidden bg-black flex justify-center" style={{ height }}><img src={src} alt="" className="pixelated w-[320px] h-[180px] max-w-none" style={{ marginTop: -(180 - height) / 2 }} draggable={false} /></div>;
 }
 
@@ -175,37 +190,63 @@ function Quick({ label, icon, badge, onClick, testId }: { label: string; icon: s
   );
 }
 
-/** Mapa de zonas: elegir hasta dónde bajar. Cada zona muestra niveles, jefe y por qué está cerrada. */
-function ZoneMap({ current, onPick, onClose }: { current: ZoneId; onPick: (z: ZoneId) => void; onClose: () => void }) {
+/**
+ * Mapa de zonas: las tres zonas en columnas y, dentro de cada una, sus subzonas de 10 niveles.
+ * En móvil no caben las tres columnas: una pestaña por zona.
+ */
+function ZoneMap({ current, onPick, onClose }: { current: SubzoneId; onPick: (z: SubzoneId) => void; onClose: () => void }) {
   const profile = useGame((s) => s.profile)!;
+  const phone = useLayout() === 'phone';
+  const [tab, setTab] = useState<ZoneId>(getSubzone(current).zone);
+  const column = (id: ZoneId) => {
+    const z = ZONES[id];
+    const zl = zoneLock(z, profile.character.level, profile.bossesDefeated);
+    return (
+      <section key={id} className="flex flex-col gap-1.5 min-w-0" data-testid={`zone-${id}`}>
+        {!phone && (
+          <div className="flex items-baseline justify-between gap-2 px-0.5">
+            <span className="font-display text-lg text-parchment">{z.name}</span>
+            <span className="text-[11px] text-gold">Nv {z.levels[0]}–{z.levels[1]}</span>
+          </div>
+        )}
+        {subzonesOf(id).map((s) => <SubzoneRow key={s.id} sub={s} on={s.id === current} onPick={onPick} />)}
+        <div className="text-[11px] text-stone-400 leading-snug px-0.5">
+          Jefe de la zona: {getEnemy(z.boss).name}{profile.bossesDefeated.includes(z.boss) ? ' ✓' : ''}
+          {zl && <span className="block text-blood">{zl}</span>}
+        </div>
+      </section>
+    );
+  };
   return (
     <Modal onClose={onClose} wide testId="zone-map">
-      <h2 className="panel-title text-xl mb-3">Mapa de zonas</h2>
-      <div className="grid sm:grid-cols-3 gap-3" data-testid="zone-picker">
-        {ZONE_ORDER.map((id) => {
-          const z = ZONES[id];
-          const l = zoneLock(z, profile.character.level, profile.bossesDefeated);
-          const on = id === current;
-          return (
-            <button key={id} onClick={() => !l && onPick(id)} disabled={!!l} data-testid={`zone-${id}`}
-              className={`panel p-0 text-left overflow-hidden transition ${on ? 'border-gold pulse-gold' : 'hover:brightness-125'} ${l ? 'opacity-60 cursor-not-allowed' : ''}`}>
-              <ZoneArt id={id} height={72} />
-              <div className="p-3">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-display text-lg text-parchment">{z.name}</span>
-                  {l ? <span aria-label="Cerrada" className="text-blood">🔒</span> : profile.bossesDefeated.includes(z.boss) ? <span className="text-heal text-xs">Jefe ✓</span> : null}
-                </div>
-                <div className="text-xs text-gold">Niveles {z.levels[0]}–{z.levels[1]}</div>
-                <div className="font-body text-sm text-stone-300 leading-snug mt-1">{z.tagline}</div>
-                <div className="text-[11px] text-stone-400 mt-1">Jefe: {getEnemy(z.boss).name}</div>
-                {l && <div className="text-[11px] text-blood mt-1 leading-tight">{l}</div>}
-              </div>
-            </button>
-          );
-        })}
+      <h2 className="panel-title text-xl mb-2">Mapa de zonas</h2>
+      {phone && <div className="mb-2"><Segmented options={ZONE_ORDER.map((id) => ({ id, label: ZONES[id].name.replace(/^(La|El) /, '') }))} value={tab} onChange={(v) => { setTab(v); sfx('click'); }} testId="zone-tabs" /></div>}
+      <div className={phone ? '' : 'grid grid-cols-3 gap-3'} data-testid="zone-picker">
+        {phone ? column(tab) : ZONE_ORDER.map(column)}
       </div>
-      <button className="btn mt-4" onClick={onClose} data-testid="btn-zone-map-close">Cerrar</button>
+      <button className="btn mt-3" onClick={onClose} data-testid="btn-zone-map-close">Cerrar</button>
     </Modal>
+  );
+}
+
+/** Fila de una subzona: nombre, niveles y estado (cerrada, demasiado fácil o elegida). Mide 44 px o más. */
+function SubzoneRow({ sub, on, onPick }: { sub: SubzoneDef; on: boolean; onPick: (z: SubzoneId) => void }) {
+  const profile = useGame((s) => s.profile)!;
+  const l = subzoneLock(sub, profile.character.level, profile.bossesDefeated);
+  const easy = overlevelPenalty(sub.levels[1], profile.character.level);
+  return (
+    <button onClick={() => !l && onPick(sub.id)} disabled={!!l} aria-pressed={on} title={l ?? sub.tagline} data-testid={`sub-${sub.id}`}
+      className={`panel subzone-row text-left ${on ? 'border-gold pulse-gold' : 'hover:brightness-125'} ${l ? 'opacity-55 cursor-not-allowed' : ''}`}>
+      <span className="subzone-num font-display">{sub.index}</span>
+      <span className="flex-1 min-w-0">
+        <span className="block font-display text-parchment leading-tight truncate">{sub.name}</span>
+        <span className="block text-[11px] leading-tight text-stone-300">
+          Nv {sub.levels[0]}–{sub.levels[1]}
+          {l ? <span className="text-blood"> · {l.replace(/^Necesitas /, 'necesitas ').replace(/\.$/, '')}</span> : easy ? <span className="text-ember"> · demasiado fácil</span> : null}
+        </span>
+      </span>
+      {l ? <span aria-label="Cerrada" className="text-blood shrink-0">🔒</span> : on ? <span className="text-gold shrink-0" aria-hidden>◆</span> : null}
+    </button>
   );
 }
 

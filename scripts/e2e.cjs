@@ -103,9 +103,9 @@ fs.mkdirSync(OUT, { recursive: true });
       if (myTurn) {
         if (s.hp < 40 && (await page.$('[data-testid=act-bag]:not([disabled])'))) { await page.click('[data-testid=act-bag]'); await page.click('[data-testid=use-health_potion]'); }
         else if (i === 1) {
-          await page.click('[data-testid=act-skills]');
-          await page.waitForSelector('[data-testid=skills-menu]');
-          await shot('08-skills-menu');
+          await page.click('[data-testid=act-special]');
+          await page.waitForSelector('[data-testid=special-menu]');
+          await shot('08-special-menu');
           await page.click('[data-testid=skill-rending_slash]');
         }
         else await page.keyboard.press('1');

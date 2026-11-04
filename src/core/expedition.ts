@@ -35,10 +35,14 @@ export interface ExpeditionState {
   riskedValue: number;
   /** Zona de la expedición. */
   zone?: string;
+  /** Subzona de la expedición (las antiguas no la tienen). */
+  subzone?: string;
   /** Cofres abiertos por tipo (para misiones). */
   chestsOpened?: Record<string, number>;
   /** Vetas picadas en esta expedición. */
   veinsMined?: number;
+  /** Recargas pendientes de tus acciones: pasan de un combate al siguiente (al volver al pueblo, todo listo). */
+  cooldowns?: Record<string, number>;
 }
 
 export type EndReason = 'extracted' | 'died' | 'timeout';
@@ -59,6 +63,10 @@ export interface ExpeditionSummary {
   recruitKit?: boolean;
   /** Qué ha pasado con tu mercenario (contrato gastado, roto, rescate…). */
   mercNote?: string;
+  /** Despedida del errante que extrae contigo (y su parte del oro). */
+  wandererNote?: string;
+  /** Fin del tutorial (o tutorial repetido). */
+  tutorialNote?: string;
 }
 
 export function startExpedition(p: Profile, now: number): { profile: Profile; expedition: ExpeditionState } {

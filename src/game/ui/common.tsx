@@ -94,8 +94,8 @@ export function ItemActions({ loc, mode, onClear, lootId, buttonsOnly = false }:
   if (mode === 'lobby' && inGrid && loc.container === 'backpack') btns.push(b('Al almacén', () => { actions.quickMove(loc, 'stash'); onClear(); }, '', 'act-stash'));
   if (mode === 'lobby' && inGrid && loc.container === 'stash') btns.push(b('A la mochila', () => { actions.quickMove(loc, 'backpack'); onClear(); }, '', 'act-backpack'));
   if (mode === 'merchant' && inGrid && (loc.container === 'backpack' || loc.container === 'stash')) {
-    btns.push(b(`Vender (${sellPrice(def.id)})`, () => { actions.sell(loc.container as 'backpack' | 'stash', loc.index); if (st.qty <= 1) onClear(); }, 'btn-gold', 'act-sell'));
-    if (st.qty > 1) btns.push(b(`Vender todo (${sellPrice(def.id) * st.qty})`, () => { actions.sell(loc.container as 'backpack' | 'stash', loc.index, true); onClear(); }));
+    btns.push(b(`Vender (${sellPrice(def.id, st)})`, () => { actions.sell(loc.container as 'backpack' | 'stash', loc.index); if (st.qty <= 1) onClear(); }, 'btn-gold', 'act-sell'));
+    if (st.qty > 1) btns.push(b(`Vender todo (${sellPrice(def.id, st) * st.qty})`, () => { actions.sell(loc.container as 'backpack' | 'stash', loc.index, true); onClear(); }));
   }
   if ((mode === 'lobby' || mode === 'dungeon') && inGrid && loc.container === 'backpack' && canPocket(st.itemId)) btns.push(b('Al bolsillo seguro', () => { actions.quickMove(loc, 'pocket'); onClear(); }, '', 'act-pocket'));
   if (inGrid && loc.container === 'pocket') btns.push(b('A la mochila', () => { actions.quickMove(loc, 'backpack'); onClear(); }, '', 'act-unpocket'));
@@ -136,7 +136,8 @@ const SOURCE_LABEL = { class: 'De clase · siempre disponible', weapon: 'Del arm
 
 /** Habilidades disponibles con el equipo indicado, agrupadas: clase, arma y secundaria. */
 export function LoadoutPanel({ classId, equipment, compact = false }: { classId: ClassId; equipment: Equipment; compact?: boolean }) {
-  const kit = combatLoadout(classId, equipment);
+  const equipped = useGame((s) => s.profile?.classSkills.equipped);
+  const kit = combatLoadout(classId, equipment, equipped);
   const res = CLASSES[classId].resourceName.toLowerCase();
   const hasOff = kit.groups.some((g) => g.source === 'offhand');
   return (

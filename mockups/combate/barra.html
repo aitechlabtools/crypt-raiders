@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Barra de combate: maqueta</title>
+<style>
+  :root { --gold: #e8b33a; --parch: #e9e1cc; --stone: #8c8693; --right: #ff6a5a; --left: #5fa8e8; --cls: #a56bff; --util: #e8b33a; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #07060a; color: var(--parch); font-family: "Crimson Pro", Georgia, serif; overflow: hidden; }
+  .stage { position: absolute; inset: 0; background-repeat: no-repeat; background-position: top left; background-size: 100% auto; image-rendering: pixelated; }
+  .bar { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, #0f0d14ee, #07060a); border-top: 2px solid #6b4a12; padding: 10px 12px; display: grid; gap: 8px; }
+  .panel { background: linear-gradient(180deg, #1c1922, #121016); border: 2px solid #3a3741; box-shadow: inset 0 0 0 1px #07060a; }
+  .log { padding: 8px 12px; font-size: 17px; line-height: 1.35; overflow: hidden; }
+  .log .q { color: var(--gold); }
+  .log .dim { color: #8c8693; font-style: italic; }
+  .cmd { position: relative; display: flex; align-items: center; gap: 10px; padding: 7px 10px 7px 22px; text-align: left; color: var(--parch); min-height: 44px; min-width: 44px;
+    background: linear-gradient(180deg, #26222d, #17141c); border: 2px solid #3a3741; border-left: 4px solid var(--c); box-shadow: inset 0 0 0 1px #07060a; overflow: hidden; }
+  .cmd.on { border-color: var(--c); box-shadow: 0 0 0 1px #07060a, 0 0 18px -2px var(--c); background: linear-gradient(180deg, #332c3b, #1d1923); }
+  .cmd.cd { filter: saturate(.3) brightness(.65); }
+  .cmd .ico { width: 28px; height: 28px; image-rendering: pixelated; flex: none; }
+  .cmd .src { position: absolute; left: 3px; bottom: 3px; width: 14px; height: 14px; image-rendering: pixelated; opacity: .95; }
+  .cmd .t { display: flex; flex-direction: column; min-width: 0; line-height: 1.12; }
+  .cmd .n { font-family: "Cinzel", serif; font-weight: 600; font-size: 15px; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cmd .s { font-size: 12px; opacity: .7; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cmd kbd { position: absolute; right: 5px; top: 3px; font-size: 10px; color: #8c8693; font-family: "Pixelify Sans", monospace; }
+  .cmd .turns { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 34px; height: 34px; border: 2px solid #8c8693; border-radius: 50%; background: #07060acc; filter: none; font-family: "Pixelify Sans", monospace; font-size: 20px; color: #fff; }
+  .cmd.big .ico { width: 40px; height: 40px; }
+  .cmd.big .n { font-size: 19px; }
+  .cmd.half { padding-left: 14px; gap: 6px; }
+  .cmd.half .ico { width: 22px; height: 22px; }
+  .cmd.half .n { font-size: 13px; }
+  .hand { font-family: "Cinzel", serif; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--c); display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; }
+  .hand img { width: 16px; height: 16px; image-rendering: pixelated; }
+  .tip { position: absolute; width: 300px; padding: 10px 12px; z-index: 5; font-size: 15px; line-height: 1.3; }
+  .tip h4 { margin: 0 0 2px; font-family: "Cinzel", serif; font-size: 16px; color: var(--parch); }
+  .tip .from { font-size: 12px; color: var(--c); margin-bottom: 6px; }
+  .tip .row { display: flex; justify-content: space-between; color: #c9c2b0; }
+  .tip .row b { color: var(--parch); font-weight: 600; }
+  .tag { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: #000c; border: 1px solid #6b4a12; color: var(--gold); padding: 4px 12px; font-family: "Cinzel", serif; font-size: 13px; letter-spacing: .1em; z-index: 9; white-space: nowrap; }
+  .loghint { font-size: 11px; color: #8c8693; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .grp { display: grid; gap: 6px; align-content: start; }
+  .mobile .log { font-size: 14px; padding: 4px 10px; }
+  .mobile .cmd { padding: 4px 6px 4px 18px; gap: 6px; }
+  .mobile .cmd .ico { width: 22px; height: 22px; }
+  .mobile .cmd .n { font-size: 12px; }
+  .mobile .cmd .s { font-size: 10px; }
+  .mobile .cmd.big .ico { width: 28px; height: 28px; }
+  .mobile .cmd.big .n { font-size: 14px; }
+  .mobile .cmd .src { width: 12px; height: 12px; }
+  .mobile .cmd .turns { font-size: 15px; width: 26px; height: 26px; right: 4px; }
+  .mobile .bar { padding: 6px max(10px, env(safe-area-inset-right)) 6px max(10px, env(safe-area-inset-left)); gap: 6px; }
+  .mobile .hand { font-size: 9px; }
+  /* En móvil el registro sale en una línea sobre la barra (tocar para verlo entero) */
+  .mlog { position: absolute; left: 50%; transform: translateX(-50%); bottom: calc(100% + 4px); width: min(560px, 70vw); }
+  .mlog .log { background: #0b0a0fd9; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mobile .grp .hand { display: none; }
+</style>
+</head>
+<body>
+<div class="stage" id="stage"></div>
+<div id="root"></div>
+<script type="module">
+import '/node_modules/@fontsource/cinzel/600.css';
+import '/node_modules/@fontsource/crimson-pro/400.css';
+import '/node_modules/@fontsource/crimson-pro/400-italic.css';
+import '/node_modules/@fontsource/pixelify-sans/400.css';
+import { iconUrl } from '/src/shared/art.ts';
+
+const q = new URLSearchParams(location.search);
+const layout = q.get('layout') || 'A';
+const size = q.get('size') || (innerWidth >= 1500 ? 'escritorio' : innerWidth >= 1000 ? 'tableta' : 'movil');
+const tip = q.get('tip') === '1';
+const mobile = size === 'movil';
+const touch = size !== 'escritorio';
+document.body.classList.toggle('mobile', mobile);
+document.getElementById('stage').style.backgroundImage = `url(./fondos/${size}.png)`;
+
+// Datos de ejemplo: Guerrero nivel 15 con Espada de hierro y Escudo de hierro
+const R = { label: 'Mano derecha', item: 'Espada de hierro', icon: 'sword', c: 'var(--right)' };
+const L = { label: 'Mano izquierda', item: 'Escudo de hierro', icon: 'shield_iron', c: 'var(--left)' };
+const A = [
+  { k: 1, n: 'Tajo', s: 'Básico · sin recarga', icon: 'sword', from: R, big: true },
+  { k: 2, n: 'Tajo desgarrador', s: '×1,4 · sangrado', icon: 'dagger', from: R, cd: 0 },
+  { k: 3, n: 'Estocada', s: '×1,2 · no se esquiva', icon: 'sword_knight', from: R, cd: 2 },
+  { k: 4, n: 'Bloqueo', s: '−85 % al próximo golpe', icon: 'shield', from: L, cd: 0 },
+  { k: 5, n: 'Embestida', s: '×0,7 · 40 % aturdir', icon: 'shield_iron', from: L, cd: 1 },
+  { k: 6, n: 'Grito de guerra', s: 'Clase · +30 % daño', icon: 'gem_red', from: { label: 'Clase', item: 'Guerrero', icon: 'helm', c: 'var(--cls)' }, cd: 0 },
+];
+const util = [
+  { k: 7, n: 'Mochila', s: '3 objetos', icon: 'potion_red', c: 'var(--util)' },
+  { k: 8, n: 'Huir', s: '62 %', icon: 'boots', c: '#8c8693' },
+];
+const ico = (name) => { try { return iconUrl(name, 4); } catch { return iconUrl('sword', 4); } };
+const btn = (a, extra = '') => {
+  const c = a.from ? a.from.c : a.c;
+  const cd = a.cd > 0;
+  return `<div class="cmd ${a.big ? 'big' : ''} ${extra} ${cd ? 'cd' : ''} ${a.k === 1 ? 'on' : ''}" style="--c:${c}" data-k="${a.k}">
+    <img class="ico" src="${ico(a.icon)}" alt="">
+    ${a.from && !a.big ? `<img class="src" src="${ico(a.from.icon)}" alt="">` : ''}
+    <span class="t"><span class="n">${a.n}</span><span class="s">${cd ? `Recarga: ${a.cd} turno${a.cd > 1 ? 's' : ''}` : a.s}</span></span>
+    ${touch ? '' : `<kbd>${a.k}</kbd>`}
+    ${cd ? `<span class="turns">${a.cd}</span>` : ''}
+  </div>`;
+};
+const utilRow = () => `<div class="split">${util.map((u) => btn(u, 'half')).join('')}</div>`;
+const log = (lines = 3) => `<div class="panel log">${[
+  '<span class="dim">Ronda 2</span>',
+  'Armadura hueca te golpea: 14 de daño.',
+  'Tu Tajo desgarrador le hace sangrar.',
+  '<span class="q">¿Qué hará Saqueador?</span>',
+].slice(-lines).join('<br>')}${mobile ? ' <span class="loghint">▾ ver todo</span>' : ''}</div>`;
+const handHead = (h) => `<div class="hand" style="--c:${h.c}"><img src="${ico(h.icon)}" alt="">${h.label} · ${h.item}</div>`;
+
+let html = '';
+const bar = document.createElement('div');
+bar.className = 'bar';
+const H = mobile ? 108 : size === 'tableta' ? 196 : 200;
+bar.style.height = H + 'px';
+
+if (layout === 'A') {
+  // A · Básico grande + cuadrícula 2×2 (fila de arriba: mano derecha; abajo: mano izquierda) + clase y utilidades
+  const rows = mobile ? '1fr 1fr' : '1fr 1fr';
+  if (mobile) {
+    html = `<div class="mlog">${log(1)}</div>
+      <div style="display:grid;grid-template-columns:1.1fr 1fr 1fr 1.1fr;gap:6px;grid-template-rows:${rows}">
+        <div style="grid-row:1/3;display:grid">${btn(A[0])}</div>${btn(A[1])}${btn(A[2])}${btn(A[5])}${btn(A[3])}${btn(A[4])}${utilRow()}
+      </div>`;
+  } else {
+    bar.style.gridTemplateColumns = size === 'tableta' ? '0.9fr 2.2fr' : '1fr 1.9fr';
+    html = `${log(4)}
+      <div style="display:grid;grid-template-columns:1.1fr 1fr 1fr 1.1fr;grid-template-rows:${rows};gap:8px">
+        <div style="grid-row:1/3;display:grid">${btn(A[0])}</div>${btn(A[1])}${btn(A[2])}${btn(A[5])}${btn(A[3])}${btn(A[4])}${utilRow()}
+      </div>`;
+  }
+} else if (layout === 'B') {
+  // B · Agrupado por manos: cada columna con su cabecera (de qué arma vienen) y una tercera para clase y utilidades
+  const col = (h, items) => `<div class="grp">${handHead(h)}${items}</div>`;
+  const right = col(R, `${btn(A[0])}<div class="split">${btn(A[1])}${btn(A[2])}</div>`);
+  const left = col(L, `${btn(A[3])}${btn(A[4])}`);
+  const cls = col({ label: 'Clase', item: 'Guerrero', icon: 'helm', c: 'var(--cls)' }, `${btn(A[5])}${utilRow()}`);
+  if (mobile) {
+    html = `<div class="mlog">${log(1)}</div><div style="display:grid;grid-template-columns:1.6fr 1fr 1fr;gap:8px">${right}${left}${cls}</div>`;
+  } else {
+    bar.style.gridTemplateColumns = size === 'tableta' ? '0.75fr 1.6fr 1fr 1fr' : '0.9fr 1.6fr 1fr 1fr';
+    html = `${log(4)}${right}${left}${cls}`;
+  }
+} else if (layout === 'D') {
+  // D · Como ahora (2×2): Atacar · Ataque especial / Habilidad · Mochila|Huir. «Ataque especial» abre sus 4 ataques en una cuadrícula 2×2 sobre el combate.
+  const open = q.get('open') === '1';
+  const sp = { k: 2, n: 'Ataque especial', s: open ? 'Elige uno · Esc para volver' : '3 listos · 1 en recarga', icon: 'gem_red', c: '#ff9a3a' };
+  const spBtn = `<div class="cmd ${open ? 'on' : ''}" style="--c:${sp.c}" data-k="2"><img class="ico" src="${ico('sword_knight')}" alt=""><span class="t"><span class="n">${sp.n}</span><span class="s">${sp.s}</span></span>${touch ? '' : '<kbd>2</kbd>'}</div>`;
+  const atk = { ...A[0], big: false, k: 1 };
+  const cls = { ...A[5], k: 3, n: 'Habilidad', s: 'Grito de guerra · +30 % daño' };
+  const u = [{ ...util[0], k: 4 }, { ...util[1], k: 5 }];
+  const g = mobile ? 6 : 8;
+  // Cerrado: Ataque · Ataque especial / Habilidad · Mochila|Huir. Abierto: en el mismo sitio, «Volver» y los 4 especiales.
+  const back = `<div class="cmd" style="--c:#8c8693;flex-direction:column;justify-content:center;padding:6px;gap:4px;text-align:center" data-k="0"><span style="font-size:${mobile ? 18 : 24}px;line-height:1">◂</span><span class="n" style="font-family:Cinzel,serif;font-size:${mobile ? 11 : 13}px;letter-spacing:.06em;text-transform:uppercase">Volver</span>${touch ? '' : '<kbd>Esc</kbd>'}</div>`;
+  const bag = q.get('open') === 'bag';
+  const items = [
+    { k: 1, n: 'Poción de vida', s: '×3 · cura 40 (o 18 %)', icon: 'potion_red', c: '#c4283b' },
+    { k: 2, n: 'Poción de maná', s: '×1 · recargas −2 turnos', icon: 'potion_blue', c: '#3d7be0' },
+    { k: 3, n: 'Antídoto', s: '×2 · quita veneno y sangrado', icon: 'potion_green', c: '#5fd19a' },
+    { k: 4, n: 'Bomba de brea', s: '×1 · 30 de fuego, quema', icon: 'coin', c: '#e8752b' },
+  ];
+  const grid = bag
+    ? `<div style="display:grid;grid-template-columns:${mobile ? 84 : 110}px 1fr 1fr;grid-template-rows:1fr 1fr;gap:${g}px">${back.replace('flex-direction:column', 'flex-direction:row')}<div class="cmd" style="--c:#e8b33a;justify-content:center;padding:4px 6px;gap:6px;text-align:center" data-k="9"><span class="t" style="align-items:center"><span class="n" style="font-size:${mobile ? 12 : 14}px">1 / 2 ▸</span><span class="s">Página</span></span>${touch ? '' : '<kbd>Tab</kbd>'}</div>${items.map((it) => btn(it)).join('')}</div>`.replace(/(<div class="cmd[^>]*data-k="9")/, '$1').replace('grid-template-rows:1fr 1fr;', 'grid-template-rows:1fr 1fr;grid-auto-flow:column;')
+    : open
+    ? `<div style="display:grid;grid-template-columns:${mobile ? 64 : 92}px 1fr 1fr;grid-template-rows:1fr 1fr;gap:${g}px"><div style="grid-row:1/3;display:grid">${back}</div>${btn({ ...A[1], k: 1 })}${btn({ ...A[2], k: 2 })}${btn({ ...A[3], k: 3 })}${btn({ ...A[4], k: 4 })}</div>`
+    : `<div style="display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:${g}px">${btn(atk)}${spBtn}${btn(cls)}<div class="split">${btn(u[0], 'half')}${btn(u[1], 'half')}</div></div>`;
+  if (mobile) html = `<div class="mlog">${log(1)}</div>${grid}`;
+  else { bar.style.gridTemplateColumns = '1fr 1.15fr'; html = `${log(4)}${grid}`; }
+} else {
+  // C · Tira: registro en una línea y todos los botones en una fila (en móvil, dos filas de 4)
+  const strip = mobile
+    ? `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">${btn(A[0])}${btn(A[1])}${btn(A[2])}${btn(A[5])}${btn(A[3])}${btn(A[4])}${btn(util[0], 'half')}${btn(util[1], 'half')}</div>`
+    : `<div style="display:grid;grid-template-columns:1.3fr 1fr 1fr 1fr 1fr 1.1fr 0.62fr 0.62fr;gap:8px">${A.map((a) => btn(a)).join('')}${btn(util[0], 'half')}${btn(util[1], 'half')}</div>`;
+  if (!mobile) bar.style.gridTemplateRows = '1fr 2fr';
+  html = mobile ? `<div class="mlog">${log(1)}</div>${strip}` : `${log(2)}${strip}`;
+}
+bar.innerHTML = html;
+document.getElementById('root').append(bar);
+
+// Ficha (al pasar el ratón en ordenador / al mantener pulsado en táctil)
+if (tip) {
+  const t = document.createElement('div');
+  t.className = 'panel tip';
+  t.style.setProperty('--c', 'var(--right)');
+  t.innerHTML = `<h4>Tajo desgarrador</h4><div class="from">Mano derecha · Espada de hierro (poco común)</div>
+    <div class="row"><span>Daño</span><b>Físico ×1,4 (≈ 31)</b></div>
+    <div class="row"><span>Efecto</span><b>Sangrado 3 turnos (5 %/turno)</b></div>
+    <div class="row"><span>Recarga</span><b>3 turnos</b></div>
+    <div style="margin-top:6px;font-size:12px;color:#8c8693">${touch ? 'Mantén pulsado para ver la ficha · toca para usar' : 'Tecla 2 · clic para usar'}</div>`;
+  const target = bar.querySelector('[data-k="2"]').getBoundingClientRect();
+  t.style.left = Math.min(innerWidth - 310, Math.max(10, target.left)) + 'px';
+  t.style.bottom = (innerHeight - target.top + 8) + 'px';
+  document.body.append(t);
+}
+const tag = document.createElement('div');
+tag.className = 'tag';
+tag.textContent = `Distribución ${layout} · ${size}`;
+document.body.append(tag);
+document.body.dataset.ready = '1';
+</script>
+</body>
+</html>

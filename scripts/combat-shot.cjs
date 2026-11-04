@@ -15,9 +15,9 @@ const [,, url, out, dev] = process.argv;
     for (let i = 0; i < 20; i++) { const o = await p.evaluate(() => { const s = window.__CRYPTRAIDERS__.getState(); return !s.combat || !!s.combat.state.outcome; }); if (o) break; const a = await p.$('[data-testid=act-attack]:not([disabled])'); if (a) await a.click(); await p.waitForTimeout(400); }
     await p.screenshot({ path: out + '-fin.png' }); const c = await p.$('[data-testid=btn-combat-continue]'); if (c) await c.click(); await p.waitForTimeout(300); };
   await fight('e_sk', 'skeleton'); await p.screenshot({ path: out + '-1.png' });
-  await tap('[data-testid=act-skills]'); await p.waitForTimeout(200);
-  const sk = await p.$('[data-testid=skill-rending_slash]'); if (sk) { if (dev) await sk.tap(); else await sk.hover(); } await p.waitForTimeout(200); await p.screenshot({ path: out + '-2.png' });
-  if (sk) { if (dev) await sk.tap(); else await sk.click(); } await p.waitForTimeout(500); await p.screenshot({ path: out + '-3.png' });
+  await tap('[data-testid=act-special]'); await p.waitForTimeout(200);
+  const sk = await p.$('[data-testid=skill-rending_slash]'); if (sk && !dev) await sk.hover(); await p.waitForTimeout(200); await p.screenshot({ path: out + '-2.png' });
+  if (sk) { if (dev) await p.tap('[data-testid=skill-rending_slash]'); else await sk.click(); } await p.waitForTimeout(500); await p.screenshot({ path: out + '-3.png' });
   await end('e_sk');
   const r = await p.evaluate(() => { const r = window.__CRYPTRAIDERS__.scene().rival; return [r.x, r.y]; });
   await p.evaluate(([x, y]) => window.__CRYPTRAIDERS__.scene().debugTeleport(x, y), [Math.floor(r[0]) + 1, Math.floor(r[1])]); await p.waitForTimeout(500);

@@ -10,7 +10,7 @@ describe('Bestiario', () => {
       expect(BESTIARY_LORE[id], id).toBeTruthy();
       expect(inZones.has(id), id).toBe(true);
     }
-    expect(bestiaryProgress({}).total).toBe(21);
+    expect(bestiaryProgress({}).total).toBe(Object.keys(ENEMIES).length);
   });
   it('se desbloquea al ver, al derrotar y tras 5 victorias', () => {
     let r = {};

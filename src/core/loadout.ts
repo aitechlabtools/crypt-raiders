@@ -1,15 +1,17 @@
 // ════════════════════════════════════════════════════════════════════
-// Habilidades de combate según quién eres y qué llevas:
-//  · La clase da 1 habilidad exclusiva, siempre disponible.
-//  · El arma da el ataque básico y sus habilidades (sin arma: puños).
-//  · La secundaria (escudo, tomo) da las habilidades defensivas.
+// Acciones de combate según quién eres y qué llevas:
+//  · Ataque básico: el del arma de la mano derecha (sin arma: puñetazo). Sin coste ni recarga.
+//  · 2 especiales de la mano derecha y 2 de la izquierda (un arma a dos manos da los 4).
+//    Mano vacía: acciones básicas sin arma.
+//  · 1 habilidad de clase.
 // ════════════════════════════════════════════════════════════════════
 import type { AttackDef, ClassId, Equipment } from './types';
 import { CLASSES } from './data/classes';
 import { getItem } from './data/items';
+import { EMPTY_LEFT_SPECIALS, EMPTY_RIGHT_SPECIALS, FISTS, basicAttackOf, isTwoHanded, itemSpecials } from './data/weapons';
 
-export const FISTS: AttackDef = { name: 'Puñetazo', kind: 'physical', power: 0.6, fx: 'smash' };
-export const FIST_SKILLS = ['low_blow'];
+export { FISTS };
+export const FIST_SKILLS = EMPTY_RIGHT_SPECIALS;
 
 export interface SkillGroup {
   source: 'class' | 'weapon' | 'offhand';
@@ -19,18 +21,26 @@ export interface SkillGroup {
 
 export interface Loadout {
   basicAttack: AttackDef;
+  /** Especiales de la mano derecha (2, o 4 con un arma a dos manos). */
+  right: { label: string; skills: string[] };
+  /** Especiales de la mano izquierda (vacío si el arma es a dos manos). */
+  left: { label: string; skills: string[] };
+  classSkill: string;
   groups: SkillGroup[];
   /** Todas las habilidades disponibles, sin repetir. */
   skills: string[];
 }
 
-export function combatLoadout(classId: ClassId, equipment: Equipment): Loadout {
+export function combatLoadout(classId: ClassId, equipment: Equipment, classSkill?: string): Loadout {
   const cls = CLASSES[classId];
   const weapon = equipment.mainHand ? getItem(equipment.mainHand.itemId) : null;
   const off = equipment.offHand ? getItem(equipment.offHand.itemId) : null;
-  const groups: SkillGroup[] = [{ source: 'class', label: cls.name, skills: [cls.classSkill] }];
-  groups.push(weapon ? { source: 'weapon', label: weapon.name, skills: weapon.grants ?? [] } : { source: 'weapon', label: 'Puños', skills: FIST_SKILLS });
-  if (off?.grants?.length) groups.push({ source: 'offhand', label: off.name, skills: off.grants });
+  const twoHanded = !!weapon && isTwoHanded(weapon);
+  const right = weapon ? { label: weapon.name, skills: itemSpecials(weapon) } : { label: 'Puños', skills: EMPTY_RIGHT_SPECIALS };
+  const left = twoHanded ? { label: weapon!.name, skills: [] } : off ? { label: off.name, skills: itemSpecials(off) } : { label: 'Mano libre', skills: EMPTY_LEFT_SPECIALS };
+  const cs = classSkill ?? cls.classSkill;
+  const groups: SkillGroup[] = [{ source: 'class', label: cls.name, skills: [cs] }, { source: 'weapon', ...right }];
+  if (left.skills.length) groups.push({ source: 'offhand', ...left });
   const skills = [...new Set(groups.flatMap((g) => g.skills))];
-  return { basicAttack: weapon?.attack ?? FISTS, groups, skills };
+  return { basicAttack: basicAttackOf(weapon), right, left, classSkill: cs, groups, skills };
 }

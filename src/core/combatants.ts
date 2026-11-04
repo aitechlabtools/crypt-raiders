@@ -1,21 +1,44 @@
 import { ENEMY_SCALE_PER_LEVEL, ENEMY_XP_PER_LEVEL } from '../config/progression';
-import type { CharacterData, Equipment, Stats } from './types';
+import type { CharacterData, Equipment } from './types';
 import type { Combatant, Side } from './combat';
 import { CLASSES } from './data/classes';
 import { getEnemy } from './data/enemies';
 import { computeStats } from './stats';
 import { combatLoadout } from './loadout';
+import { getItem } from './data/items';
+import { specialMods } from './data/rarity';
+import { itemSpecials } from './data/weapons';
+import { getWanderer } from './data/wanderers';
+import { ZONE_NORMALIZE, subzoneGrowth } from '../config/subzones';
+import { ZONES, ZONE_ORDER } from './data/zones';
 
-export function playerCombatant(ch: CharacterData, equipment: Equipment, hp: number, mp: number): Combatant {
+/** Zona de origen de una criatura (la de su archivo de datos). Las nuevas, diseñadas a escala de la Mazmorra, no se tocan. */
+const ORIGIN: Record<string, string> = {};
+for (const z of ZONE_ORDER) for (const e of ZONES[z].enemies) ORIGIN[e.id] ??= z;
+function homeZone(id: string): string {
+  return ORIGIN[id] ?? 'mazmorra';
+}
+
+/** `cooldowns`: las recargas que quedaron pendientes del combate anterior de la expedición. */
+export function playerCombatant(ch: CharacterData, equipment: Equipment, hp: number, mp: number, cooldowns: Record<string, number> = {}, classSkill?: string): Combatant {
   const cls = CLASSES[ch.classId];
   const stats = computeStats(ch.classId, ch.level, equipment);
-  const kit = combatLoadout(ch.classId, equipment);
+  const kit = combatLoadout(ch.classId, equipment, classSkill);
   return {
     id: 'player', name: ch.name, side: 'A', sprite: `hero_${ch.classId}`,
     stats, hp: Math.min(hp, stats.maxHp), mp: Math.min(mp, stats.maxMp),
     resourceName: cls.resourceName, resourceRegen: cls.resourceRegen,
     statuses: [], skills: kit.skills, basicAttack: kit.basicAttack,
     control: 'player', skillChance: 0, undead: false, defending: false, potions: 0,
+    cooldowns: { ...cooldowns },
+    // Atributos del equipo («del vampiro», «de sangrado»…) y especiales mejorados por la rareza de cada arma
+    affixes: [equipment.mainHand, equipment.offHand].flatMap((x) => x?.affixes ?? []),
+    skillMods: Object.assign({}, ...(['mainHand', 'offHand'] as const).map((sl) => {
+      const st = equipment[sl];
+      if (!st) return {};
+      const def = getItem(st.itemId);
+      return specialMods(st, def, itemSpecials(def));
+    })),
   };
 }
 
@@ -31,8 +54,13 @@ export function enemyXp(baseXp: number, level: number): number {
 
 export function enemyCombatant(enemyId: string, instanceId: string, side: Side = 'B', level = 1): Combatant {
   const e = getEnemy(enemyId);
-  const k = levelScale(level);
+  // Criaturas comunes: bases igualadas entre zonas y un crecimiento suave por nivel (config/subzones.ts).
+  // Élites y jefes ya están ajustados uno a uno (tests/balance.test.ts).
+  const common = !e.elite && !e.boss;
+  const k = levelScale(level) * (common ? subzoneGrowth(level) : 1);
   const stats = { ...e.stats };
+  const norm = common ? ZONE_NORMALIZE[homeZone(enemyId)] : undefined;
+  if (norm) { stats.maxHp *= norm.maxHp; stats.def *= norm.def; }
   for (const key of ['maxHp', 'atk', 'def', 'mag', 'res'] as const) stats[key] = Math.round(stats[key] * k);
   return {
     id: instanceId, name: e.name, side, sprite: e.sprite,
@@ -40,6 +68,7 @@ export function enemyCombatant(enemyId: string, instanceId: string, side: Side =
     resourceName: '—', resourceRegen: 0, statuses: [], skills: [...e.skills],
     basicAttack: e.basicAttack, control: 'ai', skillChance: e.skillChance,
     undead: e.undead, defending: false, potions: 0, boss: e.boss, ref: enemyId,
+    phase2: e.phase2,
   };
 }
 
@@ -48,20 +77,18 @@ export function rivalHpBack(hp: number, level = 1): number {
   return hp <= 0 ? 0 : Math.max(1, Math.round(hp / levelScale(level)));
 }
 
-// ── Aventurero rival controlado por IA (Kael) ──
-export const RIVAL_STATS: Stats = { maxHp: 105, maxMp: 30, atk: 17, def: 9, mag: 4, res: 8, spd: 14, crit: 12, eva: 10 };
-export const RIVAL_NAME = 'Kael el Errante';
-
-/** Kael crece con la zona igual que las criaturas. Su vida se guarda en la escala base (máx. 105) y se convierte al entrar en combate. */
-export function rivalCombatant(hp: number, side: Side, potions: number, level = 1): Combatant {
+// ── Mercenario errante (Kael y los demás) controlado por la IA ──
+/** El errante crece con el nivel del combate igual que las criaturas. Su vida se guarda en la escala base. */
+export function rivalCombatant(who: string, hp: number, side: Side, potions: number, level = 1): Combatant {
+  const w = getWanderer(who);
   const k = levelScale(level);
-  const stats = { ...RIVAL_STATS };
+  const stats = { ...w.stats };
   for (const key of ['maxHp', 'atk', 'def', 'mag', 'res'] as const) stats[key] = Math.round(stats[key] * k);
   return {
-    id: 'rival', name: RIVAL_NAME, side, sprite: 'rival',
+    id: 'rival', name: w.name, side, sprite: w.sprite,
     stats, hp: Math.max(1, Math.min(Math.round(hp * k), stats.maxHp)), mp: 20,
-    resourceName: 'Energía', resourceRegen: 3, statuses: [], skills: ['venom_strike', 'backstab'],
-    basicAttack: { name: 'Cuchillada', kind: 'physical', power: 1, fx: 'slash' },
+    resourceName: w.resourceName, resourceRegen: 3, statuses: [], skills: [...w.skills],
+    basicAttack: w.basicAttack,
     control: 'ai', skillChance: 0.45, undead: false, defending: false, potions, ref: 'rival',
   };
 }

@@ -1,113 +1,157 @@
 // ════════════════════════════════════════════════════════════════════
-// Sistema social con el aventurero rival (Kael).
-// Confianza y codicia son valores visibles a través del diálogo, nunca un azar oculto:
-// la traición es una consecuencia comprensible de cómo te comportas.
+// Mercenarios errantes (y Kael, el más especial de ellos).
+// Al aliarte se tira un dado UNA vez con su riesgo de traición (triángulo de color). Si sale, es un traidor «dormido»:
+// solo actúa en un momento de debilidad, nunca en el primer minuto, y siempre avisa antes. El reparto de cofres
+// cambia el riesgo y vuelve a tirar el dado. Valores en config/wanderers.ts.
 // ════════════════════════════════════════════════════════════════════
+import { BETRAY_MIN_ALLIED_MS, ENCOUNTER_CHANCE, HOSTILE_CHANCE, HOSTILE_FROM_SUBZONE, KAEL_CHANCE, KAEL_GUARANTEE_AFTER, RISK, ROB_CHANCE, SHARE_FAIR_DELTA, SHARE_GREEDY_DELTA, ZONE_RISK, type RiskLevel } from '../config/wanderers';
+import { getWanderer, wanderersOf } from './data/wanderers';
+import type { SubzoneDef } from './data/subzones';
+import type { Rng } from './rng';
 
-export type Disposition = 'neutral' | 'allied' | 'hostile' | 'departed' | 'dead';
+export type Disposition = 'neutral' | 'allied' | 'hostile' | 'departed' | 'dead' | 'fleeing';
 
 export interface RivalState {
+  /** Errante de esta expedición (vacío si no hay ninguno). */
+  who: string;
   disposition: Disposition;
-  trust: number; // 0..100
-  greed: number; // 0..100
+  risk: RiskLevel;
+  /** Probabilidad de traición actual (empieza en la de su triángulo). */
+  chance: number;
+  /** Resultado del dado: si es un traidor dormido. Oculto al jugador. */
+  traitor: boolean;
   hp: number;
   potions: number;
   talkedTimes: number;
-  /** Objetos que Kael ha recibido (o lleva). Se pueden saquear si cae. */
+  /** Objetos que lleva (los que le diste en los repartos y los que te robó). Se recuperan si cae. */
   bagItemIds: string[];
   /** Oro que lleva encima. */
   gold: number;
   warned: boolean;
   betrayed: boolean;
-  /** Quién rompió la alianza, si alguien lo hizo. */
   betrayedBy: 'player' | 'rival' | null;
+  /** Cuándo os aliasteis (ms) y el oro que llevabas entonces: de lo que encuentres después se lleva su parte. */
+  alliedAt: number;
+  goldAtJoin: number;
+  /** Ya se ha presentado (primera frase). */
+  greeted: boolean;
 }
 
-/** Equipo que lleva Kael y que deja al morir (más lo que haya recibido en los repartos). */
-export const RIVAL_GEAR = ['bone_dagger', 'leather_hood', 'swift_boots', 'old_coin', 'health_potion'];
+export function noRival(): RivalState {
+  return { who: '', disposition: 'departed', risk: 'low', chance: 0, traitor: false, hp: 0, potions: 0, talkedTimes: 0, bagItemIds: [], gold: 0, warned: false, betrayed: false, betrayedBy: null, alliedAt: 0, goldAtJoin: 0, greeted: false };
+}
 
-export function initialRival(): RivalState {
+/** Errante recién encontrado. `hostile`: de los que atacan al verte (Infierno profundo). */
+export function initialRival(who = 'kael', risk: RiskLevel = 'kael', hostile = false): RivalState {
+  const w = getWanderer(who);
   return {
-    disposition: 'neutral', trust: 35, greed: 30, hp: 105, potions: 1, talkedTimes: 0,
-    bagItemIds: [...RIVAL_GEAR], gold: 45, warned: false, betrayed: false, betrayedBy: null,
+    ...noRival(), who, risk: hostile ? 'hostile' : risk, chance: RISK[hostile ? 'hostile' : risk].chance,
+    disposition: hostile ? 'hostile' : 'neutral', hp: w.stats.maxHp, potions: 1, gold: 30 + Math.round(w.stats.maxHp / 3),
+    bagItemIds: [...(w.gear ?? ['health_potion', 'old_coin'])],
   };
 }
 
-const clamp = (n: number) => Math.max(0, Math.min(100, n));
-
-export const TALK_LINES = [
-  'Kael: «Tranquilo, no busco pelea. No todavía. Dicen que el Señor del Osario guarda un cofre en la sala del este.»',
-  'Kael: «El portal está al sur, pasada la sala de los pilares. Si el reloj llega a cero, aquí abajo te quedas.»',
-  'Kael: «Los murciélagos esquivan mucho. Los esqueletos pegan fuerte, pero son lentos.»',
-  'Kael: «Ya te he contado bastante. ¿Vamos juntos o cada uno por su lado?»',
-];
-
-export function talk(r: RivalState): { rival: RivalState; line: string } {
-  const line = TALK_LINES[Math.min(r.talkedTimes, TALK_LINES.length - 1)];
-  const trustGain = r.talkedTimes < 3 ? 10 : 0;
-  return { rival: { ...r, talkedTimes: r.talkedTimes + 1, trust: clamp(r.trust + trustGain) }, line };
+/** ¿Hay un errante con quien hablar o luchar en esta expedición? */
+export function hasRival(r: RivalState): boolean {
+  return !!r.who;
 }
 
-export function proposeAlliance(r: RivalState): { rival: RivalState; accepted: boolean; line: string } {
-  if (r.disposition !== 'neutral') return { rival: r, accepted: false, line: 'Kael no parece dispuesto a escucharte.' };
-  if (r.trust >= 40) {
-    return { rival: { ...r, disposition: 'allied', trust: clamp(r.trust + 10) }, accepted: true, line: 'Kael: «Trato hecho. Repartimos lo que encontremos. Tú vigila mi espalda y yo la tuya.»' };
+export interface EncounterRoll { who: string | null; risk: RiskLevel; hostile: boolean; kaelStreak: number }
+
+/**
+ * Quién aparece en una expedición. Kael solo en la Mazmorra: 33 % y seguro tras 4 expediciones sin verlo.
+ * Si no sale Kael, puede salir otro errante de la zona (los de las subzonas 8–10, a veces hostiles).
+ */
+export function rollEncounter(rng: Rng, sub: SubzoneDef, kaelStreak: number): EncounterRoll {
+  if (sub.zone === 'mazmorra') {
+    if (kaelStreak + 1 > KAEL_GUARANTEE_AFTER || rng.chance(KAEL_CHANCE)) return { who: 'kael', risk: 'kael', hostile: false, kaelStreak: 0 };
+    kaelStreak += 1;
   }
-  return { rival: { ...r, trust: clamp(r.trust + 5) }, accepted: false, line: 'Kael: «¿Aliarme con alguien de quien no sé nada? Háblame un poco antes.»' };
+  const pool = wanderersOf(sub.zone);
+  if (!pool.length || !rng.chance(ENCOUNTER_CHANCE[sub.zone])) return { who: null, risk: ZONE_RISK[sub.zone], hostile: false, kaelStreak };
+  const w = pool[rng.int(0, pool.length - 1)];
+  const hostile = sub.index >= HOSTILE_FROM_SUBZONE && rng.chance(HOSTILE_CHANCE);
+  return { who: w.id, risk: ZONE_RISK[sub.zone], hostile, kaelStreak };
+}
+
+export function greetLine(r: RivalState, timesMet = 0): string {
+  const g = getWanderer(r.who).lines.greet;
+  return g[Math.min(timesMet, g.length - 1)];
+}
+
+export function talk(r: RivalState): { rival: RivalState; line: string } {
+  const t = getWanderer(r.who).lines.talk;
+  return { rival: { ...r, talkedTimes: r.talkedTimes + 1 }, line: t[r.talkedTimes % t.length] };
+}
+
+/** Aliarse: acepta siempre (el riesgo está a la vista en el triángulo) y aquí se tira el dado de la traición. */
+export function proposeAlliance(r: RivalState, rng: Rng, now: number, goldNow: number): { rival: RivalState; accepted: boolean; line: string } {
+  if (r.disposition !== 'neutral') return { rival: r, accepted: false, line: `${getWanderer(r.who).name} no parece dispuesto a escucharte.` };
+  return {
+    rival: { ...r, disposition: 'allied', traitor: rng.chance(r.chance), alliedAt: now, goldAtJoin: goldNow },
+    accepted: true, line: getWanderer(r.who).lines.join,
+  };
 }
 
 export function rejectRival(r: RivalState): { rival: RivalState; line: string } {
-  return { rival: { ...r, disposition: 'departed', greed: clamp(r.greed + 10) }, line: 'Kael: «Como quieras. Que la cripta te sea leve.» Kael se aleja entre las sombras.' };
+  return { rival: { ...r, disposition: 'departed' }, line: getWanderer(r.who).lines.leave };
 }
 
 export function leaveAlliance(r: RivalState): { rival: RivalState; line: string } {
-  return { rival: { ...r, disposition: 'departed', trust: clamp(r.trust - 20) }, line: 'Kael: «Así que aquí se separan nuestros caminos. Bien.»' };
+  return { rival: { ...r, disposition: 'departed' }, line: getWanderer(r.who).lines.leave };
 }
 
-/** Reparto del botín de un cofre abierto estando aliados. */
-export function shareLoot(r: RivalState, given: string[], chestItemCount: number): { rival: RivalState; line: string | null } {
+/** Reparto del botín de un cofre abierto estando aliados: cambia el riesgo y se vuelve a tirar el dado. */
+export function shareLoot(r: RivalState, given: string[], chestItemCount: number, rng: Rng): { rival: RivalState; line: string | null } {
   if (r.disposition !== 'allied' || chestItemCount < 2) return { rival: r, line: null };
-  if (given.length > 0) {
-    return { rival: { ...r, trust: clamp(r.trust + 15), greed: clamp(r.greed - 10), bagItemIds: [...r.bagItemIds, ...given] }, line: 'Kael: «Justo y honrado. Así da gusto.»' };
-  }
-  return { rival: { ...r, trust: clamp(r.trust - 15), greed: clamp(r.greed + 20) }, line: 'Kael: «Ya veo cómo funciona esto...» Kael te mira en silencio.' };
+  const w = getWanderer(r.who).lines;
+  const fair = given.length > 0;
+  const chance = Math.max(0, Math.min(1, r.chance + (fair ? SHARE_FAIR_DELTA : SHARE_GREEDY_DELTA)));
+  // Si ya avisó, el dado ya no cambia: la decisión está tomada
+  const traitor = r.warned ? r.traitor : rng.chance(chance);
+  return { rival: { ...r, chance, traitor, bagItemIds: fair ? [...r.bagItemIds, ...given] : r.bagItemIds }, line: fair ? w.fair : w.greedy };
 }
 
 export interface BetrayalContext {
+  now: number;
   playerHpPct: number;
-  /** Valor del botín que lleva el jugador. */
-  playerLootValue: number;
   nearPortal: boolean;
+  /** Acaba de abrir un cofre con llave o de jefe. */
+  richChest?: boolean;
+  zone: 'mazmorra' | 'cripta' | 'infierno';
 }
 
-/** Puntuación de traición. >= 60 ataca. >= 40 da señales de aviso. */
-export function betrayalScore(r: RivalState, ctx: BetrayalContext): number {
-  let score = r.greed + Math.min(40, ctx.playerLootValue / 15) - r.trust / 2;
-  if (ctx.playerHpPct < 0.4) score += 25;
-  if (ctx.nearPortal) score += 20;
-  return Math.round(score);
+/** ¿Es un momento de debilidad? Poca vida, cerca del portal o un cofre valioso abierto. */
+export function weakMoment(ctx: BetrayalContext): boolean {
+  return ctx.playerHpPct < 0.4 || ctx.nearPortal || !!ctx.richChest;
 }
 
-export const BETRAYAL_THRESHOLD = 60;
-export const WARNING_THRESHOLD = 40;
-
-export function evaluateBetrayal(r: RivalState, ctx: BetrayalContext): { rival: RivalState; action: 'none' | 'warn' | 'betray'; line: string | null } {
-  if (r.disposition !== 'allied' || r.betrayed) return { rival: r, action: 'none', line: null };
-  const score = betrayalScore(r, ctx);
-  if (score >= BETRAYAL_THRESHOLD) {
-    return { rival: { ...r, disposition: 'hostile', betrayed: true, betrayedBy: 'rival' }, action: 'betray', line: 'Kael: «Nada personal. Es que tu mochila pesa demasiado para ti.» ¡Kael te traiciona!' };
+/**
+ * Comprueba la traición. Un traidor dormido, pasado el primer minuto de alianza, en un momento de debilidad:
+ * la primera vez solo avisa; la siguiente traiciona (atacando o, en el Infierno, a veces robando y huyendo).
+ */
+export function evaluateBetrayal(r: RivalState, ctx: BetrayalContext, rng: Rng): { rival: RivalState; action: 'none' | 'warn' | 'betray' | 'rob'; line: string | null } {
+  if (r.disposition !== 'allied' || r.betrayed || !r.traitor) return { rival: r, action: 'none', line: null };
+  if (ctx.now - r.alliedAt < BETRAY_MIN_ALLIED_MS || !weakMoment(ctx)) return { rival: r, action: 'none', line: null };
+  const w = getWanderer(r.who).lines;
+  if (!r.warned) return { rival: { ...r, warned: true }, action: 'warn', line: w.warn };
+  if (w.rob && rng.chance(ROB_CHANCE[ctx.zone])) {
+    return { rival: { ...r, disposition: 'fleeing', betrayed: true, betrayedBy: 'rival' }, action: 'rob', line: w.rob };
   }
-  if (score >= WARNING_THRESHOLD && !r.warned) {
-    return { rival: { ...r, warned: true }, action: 'warn', line: 'Kael mira tu mochila con demasiado interés. Su mano descansa sobre la daga.' };
-  }
-  return { rival: r, action: 'none', line: null };
+  return { rival: { ...r, disposition: 'hostile', betrayed: true, betrayedBy: 'rival' }, action: 'betray', line: `${w.betray} ¡${getWanderer(r.who).name} te traiciona!` };
 }
 
 /** El jugador rompe la alianza y ataca. */
 export function playerBetrays(r: RivalState): RivalState {
-  return { ...r, disposition: 'hostile', betrayed: true, betrayedBy: 'player', trust: 0 };
+  return { ...r, disposition: 'hostile', betrayed: true, betrayedBy: 'player' };
 }
 
 export function playerAttacksNeutral(r: RivalState): RivalState {
-  return { ...r, disposition: 'hostile', trust: 0 };
+  return { ...r, disposition: 'hostile' };
+}
+
+/** Parte del oro que se lleva un errante al extraer juntos. */
+export function goldShare(r: RivalState, goldFound: number, share: number): number {
+  if (r.disposition !== 'allied' || r.hp <= 0) return 0;
+  return Math.max(0, Math.round((goldFound - r.goldAtJoin) * share));
 }

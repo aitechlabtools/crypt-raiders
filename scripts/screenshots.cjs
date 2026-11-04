@@ -48,7 +48,7 @@ const OUT = process.argv[3] || 'public/screenshots';
   for (let i = 0; i < 6; i++) {
     await page.waitForTimeout(1100);
     if (await page.$('[data-testid=act-attack]:not([disabled])')) {
-      await page.click('[data-testid=act-skills]');
+      await page.click('[data-testid=act-special]');
       const btn = await page.$('[data-testid=skill-rending_slash]:not([disabled])');
       if (btn) await btn.click(); else await page.keyboard.press('Escape');
     }

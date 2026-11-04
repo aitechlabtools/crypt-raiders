@@ -3,61 +3,51 @@ import { heroUrl, iconUrl, monsterUrl } from '../shared/art';
 import { SHOWCASE_GEAR } from '../shared/gearLook';
 import { CLASSES } from '../core/data/classes';
 import type { ClassId } from '../core/types';
-import { PLAY_URL, SiteFooter, SiteHeader } from './site';
+import { DonateButton, DONATE_URL, PLAY_URL, SiteFooter, SiteHeader } from './site';
 import { PhoneShot, RoadmapSection, ShotCarousel, VarkHollowSection, type Shot } from './sections';
 
-// La descarga solo se activa cuando exista un ejecutable real y comprobado.
-const DOWNLOAD_URL: string | null = null;
+// Landing v2 (4/11): Portada · VarkHollow · El juego · Galería · Hoja de ruta · Cierre. Textos sin cifras exactas (como mucho «más de X»).
+const HERO = {
+  tagline: 'Confía en tu espada. En nadie más.',
+  sub: 'Un RPG de extracción por turnos en pixel art. Baja de la Mazmorra al Infierno, arriesga tu botín en cada expedición y vuelve con vida… si te dejan.',
+};
+export const ALPHA_NOTE = 'Esto es una alpha: el juego está en desarrollo, puede tener fallos y va a cambiar, y tu progreso podría perderse con alguna actualización.';
 
 const LOOP = [
-  { verb: 'Explora', text: 'Bajas a las criptas con lo puesto y un reloj en contra.' },
-  { verb: 'Combate', text: 'Cada criatura te lleva a un duelo por turnos donde la velocidad, el maná, el veneno, el fuego y el hielo deciden.' },
-  { verb: 'Negocia', text: 'Te cruzas con otro aventurero. Podéis hablar, aliaros y repartir el botín.' },
-  { verb: 'Traiciona', text: 'O no. Una alianza solo dura lo que tarda alguien en decidir que tu mochila vale más que tú.' },
-  { verb: 'Escapa', text: 'Si llegas al portal, todo lo que llevas es tuyo. Si caes, se queda abajo.' },
+  { verb: 'Prepárate', text: 'En el Bastión compras, forjas, contratas y eliges qué arriesgas.' },
+  { verb: 'Baja', text: 'Un mapa nuevo en cada expedición y poco tiempo para encontrar el portal.' },
+  { verb: 'Lucha', text: 'Cada criatura te lleva a un duelo por turnos: dos ataques especiales por mano, una habilidad de clase y el ímpetu o el maná deciden.' },
+  { verb: 'Desconfía', text: 'Los mercenarios errantes ofrecen su espada. No todos cumplen.' },
+  { verb: 'Escapa', text: 'Si llegas al portal, todo es tuyo. Si caes, se queda abajo.' },
 ];
 
 const FEATURES = [
-  { icon: 'key', title: 'Ninguna bajada es igual', text: 'Tres zonas cada vez más hondas —la Mazmorra, la Cripta y el Infierno— y cada expedición cambia las salas, los cofres y los peligros. La luz de las antorchas nunca llega a todas partes.' },
-  { icon: 'staff_fire', title: 'Piensa antes de golpear', text: 'Atacar, protegerte, lanzar un hechizo o beber una poción: tú decides. El veneno, el fuego y el hielo pueden darle la vuelta a cualquier pelea.' },
-  { icon: 'chalice', title: 'Botín que se nota', text: 'Armas y armaduras de común a legendario. Cada pieza mejora a tu personaje… y cambia su aspecto.' },
-  { icon: 'dagger', title: 'Aliados de los que no fiarse', text: 'Repartir el botín o quedártelo todo tiene consecuencias. Las traiciones avisan, pero no siempre a tiempo.' },
-  { icon: 'gem_red', title: 'Todo o nada', text: 'Doce minutos para llegar al portal. Si caes, pierdes lo que llevabas encima. Lo que guardas en el almacén, nunca.' },
-  { icon: 'amulet_heart', title: 'Cada bajada te hace más fuerte', text: 'Sube hasta el nivel 100, cumple los encargos de los mercaderes y gana su confianza: mejores precios, mejor mercancía.' },
-  { icon: 'shield_iron', title: 'Espadas de alquiler', text: 'Contrata mercenarios a Garra Roja o rompe las cadenas de los prisioneros que encuentres abajo. Si caen, el contrato se rompe.' },
-  { icon: 'pick', title: 'Pica, forja y luce', text: 'Saca mineral de las vetas con tu pico, llévaselo a Maese Brand para forjar tus armas y compra con el oro del juego atuendos completos que cambian cómo te ves, nunca lo fuerte que eres.' },
+  { icon: 'chalice', title: 'Botín que se nota', text: 'Armas y armaduras de común a legendario, con atributos como «del vampiro». Cada pieza cambia cómo luchas… y cómo te ves.' },
+  { icon: 'dagger', title: 'Aliados de los que no fiarse', text: 'Un triángulo sobre su cabeza dice cuánto fiarte. Cuanto más hondo bajas, más fácil es que te traicionen; en el Infierno, algunos atacan nada más verte.' },
+  { icon: 'gem_red', title: 'Todo o nada', text: 'Lo que llevas encima se pierde si caes. Lo que guardas en el almacén, nunca.' },
+  { icon: 'pick', title: 'Pica, forja y contrata', text: 'Minerales para Maese Brand, encargos y reputación con los mercaderes, y espadas de alquiler de Garra Roja… o prisioneros que rescatas abajo.' },
+  { icon: 'amulet_heart', title: 'Hasta el nivel 100', text: 'Cinco habilidades por clase: en cada hito eliges cuál desbloquear.' },
+  { icon: 'shield_iron', title: 'Atuendos sin ventajas', text: 'Se compran con el oro del juego y solo cambian cómo te ves.' },
 ];
 
 // Capturas reales con una partida avanzada (scripts/landing-shots.cjs). Cada una en WebP y PNG de respaldo.
 const SHOT_DIR = './screenshots/landing/';
 const SHOTS: Shot[] = [
-  { src: SHOT_DIR + 'combate', alt: 'Combate por turnos contra Belzar, Señor de las Cadenas, en el Infierno', caption: 'Cara a cara con Belzar, Señor de las Cadenas.' },
-  { src: SHOT_DIR + 'infierno', alt: 'Exploración del Infierno: un cofre y enemigos en una sala de lava y cadenas', caption: 'El Infierno: la zona más honda de VarkHollow.' },
-  { src: SHOT_DIR + 'cripta', alt: 'Exploración de la Cripta junto a un cofre y un caballero no muerto', caption: 'La necrópolis de Umbravel, en la Cripta.' },
-  { src: SHOT_DIR + 'jugar', alt: 'Pantalla Jugar del Bastión de Ceniza con el héroe equipado bajo un haz de luz', caption: 'El Bastión de Ceniza: elige zona y desciende.' },
-  { src: SHOT_DIR + 'alijo', alt: 'Alijo con el equipo puesto, la mochila llena de botín y el almacén', caption: 'El Alijo: equipo, mochila, bolsillo seguro y almacén.' },
+  { src: SHOT_DIR + 'combate', alt: 'Combate por turnos contra Belzar con la barra de acciones: Atacar, Ataque especial, Habilidad, Mochila y Huir', caption: 'Combate por turnos contra Belzar, Señor de las Cadenas.' },
+  { src: SHOT_DIR + 'especial', alt: 'Menú de ataques especiales abierto: dos de la mano derecha y dos de la izquierda, uno en recarga', caption: 'Dos ataques especiales por mano. Cada arma, los suyos.' },
+  { src: SHOT_DIR + 'alijo', alt: 'Alijo con armas de todas las rarezas, de común a legendario', caption: 'El Alijo: de común a legendario.' },
+  { src: SHOT_DIR + 'infierno', alt: 'Exploración de los Ríos de Fuego, en el Infierno', caption: 'Los Ríos de Fuego, en el Infierno.' },
+  { src: SHOT_DIR + 'cripta', alt: 'Exploración de las Catacumbas Ahogadas', caption: 'Las Catacumbas Ahogadas, en las criptas de Umbravel.' },
+  { src: SHOT_DIR + 'afueras', alt: 'Exploración de las Afueras del Bastión con bandidos y hogueras', caption: 'Las Afueras del Bastión: la primera bajada.' },
   { src: SHOT_DIR + 'forja', alt: 'Forja de Maese Brand con recetas y materiales', caption: 'Forja tus armas con los materiales de cada zona.' },
   { src: SHOT_DIR + 'tienda', alt: 'Tienda de atuendos que se compran con oro del juego', caption: 'Atuendos con oro del juego. Solo cambian cómo te ves.' },
 ];
 
-function Sprite({ src, w, label, className = '' }: { src: string; w: number; label: string; className?: string }) {
-  return <img src={src} width={w} alt={label} className={`pixelated ${className}`} />;
-}
-
 function PlayButton({ big = false }: { big?: boolean }) {
   return (
     <a href={PLAY_URL} className={`btn-play ${big ? 'text-xl px-9 py-4' : 'px-6 py-3'}`} data-testid="cta-play">
-      Jugar la demo gratis
+      Jugar la alpha gratis
     </a>
-  );
-}
-
-function DownloadButton() {
-  if (DOWNLOAD_URL) return <a href={DOWNLOAD_URL} className="btn-ghost px-6 py-3">Descargar para Windows</a>;
-  return (
-    <span className="btn-ghost px-6 py-3 opacity-60 cursor-not-allowed" aria-disabled="true" title="Todavía no hay versión descargable" data-testid="cta-download">
-      Versión para Windows: próximamente
-    </span>
   );
 }
 
@@ -66,48 +56,29 @@ export function App() {
     <div className="min-h-screen">
       <SiteHeader />
 
-      {/* Cabecera con diorama vivo */}
-      <section id="top" className="relative h-[100svh] min-h-[600px] overflow-hidden">
+      {/* Portada: titular y botón sobre la escena animada */}
+      <section id="top" className="relative min-h-[100svh] overflow-hidden">
         <Diorama className="absolute inset-0" />
         <div className="absolute inset-0 hero-fade pointer-events-none" />
-        <div className="relative z-10 h-full max-w-6xl mx-auto px-4 flex flex-col justify-end pb-16 md:pb-24">
-          <h1 className="hero-title font-display font-extrabold text-parchment">CRYPT RAIDERS</h1>
-          <p className="font-display text-xl md:text-3xl text-gold mt-3 tracking-wide">Confía en tu espada. En nadie más.</p>
-          <p className="font-body text-xl md:text-2xl text-bone/90 mt-4 max-w-2xl leading-snug">Baja a las criptas, llena la mochila y encuentra la salida. Los monstruos son lo de menos: el peligro de verdad camina a tu lado.</p>
-          <div className="flex flex-wrap gap-3 mt-8">
-            <PlayButton big />
-            <DownloadButton />
+        <div className="relative z-10 min-h-[100svh] max-w-6xl mx-auto px-4 pt-20 pb-16 md:pb-24 flex flex-col justify-end">
+          <div>
+            <h1 className="hero-title font-display font-extrabold text-parchment">CRYPT RAIDERS</h1>
+            <p className="font-display text-xl md:text-3xl text-gold mt-3 tracking-wide">{HERO.tagline}</p>
+            <p className="font-body text-lg md:text-2xl text-bone/90 mt-3 max-w-2xl leading-snug">{HERO.sub}</p>
+            <div className="mt-6"><PlayButton big /></div>
+            <p className="font-body text-stone-300 mt-3 text-base">Gratis en el navegador, en ordenador o móvil. Sin registro ni descargas.</p>
+            <p className="alpha-note mt-3" data-testid="alpha-note"><span className="alpha-tag">ALPHA</span> {ALPHA_NOTE}{DONATE_URL && <> <a href="#apoyar" className="underline decoration-dotted hover:text-parchment">Si quieres que avance más rápido, puedes apoyarlo.</a></>}</p>
           </div>
-          <p className="font-body text-stone-300 mt-4 text-base">Gratis en el navegador, en ordenador o móvil. Sin registro ni descargas.</p>
         </div>
       </section>
 
       <VarkHollowSection />
 
-      {/* Tráiler */}
-      <section id="trailer" className="max-w-5xl mx-auto px-4 pt-24">
-        <h2 className="font-display text-3xl md:text-4xl text-parchment text-center mb-8">Tráiler</h2>
-        <div className="panel overflow-hidden border border-stone-800 shadow-2xl">
-          <video className="w-full aspect-video block bg-black" src="./trailer/cryptraiders-trailer.mp4" poster="./trailer/poster.jpg" controls preload="none" playsInline data-testid="trailer-video">
-            Tu navegador no puede reproducir el vídeo.
-          </video>
-        </div>
-        <p className="font-body text-stone-400 text-center mt-3">Imágenes reales del juego tal como es hoy.</p>
-      </section>
-
-      {/* Concepto: el ciclo de una expedición */}
-      <section id="juego" className="max-w-6xl mx-auto px-4 py-24">
-        <div className="grid md:grid-cols-[1fr_1.3fr] gap-12 items-start">
-          <div>
-            <h2 className="font-display text-4xl md:text-5xl text-parchment leading-tight">Bajas a por oro. Si vuelves, vuelves rico.</h2>
-            <p className="font-body text-xl text-stone-300 mt-6 leading-relaxed">
-              En el Bastión de Ceniza preparas a tu aventurero. Bajo sus muros esperan unas criptas que cambian en cada expedición:
-              combates por turnos, cofres por abrir y un portal que debes encontrar antes de que se acabe el tiempo.
-            </p>
-            <p className="font-body text-xl text-stone-300 mt-4 leading-relaxed">
-              Pero no bajas solo. Ahí abajo hay otro aventurero, y puede ser tu mejor aliado o tu peor error.
-            </p>
-          </div>
+      {/* El juego: ciclo, rasgos, clases y Kael */}
+      <section id="juego" className="max-w-6xl mx-auto px-4 py-24 scroll-mt-14">
+        <p className="font-display text-gold tracking-[0.3em] text-sm uppercase">El juego</p>
+        <div className="grid md:grid-cols-[1fr_1.2fr] gap-12 items-start mt-2">
+          <h2 className="font-display text-4xl md:text-5xl text-parchment leading-tight">Bajas a por oro. Si vuelves, vuelves rico.</h2>
           <ol className="loop" aria-label="Una expedición, paso a paso">
             {LOOP.map((s) => (
               <li key={s.verb} className="loop-step">
@@ -117,106 +88,81 @@ export function App() {
             ))}
           </ol>
         </div>
-      </section>
-
-      {/* Características */}
-      <section className="border-y border-stone-800 bg-crypt">
-        <div className="max-w-6xl mx-auto px-4 py-20">
-          <h2 className="font-display text-3xl md:text-4xl text-parchment mb-10">Lo que encontrarás ahí abajo</h2>
-          <div className="grid md:grid-cols-2 gap-x-12 gap-y-10">
-            {FEATURES.map((f) => (
-              <div key={f.title} className="flex gap-5">
-                <div className="item-slot shrink-0"><img src={iconUrl(f.icon, 4)} width={48} height={48} alt="" className="pixelated" /></div>
-                <div>
-                  <h3 className="font-display text-xl text-gold">{f.title}</h3>
-                  <p className="font-body text-lg text-stone-300 leading-relaxed mt-1 max-w-[52ch]">{f.text}</p>
-                </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-8 mt-16">
+          {FEATURES.map((f) => (
+            <div key={f.title} className="flex gap-4">
+              <div className="item-slot shrink-0"><img src={iconUrl(f.icon, 4)} width={48} height={48} alt="" className="pixelated" /></div>
+              <div>
+                <h3 className="font-display text-xl text-gold">{f.title}</h3>
+                <p className="font-body text-lg text-stone-300 leading-snug mt-1">{f.text}</p>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
+        </div>
+
+        <h3 id="clases" className="font-display text-3xl md:text-4xl text-parchment mt-20 scroll-mt-14">Elige quién baja</h3>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
+          {(Object.keys(CLASSES) as ClassId[]).map((id) => {
+            const c = CLASSES[id];
+            return (
+              <article key={id} className={`class-card ${c.playable ? '' : 'is-locked'}`}>
+                <div className="h-36 flex items-end justify-center">
+                  <img src={heroUrl(id, { cloak: id === 'mage' ? 3 : id === 'rogue' ? 2 : id === 'cleric' ? 1 : 0, skin: id === 'cleric' ? 1 : 0 }, 6, 0, 'idle', SHOWCASE_GEAR[id])} width={110} alt={c.name} className="pixelated" />
+                </div>
+                <h4 className="font-display text-2xl mt-3" style={{ color: c.color }}>{c.name}</h4>
+                <p className="font-body italic text-stone-300">{c.tagline}</p>
+                <p className="font-body text-base text-stone-400 mt-1">{c.playable ? (id === 'warrior' ? 'Acero, sangrado e ímpetu.' : 'Fuego, hielo, sombra y maná.') : 'Próximamente'}</p>
+              </article>
+            );
+          })}
+        </div>
+
+        <div className="flex items-end gap-6 mt-16 kael-quote">
+          <img src={monsterUrl('rival', 6)} width={96} alt="Kael el Errante" className="pixelated -scale-x-100 shrink-0" />
+          <blockquote className="dialogue">
+            «Repartimos lo que encontremos. Tú vigila mi espalda y yo la tuya.»
+            <span className="block text-base not-italic text-stone-400 mt-1">Kael el Errante. Aparece en una de cada tres bajadas a la Mazmorra.</span>
+          </blockquote>
         </div>
       </section>
 
-      {/* La mecánica diferencial */}
-      <section className="max-w-6xl mx-auto px-4 py-24">
-        <div className="grid lg:grid-cols-[1fr_1fr] gap-12 items-center">
-          <div className="flex items-end justify-center gap-6 lg:gap-10 min-h-[240px]">
-            <Sprite src={heroUrl('warrior', { cloak: 0, skin: 0 }, 8, 0, 'idle', SHOWCASE_GEAR.warrior)} w={160} label="Guerrero" />
-            <Sprite src={monsterUrl('rival', 8)} w={160} label="Kael el Errante" className="-scale-x-100" />
+      {/* Galería: tráiler, capturas y móvil */}
+      <section id="galeria" className="border-y border-stone-800 bg-crypt scroll-mt-14">
+        <div className="max-w-6xl mx-auto px-4 py-24">
+          <p className="font-display text-gold tracking-[0.3em] text-sm uppercase">Galería</p>
+          <h2 className="font-display text-3xl md:text-5xl text-parchment mt-2">Así se juega ahora mismo</h2>
+          <div className="panel overflow-hidden border border-stone-800 shadow-2xl mt-8">
+            <video className="w-full aspect-video block bg-black" poster="./trailer/poster.jpg" controls muted loop playsInline preload="none" data-testid="trailer-video">
+              <source src="./trailer/cryptraiders-trailer.webm" type="video/webm" />
+              <source src="./trailer/cryptraiders-trailer.mp4" type="video/mp4" />
+              Tu navegador no puede reproducir el vídeo.
+            </video>
           </div>
-          <div>
-            <h2 className="font-display text-4xl text-parchment leading-tight">Kael el Errante te ofrece un trato</h2>
-            <blockquote className="dialogue mt-6">
-              «Trato hecho. Repartimos lo que encontremos. Tú vigila mi espalda y yo la tuya.»
-            </blockquote>
-            <p className="font-body text-xl text-stone-300 mt-6 leading-relaxed">
-              Puedes hablar con él, aliarte, retarle a un duelo amistoso o seguir tu camino. Como aliado lucha a tu lado y espera su parte
-              de cada cofre. Quédatelo todo y empezará a mirar tu mochila.
-            </p>
-            <p className="font-body text-xl text-stone-300 mt-4 leading-relaxed">
-              Traicionarle es un duelo a muerte, sin huida: si ganas, su equipo es tuyo; si pierdes, el tuyo se queda en la cripta. Y recuerda que él también puede decidir que tu mochila vale más que vuestra amistad.
-            </p>
+          <p className="font-body text-stone-400 mt-2">Tráiler · imágenes reales de la alpha.</p>
+          <div className="mt-12"><ShotCarousel shots={SHOTS} /></div>
+          <div className="grid lg:grid-cols-[1fr_1fr] gap-10 items-center mt-16">
+            <div>
+              <h3 className="font-display text-3xl text-parchment">También en el móvil</h3>
+              <p className="font-body text-xl text-stone-300 mt-3">En horizontal y a pantalla completa, con controles táctiles. Se puede instalar como una app.</p>
+              <div className="mt-6"><PlayButton /></div>
+            </div>
+            <PhoneShot src={SHOT_DIR + 'movil-infierno'} alt="Crypt Raiders en un móvil en horizontal: el Infierno con el joystick, la poción y el botón Usar" />
           </div>
-        </div>
-      </section>
-
-      {/* Clases */}
-      <section id="clases" className="bg-crypt border-y border-stone-800">
-        <div className="max-w-6xl mx-auto px-4 py-20">
-          <h2 className="font-display text-3xl md:text-4xl text-parchment">Elige quién baja</h2>
-          <p className="font-body text-xl text-stone-300 mt-3 max-w-2xl">En la demo puedes jugar con el Guerrero y el Mago. El Pícaro y el Clérigo llegarán pronto.</p>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-10">
-            {(Object.keys(CLASSES) as ClassId[]).map((id) => {
-              const c = CLASSES[id];
-              return (
-                <article key={id} className={`class-card ${c.playable ? '' : 'is-locked'}`}>
-                  <div className="h-44 flex items-end justify-center">
-                    <Sprite src={heroUrl(id, { cloak: id === 'mage' ? 3 : id === 'rogue' ? 2 : id === 'cleric' ? 1 : 0, skin: id === 'cleric' ? 1 : 0 }, 7, 0, 'idle', SHOWCASE_GEAR[id])} w={140} label={c.name} />
-                  </div>
-                  <h3 className="font-display text-2xl mt-4" style={{ color: c.color }}>{c.name}</h3>
-                  <p className="font-body italic text-stone-300">{c.tagline}</p>
-                  <p className="font-body text-lg text-stone-300 mt-3 leading-snug">{c.description}</p>
-                  <p className="font-body text-base mt-4 text-stone-400">{c.playable ? 'Disponible' : 'Próximamente'}</p>
-                </article>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Capturas reales */}
-      <section id="capturas" className="max-w-6xl mx-auto px-4 py-24">
-        <h2 className="font-display text-3xl md:text-4xl text-parchment">Así se ve ahora mismo</h2>
-        <p className="font-body text-xl text-stone-300 mt-3">Capturas reales de la demo, sin retoques.</p>
-        <div className="mt-10"><ShotCarousel shots={SHOTS} /></div>
-      </section>
-
-      {/* Demo */}
-      <section id="demo" className="relative overflow-hidden border-t border-stone-800">
-        <div className="absolute inset-0 demo-glow" />
-        <div className="relative max-w-6xl mx-auto px-4 py-24 grid lg:grid-cols-[1fr_1.1fr] gap-12 items-center">
-          <div>
-            <h2 className="font-display text-4xl md:text-5xl text-parchment leading-tight">Juega gratis ahora</h2>
-            <p className="font-body text-xl text-stone-300 mt-4 max-w-xl leading-relaxed">Crea a tu aventurero, equípalo, baja a unas criptas que nunca son iguales y vuelve con algo. Tu progreso se guarda en este navegador.</p>
-            <div className="mt-8"><PlayButton big /></div>
-            <p className="font-body text-stone-400 mt-4">En ordenador con teclado y ratón, o en el móvil en horizontal a pantalla completa, con controles táctiles. También puedes instalarlo como una app.</p>
-          </div>
-          <PhoneShot src={SHOT_DIR + 'movil-infierno'} alt="Crypt Raiders en un móvil en horizontal: el Infierno con el joystick, la poción y el botón Usar" />
-        </div>
-      </section>
-
-      {/* Descarga */}
-      <section id="descarga" className="bg-crypt border-y border-stone-800">
-        <div className="max-w-6xl mx-auto px-4 py-16 flex flex-col md:flex-row md:items-center gap-6">
-          <div className="flex-1">
-            <h2 className="font-display text-3xl text-parchment">Versión para Windows</h2>
-            <p className="font-body text-xl text-stone-300 mt-2 max-w-2xl">Estamos preparando una versión descargable con el mismo juego. Aparecerá aquí cuando el instalador esté probado.</p>
-          </div>
-          <DownloadButton />
         </div>
       </section>
 
       <RoadmapSection />
+
+      {/* Cierre: jugar (y, en segundo plano, apoyar) */}
+      <section id="apoyar" className="relative overflow-hidden border-t border-stone-800">
+        <div className="absolute inset-0 demo-glow" />
+        <div className="relative max-w-3xl mx-auto px-4 py-20 text-center">
+          <h2 className="font-display text-4xl md:text-5xl text-parchment">La puerta está abierta</h2>
+          <p className="font-body text-xl text-stone-300 mt-4">Crea a tu saqueador y baja. Tu progreso se guarda en este navegador.</p>
+          <div className="mt-8"><PlayButton big /></div>
+          {DONATE_URL && <p className="font-body text-stone-400 mt-8">Crypt Raiders lo hace una sola persona. Si te gusta, puedes ayudar a que avance. <DonateButton className="ml-1 px-3 py-1.5 text-sm align-middle" /></p>}
+        </div>
+      </section>
 
       <SiteFooter />
     </div>

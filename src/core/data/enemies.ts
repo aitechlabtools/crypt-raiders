@@ -3,6 +3,7 @@ import type { LootTable } from '../loot';
 import { MAZMORRA_ENEMIES } from './zones/mazmorra';
 import { CRIPTA_ENEMIES } from './zones/cripta';
 import { INFIERNO_ENEMIES } from './zones/infierno';
+import { SUBZONE_ENEMIES, EXISTING_BOSS_PHASES } from './zones/subzoneEnemies';
 
 export interface EnemyDef {
   id: string;
@@ -21,6 +22,8 @@ export interface EnemyDef {
   loot: LootTable;
   undead: boolean;
   boss?: boolean;
+  /** Jefes: habilidades y frase de la segunda fase (por debajo del 50 % de vida). */
+  phase2?: { skills: string[]; line: string; skillChance?: number };
   /** Comportamiento en exploración */
   wander: { speed: number; aggroRange: number };
 }
@@ -63,7 +66,8 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
 };
 
-Object.assign(ENEMIES, MAZMORRA_ENEMIES, CRIPTA_ENEMIES, INFIERNO_ENEMIES);
+Object.assign(ENEMIES, MAZMORRA_ENEMIES, CRIPTA_ENEMIES, INFIERNO_ENEMIES, SUBZONE_ENEMIES);
+for (const [id, ph] of Object.entries(EXISTING_BOSS_PHASES)) if (ENEMIES[id]) ENEMIES[id].phase2 = ph;
 
 export function getEnemy(id: string): EnemyDef {
   const e = ENEMIES[id];

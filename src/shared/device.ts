@@ -2,7 +2,7 @@ import { useSyncExternalStore } from 'react';
 
 /**
  * ¿Es un dispositivo táctil sin ratón o una pantalla muy pequeña?
- * La demo se juega con teclado y ratón, así que en esos casos avisamos.
+ * Utilidades de dispositivo: detectar pantallas táctiles y compartir el enlace del juego.
  */
 export function isMobileLike(): boolean {
   if (typeof window === 'undefined') return false;
@@ -53,12 +53,12 @@ export function playUrl(): string {
   return new URL('./play/', window.location.href.replace(/play\/?.*$/, '')).href;
 }
 
-/** Comparte o copia el enlace de la demo. Devuelve el mensaje para el usuario. */
-export async function shareDemoLink(): Promise<string> {
+/** Comparte o copia el enlace del juego. Devuelve el mensaje para el usuario. */
+export async function shareGameLink(): Promise<string> {
   const url = playUrl();
   try {
     if (navigator.share) {
-      await navigator.share({ title: 'Crypt Raiders · Demo', text: 'Juega la demo de Crypt Raiders en el ordenador:', url });
+      await navigator.share({ title: 'Crypt Raiders · Alpha', text: 'Juega gratis la alpha de Crypt Raiders:', url });
       return 'Enlace compartido.';
     }
     await navigator.clipboard.writeText(url);

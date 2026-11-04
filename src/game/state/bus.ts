@@ -4,6 +4,10 @@ type Handler = (payload: never) => void;
 export interface BusEvents {
   'combat-ended': { entityId: string | null; outcome: 'victory' | 'defeat' | 'fled'; kind: string };
   'rival-changed': undefined;
+  /** El errante traidor da su aviso: su triángulo tiembla. */
+  'rival-warn': undefined;
+  /** Tutorial: el jugador cae y vuelve al último punto seguro. */
+  'tutorial-revive': { x: number; y: number };
   'merc-changed': undefined;
   'bags-changed': undefined;
   'cancel-channel': undefined;

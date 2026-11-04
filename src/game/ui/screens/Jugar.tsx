@@ -144,11 +144,16 @@ export function Jugar({ onNavigate }: { onNavigate: (t: QuickTarget) => void }) 
 function useHeroScale(min: number, withMerc: boolean, phone: boolean): number {
   const calc = () => {
     if (typeof window === 'undefined') return min;
-    const free = window.innerHeight - 70;
-    let s = Math.max(min, Math.floor((free * (window.innerHeight <= 520 ? 0.68 : 0.8)) / 40));
-    // A lo ancho, el grupo tiene que caber entre los paneles de la izquierda y los botones de la derecha.
-    const room = window.innerWidth - 2 * (phone ? 270 : 370);
-    const widthAt = (k: number) => (withMerc ? 28 * k + 2 * k + 28 * Math.max(2, k - Math.max(1, Math.round(k / 4))) : 28 * k);
+    // Alto útil bajo la barra superior. El héroe (26 px de alto en su escala 1) llena el foco de luz: de los pies (a un 8–9 %
+    // del suelo) hasta cerca del techo, dejando sitio para su nombre.
+    const main = window.innerHeight - (phone ? 56 : 70);
+    const label = phone ? 18 : 30;
+    let s = Math.max(min, Math.floor((main * (phone ? 0.8 : 0.78) - label) / 26));
+    // A lo ancho, el grupo tiene que caber entre los paneles de la izquierda y los botones de la derecha
+    // (el pedestal puede asomar por debajo de ellos; cuenta el cuerpo, 20 px, más un margen).
+    const room = window.innerWidth - 2 * (phone ? 270 : 350);
+    const mercOf = (k: number) => Math.max(2, k - Math.max(1, Math.round(k / 4)));
+    const widthAt = (k: number) => (withMerc ? 22 * k + 2 * k + 22 * mercOf(k) : 22 * k);
     while (s > min && widthAt(s) > room) s--;
     return s;
   };

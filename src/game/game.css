@@ -319,8 +319,8 @@ html{-webkit-tap-highlight-color:transparent}
 .ui-pills{flex:initial}
 .ui-pills>.pill:first-child{margin-left:auto}
 .ui-pills>.pill:last-child{margin-right:auto}
-/* En móvil no hay retrato a la izquierda: las pestañas ocupan el hueco libre (centradas si caben) */
-@media (max-height:520px){ .ui-nav{display:flex} .ui-pills{flex:1} }
+/* En móvil: retrato compacto a la izquierda y las pestañas pegadas a la derecha, junto al oro (si no caben, se desplazan) */
+@media (max-height:520px){ .ui-nav{display:flex;gap:8px} .ui-pills{flex:1;gap:4px} .ui-pills>.pill:last-child{margin-right:0} .ui-pills .pill{padding:0 8px;letter-spacing:.05em} }
 /* Alijo: casilla de arma alta y casillas libres marcadas cuando hay un objeto elegido esperando destino */
 .slot.slot-big{width:var(--slot-big);height:calc(var(--slot-big) * 1.45)}
 .slot.slot-target{border-style:dashed;border-color:#6b4a12;cursor:pointer}
@@ -357,3 +357,11 @@ html.is-touch .tut-guide { top: auto; bottom: max(8px, env(safe-area-inset-botto
 @media (max-height: 560px) { .tut-guide { font-size: 14px; padding: 6px 12px; } }
 .tut-pulse { outline: 3px solid var(--color-gold, #e8b33a) !important; outline-offset: 2px; animation: tut-pulse 1s ease-in-out infinite; }
 @keyframes tut-pulse { 50% { outline-color: #fff1a8; box-shadow: 0 0 18px rgba(232, 179, 58, 0.8); } }
+
+/* Personaje en ordenador y tableta: los textos pequeños, unos px más grandes para que se lean bien (en el móvil no cambian) */
+.pj-wide .text-\[11px\], .pj-wide .text-\[12px\] { font-size: 13px; }
+.pj-wide .text-\[13px\] { font-size: 15px; }
+.pj-wide .text-\[14px\] { font-size: 16px; }
+.pj-wide .text-\[15px\] { font-size: 17px; }
+.ui-seg.ui-seg-full { display: flex; width: 100%; }
+.ui-seg.ui-seg-full button { flex: 1 1 0; padding: 0 8px; }

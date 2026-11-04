@@ -84,9 +84,28 @@ Todo está en un sitio: `src/config/ui.ts` (para el código) y el bloque «Base 
 - Código: `CombatScreen.tsx` (`mainCmds`, `specials`, `Cmd`), estilos `.cmdgrid`, `.cmdsplit`, `.cmdback`, `.cdturns` en `game.css`.
 - testids: `act-attack`, `act-special`, `act-class`, `act-bag`, `act-flee`, `special-menu`, `bag-menu`, `skill-<id>`, `use-<id>`, `btn-menu-back`, `btn-page-next`.
 
-## Habilidades de clase (Personaje)
-- `src/game/ui/ClassSkills.tsx`: `ClassSkillCards` (5 tarjetas: Equipada · Equipar · Desbloquear · bloqueada con el próximo nivel) y
-  `ClassUnlockNotice` (aviso en el pueblo cuando hay un desbloqueo pendiente: eliges una, y luego «Equiparla» o «Ahora no»).
-- Escritorio y tableta: panel «Habilidad de clase» encima de «Habilidades» en la columna derecha. Móvil: tercer segmento «De clase».
+## Personaje: ataques y habilidad de clase (opción A, 4/11)
+- `src/game/ui/screens/Personaje.tsx`. Escritorio y tableta: Atributos a la izquierda · héroe con sus rombos en el centro ·
+  a la derecha `Segmented full` con dos pestañas del mismo ancho, «Ataques» y «Habilidad de clase», cada una a toda altura
+  (nada de dos paneles apretados con scroll propio). Móvil: héroe a la izquierda y pestañas Atributos · Ataques · Habilidad
+  (se abre en Atributos). Con un hito por elegir, la pestaña lleva ◆.
+- Rombos en el orden de la barra de combate: la habilidad de clase arriba (dorada, más grande, marco doble); la mano derecha
+  (básico y sus especiales) en el lado de la espada; la mano izquierda en el del escudo. Tocar un rombo resalta su entrada y abre su pestaña.
+- Colores = los de la barra de combate (`SOURCE` en combatActions.tsx): básico #d9d3c1, clase #e8b33a, arma #a56bff, mano izquierda #8fa8c8.
+  La mano izquierda se llama «Mano izquierda» en las dos pantallas (antes «Defensa» en combate y «Secundaria» en Personaje).
+- «Ataques» es informativo: por mano (icono y nombre del objeto), el básico marcado «Básico · sin coste», cada especial con coste
+  y recarga, y al final «Los ataques dependen de tus armas» + «Cambiar armas en el Alijo» (prop `onStash` desde Lobby).
+  Con arma a dos manos, la mano izquierda dice que está ocupada. Algunos objetos flojos tienen un solo especial a propósito.
+- «Habilidad de clase» es un camino de hitos (niveles 1, 20, 40, 60, 80): arriba la equipada; luego cada hito alcanzado con la que
+  elegiste (tocarla la equipa) o, si está por elegir, las candidatas con «Elegir esta»; el próximo hito con candado, barra de progreso
+  y «Te faltan N niveles», y sus candidatas en gris pero legibles; los siguientes, en una línea. Las reglas no cambian
+  (core/classSkills.ts): en cada hito se elige 1 de las que queden; el aviso del pueblo (`ClassUnlockNotice`) sigue igual.
+- Textos pequeños: en escritorio y tableta, la clase `.pj-wide` los sube 2 px (game.css); en el móvil se quedan como estaban.
+- testids: `screen-character`, `character-seg`, `seg-attrs|seg-atk|seg-class`, `arc-class`, `arc-basic`, `arc-<id>`, `character-attacks`,
+  `atk-<id>`, `class-path`, `class-skill-<id>` (data-state), `btn-unlock-class-<id>`. Capturas: `node mockups/personaje/capturar.cjs <url>/play/`.
+
+## Aviso de desbloqueo de clase (pueblo)
+- `src/game/ui/ClassSkills.tsx`: `ClassUnlockNotice` (aviso en el pueblo cuando hay un desbloqueo pendiente: eliges una, y luego
+  «Equiparla» o «Ahora no»). `ClassSkillCards` ya no se usa en Personaje.
 - Datos: `CLASSES[c].classSkills` (5 ids, la primera es la inicial) y `CLASS_UNLOCK_LEVELS` en config/progression.ts.
-- testids: `class-skills`, `class-skill-<id>` (data-state), `btn-unlock-class-<id>`, `btn-equip-class-<id>`, `class-unlock`, `pick-class-<id>`, `btn-try-class`.
+- testids: `class-unlock`, `pick-class-<id>`, `btn-try-class`.

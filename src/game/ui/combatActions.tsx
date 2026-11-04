@@ -54,7 +54,7 @@ const SOURCE: Record<Source, { label: string; color: string }> = {
   basic: { label: 'Ataque básico', color: '#d9d3c1' },
   class: { label: 'Clase', color: '#e8b33a' },
   weapon: { label: 'Arma', color: '#a56bff' },
-  offhand: { label: 'Defensa', color: '#8fa8c8' },
+  offhand: { label: 'Mano izquierda', color: '#8fa8c8' },
 };
 export const FX_COLOR: Record<string, string> = {
   fire: '#ff8a3a', frost: '#9fe3ff', dark: '#b07aff', holy: '#f8dc7a', poison: '#8fd14a', slash: '#ffffff', bite: '#ff6a5a', smash: '#d9d3c1', shield: '#8fa8c8',

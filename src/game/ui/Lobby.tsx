@@ -43,19 +43,18 @@ export function Lobby() {
       {/* Barra superior: quién eres, pestañas en píldora, oro, pantalla completa y ajustes */}
       <header className="ui-nav" data-testid="lobby-nav">
         <div className="flex items-center min-w-0">
-        {layout !== 'phone' && (
-          <div className="flex items-center gap-2 shrink-0" data-testid="nav-chip">
-            <div className="w-10 h-10 flex items-end justify-center overflow-hidden bg-[#0d0c11] border-2 border-stone-700"><PlayerSprite scale={2} animate={false} /></div>
-            <div className="min-w-0 w-28 leading-tight">
-              <div className="font-display text-sm truncate" data-testid="hero-name">{ch.name}</div>
-              <div className="text-[11px] text-stone-300 truncate">{cls.name} · Nv <span data-testid="hero-level">{ch.level}</span></div>
-              <div className="h-1 bg-stone-800 mt-1"><div className="h-full bg-arcane" style={{ width: `${xpPct}%` }} /></div>
-            </div>
+        {/* Retrato, nombre y experiencia. En el móvil, más compacto: las pestañas se van a la derecha para dejarle sitio */}
+        <div className={`flex items-center shrink-0 ${layout === 'phone' ? 'gap-1.5' : 'gap-2'}`} data-testid="nav-chip">
+          <div className={`${layout === 'phone' ? 'w-8 h-8' : 'w-10 h-10'} flex items-end justify-center overflow-hidden bg-[#0d0c11] border-2 border-stone-700`}><PlayerSprite scale={layout === 'phone' ? 1 : 2} animate={false} /></div>
+          <div className={`min-w-0 ${layout === 'phone' ? 'w-[70px]' : 'w-28'} leading-tight`}>
+            <div className={`font-display truncate ${layout === 'phone' ? 'text-xs' : 'text-sm'}`} data-testid="hero-name">{ch.name}</div>
+            <div className="text-[11px] text-stone-300 truncate">{layout === 'phone' ? 'Nv' : `${cls.name} · Nv`} <span data-testid="hero-level">{ch.level}</span></div>
+            <div className="h-1 bg-stone-800 mt-1"><div className="h-full bg-arcane" style={{ width: `${xpPct}%` }} /></div>
           </div>
-        )}
+        </div>
         </div>
         <PillBar tabs={tabs} active={tab} onChange={go} />
-        <div className="flex items-center justify-end gap-2.5 min-w-0">
+        <div className={`flex items-center justify-end min-w-0 ${layout === 'phone' ? 'gap-1.5' : 'gap-2.5'}`}>
         <GoldAmount value={profile.gold} className={layout === 'phone' ? 'text-sm' : 'text-lg'} />
         <FullscreenButton className="icon-btn" />
         <button className="btn icon-btn" onClick={() => setSettings(true)} aria-label="Ajustes" title="Ajustes" data-testid="btn-lobby-settings"><GearIcon /></button>
@@ -65,7 +64,7 @@ export function Lobby() {
       <main className="flex-1 min-h-0 relative">
         <div key={tab} className="fade-in h-full">
           {tab === 'play' && <Jugar onNavigate={(t) => { if (t === 'contracts') setVendorTarget({ vendor: 'garra', view: 'contracts' }); go(t === 'contracts' ? 'merchants' : t); }} />}
-          {tab === 'character' && <Personaje />}
+          {tab === 'character' && <Personaje onStash={() => go('stash')} />}
           {tab === 'stash' && <Alijo onDetails={() => go('character')} onShop={() => go('shop')} />}
           {tab === 'merchants' && <Mercaderes target={vendorTarget} onConsumed={() => setVendorTarget(null)} />}
           {tab === 'quests' && <Misiones />}

@@ -25,6 +25,14 @@ Léelo junto con CLAUDE.md (reglas permanentes del proyecto).
     reales con sus frases del juego: Kael (destacado), Sela, Malek, Bram (frase de Garra Roja, firmada) y Tobías (prisionero).
   - Maquetas y capturas finales: mockups/landing-v3 (index.html; capturas con `node mockups/landing-v3/capturar.cjs <url> <carpeta>`).
   - Asset pendiente (lo diseña el usuario): icono de «En el ordenador y en el móvil» (móvil o mando); ahora usa la linterna.
+- **Personaje reorganizado (opción A de mockups/personaje):** pestañas del mismo ancho «Ataques» (por mano, informativo, con
+  «Cambiar armas en el Alijo») y «Habilidad de clase» (camino de hitos 1/20/40/60/80 con candados, progreso y candidatas en gris).
+  Rombos en el orden de la barra de combate y con sus colores. Móvil: Atributos · Ataques · Habilidad. Textos pequeños +2 px en
+  escritorio y tableta. «Mano izquierda» unificado en combate y Personaje. Detalles en docs/guia-interfaz.md.
+  - Decidido: el Escudo de madera, el Tomo arcano y la Maza bendita se quedan con un solo especial (son objetos flojos).
+- **Jugar (lobby):** el héroe llena el foco de luz en los tres formatos (screens/Jugar.tsx → `useHeroScale`: alto útil × 0,78–0,8
+  entre 26 px; a lo ancho cuenta el cuerpo, 20 px, no el pedestal). En el móvil la barra superior lleva el retrato compacto
+  (nombre, nivel y XP) a la izquierda y las pestañas pegadas a la derecha; en móviles de menos de ~800 px de ancho las pestañas se desplazan.
 
 ## Cómo trabajamos
 - Nombre del juego: **Crypt Raiders** (antes DREADBOUND; cambiado el 3/11). Dominio nuevo: cryptraiders.es.

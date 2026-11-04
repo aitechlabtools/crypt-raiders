@@ -54,7 +54,7 @@ export const ENEMIES: Record<string, EnemyDef> = {
   },
   ossuary_lord: {
     id: 'ossuary_lord', name: 'Señor del Osario', sprite: 'boss', boss: true,
-    stats: { maxHp: 270, maxMp: 0, atk: 25, def: 14, mag: 22, res: 13, spd: 8, crit: 8, eva: 2 },
+    stats: { maxHp: 270, maxMp: 0, atk: 23, def: 14, mag: 22, res: 13, spd: 8, crit: 8, eva: 2 },
     skills: ['grave_slam', 'necrotic_wave', 'bone_shield'], skillChance: 0.5,
     basicAttack: { name: 'Mandoble de hueso', kind: 'physical', power: 1.05, fx: 'smash' },
     xp: 250, undead: true, role: 'Jefe',

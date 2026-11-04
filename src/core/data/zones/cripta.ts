@@ -98,7 +98,7 @@ export const CRIPTA_ENEMIES: Record<string, EnemyDef> = {
   },
   veiled_queen: {
     id: 'veiled_queen', name: 'La Reina Velada', sprite: 'veiled_queen', boss: true, role: 'Jefe',
-    stats: { maxHp: 300, maxMp: 0, atk: 18, def: 13, mag: 27, res: 16, spd: 10, crit: 8, eva: 6 },
+    stats: { maxHp: 300, maxMp: 0, atk: 18, def: 13, mag: 25, res: 16, spd: 10, crit: 8, eva: 6 },
     skills: ['lament', 'veil', 'necrotic_wave'], skillChance: 0.55,
     basicAttack: { name: 'Caricia helada', kind: 'magical', power: 1, fx: 'frost' },
     xp: 520, undead: true,

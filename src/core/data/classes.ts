@@ -43,7 +43,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
     description: 'Daño elemental devastador a cambio de poca resistencia. Gestiona bien tu maná o caerás.',
     playable: true, resourceName: 'Maná', resource: 'mana', resourceRegen: 2,
     base: { maxHp: 92, maxMp: 45, atk: 6, def: 7, mag: 21, res: 12, spd: 11, crit: 6, eva: 5 },
-    perLevel: { maxHp: 10, maxMp: 5, mag: 3, def: 1, res: 1 },
+    perLevel: { maxHp: 12, maxMp: 5, mag: 3, def: 1, res: 1 },
     classSkill: 'mana_shield', classSkills: ['mana_shield', 'blink', 'curse_weakness', 'blood_pact', 'abyss_comet'], weapons: 'Báculos y tomos',
     pros: ['Fuego, hielo y sombra según el báculo', 'Escudo de maná: absorbe golpes', 'Quema y congela a sus enemigos'],
     cons: ['Poca vida', 'Poco daño físico', 'Sin maná, está perdido'],

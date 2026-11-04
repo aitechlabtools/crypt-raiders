@@ -52,71 +52,78 @@ def saw(f, d, g=1.0):
     s = lp(s, 1400) * np.minimum(1, x / 0.01) * np.exp(-x * 5)
     return s * g
 
-# Dron grave en La que crece hasta el final
-sw = np.clip(t / 48, 0, 1) ** 1.2 * 0.75 + 0.25
+# ── Todo se coloca según el guion (cuts.json): secciones por rótulo, golpes reales del combate y destello del portal ──
+S = {name: (a, b) for name, a, b in texts}
+def sec(name): a, b = S[name]; return a - 0.15, b + 0.05
+hits = c.get('hits', []); marks = c.get('marks', [])
+portal = next((m['t'] for m in marks if m['what'] == 'portal'), sec('sal')[1] - 0.3)
+fin = sec('final')[0]
+notes = [110, 110, 130.81, 110, 164.81, 110, 146.83, 130.81]
+
+# Dron grave en La que crece hasta el portal
+sw = np.clip(t / max(1, portal), 0, 1) ** 1.2 * 0.75 + 0.25
 drone = np.sin(2 * np.pi * 55 * t) + 0.5 * np.sin(2 * np.pi * 82.41 * t + 0.3) + 0.3 * np.sin(2 * np.pi * 110.3 * t)
-drone *= sw * 0.16 * (0.85 + 0.15 * np.sin(2 * np.pi * 0.5 * t)) * (t < 48.2)
+drone *= sw * 0.16 * (0.85 + 0.15 * np.sin(2 * np.pi * 0.5 * t)) * (t < portal + 0.2)
 L += drone; R += drone * 0.96
-pad = lp(rng.standard_normal(n), 300) * 0.05 * sw * (t < 48)
+pad = lp(rng.standard_normal(n), 300) * 0.05 * sw * (t < portal)
 L += pad; R += pad[::-1]
 
-# 0–7: latido cada segundo
-for k in np.arange(1.0, 7.0, 1.0): add(kick(0.8), k); add(kick(0.5), k + 0.22)
-# 7–14: pulso a negras con ostinato en corcheas
-notes = [110, 110, 130.81, 110, 164.81, 110, 146.83, 130.81]
-for i, k in enumerate(np.arange(7.0, 14.0, BEAT / 2)):
-    add(saw(notes[i % 8], 0.24, 0.16), k, pan=0.2 * ((i % 2) * 2 - 1))
-for k in np.arange(7.0, 14.0, BEAT): add(kick(0.7), k)
-for k in np.arange(7.25, 14.0, BEAT): add(tick(0.25), k, pan=0.4)
-add(riser(1.5, 0.6), 12.5)
-# 14–20: combate a tope — bombo, caja en 2 y 4, semicorcheas
-for i, k in enumerate(np.arange(14.0, 20.0, BEAT)):
-    add(kick(0.95), k)
-    if i % 2 == 1: add(snare(0.55), k)
-for i, k in enumerate(np.arange(14.0, 20.0, BEAT / 4)):
-    add(saw(notes[(i // 2) % 8] * (2 if i % 4 == 3 else 1), 0.12, 0.14), k, pan=0.3 * ((i % 2) * 2 - 1))
-    add(tick(0.15), k, pan=-0.4)
-# Golpes reales del combate (acero, impactos mágicos)
-for at, g in [(14.55, 1.0), (15.95, 0.8), (17.45, 0.9), (19.4, 1.0)]: add(clang(g), at, pan=0.15); add(boom(0.5, 0.8), at)
-# 20–42: novedades — pulso de marcha con ostinato que sube una cuarta en cada bloque
-O = 22
-for blk, (a, b, up) in enumerate([(20.0, 24.5, 1.0), (24.5, 29.0, 1.335), (29.0, 33.5, 1.0), (33.5, 38.0, 1.5), (38.0, 42.0, 1.335)]):
-    for i, k in enumerate(np.arange(a, b, BEAT / 2)):
-        add(saw(notes[i % 8] * up, 0.22, 0.13), k, pan=0.2 * ((i % 2) * 2 - 1))
+def ostinato(a, b, up=1.0, g=0.14, step=BEAT / 2):
+    for i, k in enumerate(np.arange(a, b, step)): add(saw(notes[i % 8] * up, step * 0.95, g), k, pan=0.2 * ((i % 2) * 2 - 1))
+def drums(a, b, kg=0.8, sg=0.4, ticks=True):
     for i, k in enumerate(np.arange(a, b, BEAT)):
-        add(kick(0.8), k)
-        if i % 2 == 1: add(snare(0.35), k)
-    for k in np.arange(a + 0.25, b, BEAT): add(tick(0.2), k, pan=0.4)
-add(riser(1.4, 0.5), 40.6)
-# 42–45.8: tensión — el ritmo cae, solo latido acelerando
-for k in [20.0 + O, 20.5 + O, 20.9 + O, 21.25 + O]: add(kick(0.7), k)
-add(boom(1.2), 21.5 + O); add(clang(1.1), 21.5 + O); add(clang(0.9), 22.7 + O, pan=-0.2)
-for k in np.arange(21.5 + O, 23.0 + O, 0.25): add(kick(0.45), k)
-add(boom(1.3), 23.0 + O); add(clang(1.2), 23.05 + O); add(snare(0.8), 23.0 + O)
-# 45.8–48: portal — subida hacia el título
-add(riser(2.2, 1.0), 23.8 + O)
-for k in np.arange(24.0 + O, 26.0 + O, BEAT / 2): add(kick(0.3 + 0.5 * (k - 24 - O) / 2), k)
-# Golpes en cada corte
-for i, ct in enumerate(cuts[1:-1], 1):
-    if 14 <= ct < 42 or 42 < ct < 48: add(boom(0.45, 1.0), ct)
-    elif ct in (1.0, 3.0, 7.0, 10.0): add(boom(1.0, 1.8), ct)
-    else: add(boom(0.6, 1.2), ct)
-# Silbidos en la aparición de cada rótulo
-for name, a, b in texts:
-    if name != 'final': add(whoosh(0.5, 0.9), max(0, a - 0.3), pan=0.3)
-# 26: gran golpe final + acorde de La menor que se apaga
-fin = cuts[-1]
+        add(kick(kg), k)
+        if i % 2 == 1 and sg: add(snare(sg), k)
+    if ticks:
+        for k in np.arange(a + 0.25, b, BEAT): add(tick(0.2), k, pan=0.4)
+
+# 1 · ¿Te atreves a bajar? y Elige quién baja: latido
+a, _ = sec('oro'); _, b = sec('clases')
+for k in np.arange(a + 0.6, b, 1.0): add(kick(0.8), k); add(kick(0.5), k + 0.22)
+add(riser(1.2, 0.5), b - 1.2)
+# 2 · Un mapa nuevo: pulso con ostinato y un golpe en cada escenario
+a, b = sec('mapas')
+ostinato(a, b); drums(a, b, 0.75, 0)
+for ct in cuts:
+    if a <= ct < b - 0.1: add(boom(0.45, 0.9), ct)
+# 3 · Cuanto más bajas: subida hacia el combate
+a, b = sec('botin')
+ostinato(a, b, 1.335, 0.12); drums(a, b, 0.6, 0, False); add(riser(b - a, 0.8), a)
+# 4 · Combate: batería a tope y un golpe en cada impacto real (tuyo: acero; suyo: golpe grave)
+a, b = sec('combate')
+drums(a, b, 0.95, 0.5)
+for i, k in enumerate(np.arange(a, b, BEAT / 4)): add(tick(0.12), k, pan=-0.4)
+ostinato(a, b, 1.0, 0.12, BEAT / 4)
+for h in hits:
+    if h['who'] == 'foe': add(clang(1.0 if h.get('crit') else 0.8), h['t'], pan=0.2); add(boom(0.45, 0.7), h['t'])
+    else: add(boom(1.0, 0.9), h['t']); add(snare(0.9), h['t'], pan=-0.2)
+# 5 · Armas, mercaderes, atuendos y móvil: marcha que sube en cada bloque
+for name, up in [('equipo', 1.0), ('mercaderes', 1.335), ('atuendos', 1.0), ('movil', 1.5)]:
+    a, b = sec(name); ostinato(a, b, up, 0.13); drums(a, b, 0.8, 0.35); add(boom(0.6, 1.0), a + 0.15)
+# 6 · ¿Aliado… o traidor?: cae el ritmo, latido que se acelera y golpes de acero en la traición
+a, _ = sec('aliado'); _, b = sec('traidor'); tr = sec('traidor')[0] + 0.15
+for k in np.arange(a, tr, 0.5): add(kick(0.6), k)
+add(boom(1.2), tr); add(clang(1.1), tr); add(clang(0.9), tr + 1.1, pan=-0.2)
+for k in np.arange(tr, b, 0.25): add(kick(0.45), k)
+# 7 · Sal con vida: subida hasta el destello del portal (sonido de extracción justo en el destello)
+a, _ = sec('sal')
+add(riser(max(0.5, portal - a), 1.0), a)
+for k in np.arange(a, portal, BEAT / 2): add(kick(0.3 + 0.5 * (k - a) / max(0.5, portal - a)), k)
+add(boom(2.0, 2.2), portal); add(clang(0.8), portal); add(whoosh(1.2, 1.0), portal - 0.1)
+# Silbido al aparecer cada rótulo
+for name, a2, b2 in texts:
+    if name not in ('final', 'oro'): add(whoosh(0.5, 0.8), max(0, a2 - 0.3), pan=0.3)
+# 8 · Logo: gran golpe y acorde de La menor que se apaga
 add(boom(2.2, 3.0), fin); add(clang(0.7), fin)
 chord = np.zeros(n)
 for f, g in [(55, 1), (110, 0.8), (130.81, 0.6), (164.81, 0.55), (220, 0.35), (261.6, 0.2)]:
     chord += np.sin(2 * np.pi * f * t + 0.3 * np.sin(2 * np.pi * 4.5 * t)) * g
 ce = np.clip((t - fin) / 0.04, 0, 1) * np.exp(-np.maximum(t - fin, 0) / 2.4) * (t >= fin)
 L += chord * ce * 0.14; R += chord * ce * 0.13
-add(whoosh(1.0, 0.6), fin - 0.6)
 # Fundidos y normalización con limitador suave
 fade = np.clip((T - t) / 0.8, 0, 1) * np.clip(t / 0.05, 0, 1); L *= fade; R *= fade
 m = max(np.abs(L).max(), np.abs(R).max()); L = np.tanh(L / m * 1.6) / np.tanh(1.6) * 0.93; R = np.tanh(R / m * 1.6) / np.tanh(1.6) * 0.93
 data = (np.stack([L, R], 1) * 32767).astype('<i2')
 with wave.open(OUTDIR + '/music.wav', 'wb') as w:
     w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR); w.writeframes(data.tobytes())
-print('música', T, 's')
+print('música', T, 's · golpes', len(hits), '· portal en', portal)

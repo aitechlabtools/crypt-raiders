@@ -6,6 +6,8 @@ TX = os.path.dirname(os.path.abspath(__file__))
 T = next((a for a in sys.argv[1:] if not a.startswith('--')), '/tmp/claude-0/t5')
 OUT = os.environ.get('TRAILER_OUT', f'{T}/out5'); PUB = os.path.join(TX, '..', '..', 'public', 'trailer')
 W, H, FPS = 1280, 720, 30
+# El golpe se ve (destello rojo y cifra de daño) 0,62 s después de que el combate lo resuelve: el sonido va con la imagen
+HIT_LAG = 0.62
 os.makedirs(OUT, exist_ok=True)
 G = json.load(open(f'{TX}/guion.json'))
 ENC = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p", "-r", str(FPS)]
@@ -48,8 +50,21 @@ def concat(parts, out):
 
 if '--mux' not in sys.argv:
     parts, cuts, t = [], [], 0.0
+    hits, marks = [], []
     for i, (src, t0, dur, cr, col) in enumerate(G['shots']):
-        cuts.append(round(t, 3)); t += dur; parts.append(shot(i, src, t0, dur, cr, col, 's')); print('toma', i, src, dur)
+        cuts.append(round(t, 3))
+        # Golpes grabados (para el sonido): se pasan al tiempo del vídeo
+        hp = f'{T}/{src}/hits.json'
+        if src != 'card' and os.path.exists(hp):
+            start = json.load(open(f'{T}/{src}/frames.json'))[0]['t']
+            for h in json.load(open(hp)):
+                rel = h['t'] - start - t0 + HIT_LAG
+                if 0 <= rel < dur: hits.append({'t': round(t + rel, 3), 'who': h['who'], 'crit': h.get('crit', False)})
+        mp = f'{T}/{src}/marks.json'
+        if src != 'card' and os.path.exists(mp):
+            fl = json.load(open(mp)).get('flashFrame')
+            if fl is not None and 0 <= fl / 30 - t0 < dur: marks.append({'t': round(t + fl / 30 - t0, 3), 'what': 'portal'})
+        t += dur; parts.append(shot(i, src, t0, dur, cr, col, 's')); print('toma', i, src, dur)
     concat(parts, f'{OUT}/base.mp4')
     inputs = ['-i', f'{OUT}/base.mp4']; fc = ''; last = '[0:v]'
     for k, (png, a, b) in enumerate(G['texts']):
@@ -59,7 +74,7 @@ if '--mux' not in sys.argv:
         last = f'[v{k}]'
     fc += f"{last}fade=in:st=0:d=0.25,fade=out:st={t-0.6:.2f}:d=0.6,format=yuv420p[v]"
     run(['ffmpeg', '-y', '-loglevel', 'error', *inputs, '-filter_complex', fc, '-map', '[v]', '-t', str(t), *ENC, f'{OUT}/video.mp4'])
-    json.dump({'cuts': cuts, 'total': round(t, 3), 'texts': G['texts']}, open(f'{OUT}/cuts.json', 'w'))
+    json.dump({'cuts': cuts, 'total': round(t, 3), 'texts': G['texts'], 'hits': hits, 'marks': marks}, open(f'{OUT}/cuts.json', 'w'))
     # Clip de portada (sin rótulos, en bucle)
     cp = [shot(i, *c, 'c') for i, c in enumerate(G['clip'])]
     concat(cp, f'{OUT}/clip.mp4')

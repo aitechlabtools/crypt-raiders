@@ -48,6 +48,7 @@ async function session(b, vp, touch) {
     await ev(() => { const g = window.__CRYPTRAIDERS__.game; g.loop.sleep(); window.__cine = { game: g, t: performance.now() }; });
     for (let i = 0; i < n; i++) {
       await ev(([src, i]) => { const c = window.__cine; const sc = window.__CRYPTRAIDERS__.scene();
+        if (!sc) return;
         if (src) new Function('i', 'sc', 'cam', src)(i, sc, sc.cameras.main);
         c.t += 1000 / 30; sc.lightTimer = 1000; c.game.step(c.t, 1000 / 30); }, [perFrame || '', i]);
       const { data } = await cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: 92, clip: { x: 0, y: 0, width: vp.width, height: vp.height, scale: Math.min(1, 1280 / vp.width) } });
@@ -194,6 +195,40 @@ async function session(b, vp, touch) {
     });
     await ev(() => window.__CRYPTRAIDERS__.setState({ combat: null }));
   }
+  // ── Duelo continuo: golpe tuyo, golpe suyo, sin pausas. Se apunta cuándo cae cada golpe (para el sonido) ──
+  if (want('c-duelo')) {
+    await s.enter('rios');
+    await ev(() => window.__CRYPTRAIDERS__.actions.startCombat('pve', 'd_hell_knight', 'hell_knight'));
+    await page.waitForSelector('[data-testid=act-attack]:not([disabled])', { timeout: 10000 }).catch(() => {});
+    await ev(() => {
+      const G = window.__CRYPTRAIDERS__; G.setState({ toasts: [] });
+      const st = G.getState().combat.state; for (const c of st.combatants) c.stats.eva = 0;
+      window.__hits = []; let last = st.step;
+      window.__hitTimer = setInterval(() => {
+        const c = G.getState().combat; if (!c) return;
+        const pl = c.state.combatants.find((x) => x.id === 'player'); if (pl.hp < pl.stats.maxHp * 0.5) pl.hp = pl.stats.maxHp;
+        if (c.state.step === last) return; last = c.state.step;
+        for (const e of c.state.events) if (e.type === 'damage' && e.source === 'hit') window.__hits.push({ t: Date.now() / 1000, who: e.targetId === 'player' ? 'hero' : 'foe', crit: e.crit });
+      }, 10);
+    });
+    await record('c-duelo', async () => {
+      for (let k = 0; k < 6; k++) {
+        if (!(await myTurn())) break;
+        if (k % 2 === 1 && (await page.$('[data-testid=act-special]:not([disabled])'))) {
+          await page.click('[data-testid=act-special]'); await wait(120);
+          const b = await page.$('[data-testid=special-menu] button[data-testid^=skill-]:not(.cd):not([aria-disabled])');
+          if (b) await b.click(); else await page.keyboard.press('Escape');
+          if (!b) await act('act-attack', 50);
+        } else await act('act-attack', 50);
+        await wait(150);
+      }
+      await wait(1200);
+    });
+    const hits = await ev(() => { clearInterval(window.__hitTimer); return window.__hits; });
+    fs.writeFileSync(`${OUT}/c-duelo/hits.json`, JSON.stringify(hits));
+    console.log('golpes', hits.map((h) => h.who).join(' '));
+    await ev(() => window.__CRYPTRAIDERS__.setState({ combat: null }));
+  }
   // ── Sal con vida: el personaje llega al portal y lo activa ──
   if (want('d-portal')) {
     await s.enter('puertas');
@@ -207,7 +242,8 @@ async function session(b, vp, touch) {
       sc.path = path.filter(([x, y]) => sc.walkableTile(x, y));
     });
     await s.cinematic(true);
-    await s.stepRecord('d-portal', 116, "cam.setZoom(5.2 + i*0.01); if (!sc.path.length && !sc.player.moving && sc.channel < 0 && !window.__cine.started) { window.__cine.started = true; sc.startChannel(); }");
+    await s.stepRecord('d-portal', 140, "cam.setZoom(5.2 + i*0.01); const k = window.__cine; if (!sc.path.length && !sc.player.moving && sc.channel < 0 && !k.started) { k.started = true; sc.startChannel(); } if (k.started && !k.flashed && sc.channel >= 0.97) { k.flashed = true; k.flashAt = i; sc.channel = -1; cam.flash(400, 180, 110, 255); }");
+    const fl = await ev(() => window.__cine.flashAt); fs.writeFileSync(`${OUT}/d-portal/marks.json`, JSON.stringify({ flashFrame: fl }));
     await s.cinematic(false);
   }
 

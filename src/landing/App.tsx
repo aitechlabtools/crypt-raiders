@@ -1,15 +1,15 @@
 import { Diorama } from './Diorama';
-import { heroUrl, iconUrl, monsterUrl } from '../shared/art';
+import { heroUrl } from '../shared/art';
 import { SHOWCASE_GEAR } from '../shared/gearLook';
 import { CLASSES } from '../core/data/classes';
 import type { ClassId } from '../core/types';
 import { DonateButton, DONATE_URL, PLAY_URL, SiteFooter, SiteHeader } from './site';
 import { PhoneShot, RoadmapSection, ShotCarousel, VarkHollowSection, type Shot } from './sections';
+import { AlliesBlock, MechanicsGrid } from './mechanics';
 
-// Landing v2 (4/11): Portada · VarkHollow · El juego · Galería · Hoja de ruta · Cierre. Textos sin cifras exactas (como mucho «más de X»).
+// Landing v3 (4/11): Portada · Tráiler · VarkHollow · Mecánicas · Galería · Hoja de ruta · Cierre. Textos sin cifras exactas (como mucho «más de X»).
 const HERO = {
   tagline: 'Confía en tu espada. En nadie más.',
-  sub: 'Un RPG de extracción por turnos en pixel art. Baja de la Mazmorra al Infierno, arriesga tu botín en cada expedición y vuelve con vida… si te dejan.',
 };
 export const ALPHA_NOTE = 'Esto es una alpha: el juego está en desarrollo, puede tener fallos y va a cambiar, y tu progreso podría perderse con alguna actualización.';
 
@@ -19,15 +19,6 @@ const LOOP = [
   { verb: 'Lucha', text: 'Cada criatura te lleva a un duelo por turnos: dos ataques especiales por mano, una habilidad de clase y el ímpetu o el maná deciden.' },
   { verb: 'Desconfía', text: 'Los mercenarios errantes ofrecen su espada. No todos cumplen.' },
   { verb: 'Escapa', text: 'Si llegas al portal, todo es tuyo. Si caes, se queda abajo.' },
-];
-
-const FEATURES = [
-  { icon: 'chalice', title: 'Botín que se nota', text: 'Armas y armaduras de común a legendario, con atributos como «del vampiro». Cada pieza cambia cómo luchas… y cómo te ves.' },
-  { icon: 'dagger', title: 'Aliados de los que no fiarse', text: 'Un triángulo sobre su cabeza dice cuánto fiarte. Cuanto más hondo bajas, más fácil es que te traicionen; en el Infierno, algunos atacan nada más verte.' },
-  { icon: 'gem_red', title: 'Todo o nada', text: 'Lo que llevas encima se pierde si caes. Lo que guardas en el almacén, nunca.' },
-  { icon: 'pick', title: 'Pica, forja y contrata', text: 'Minerales para Maese Brand, encargos y reputación con los mercaderes, y espadas de alquiler de Garra Roja… o prisioneros que rescatas abajo.' },
-  { icon: 'amulet_heart', title: 'Hasta el nivel 100', text: 'Cinco habilidades por clase: en cada hito eliges cuál desbloquear.' },
-  { icon: 'shield_iron', title: 'Atuendos sin ventajas', text: 'Se compran con el oro del juego y solo cambian cómo te ves.' },
 ];
 
 // Capturas reales con una partida avanzada (scripts/landing-shots.cjs). Cada una en WebP y PNG de respaldo.
@@ -64,7 +55,6 @@ export function App() {
           <div>
             <h1 className="hero-title font-display font-extrabold text-parchment">CRYPT RAIDERS</h1>
             <p className="font-display text-xl md:text-3xl text-gold mt-3 tracking-wide">{HERO.tagline}</p>
-            <p className="font-body text-lg md:text-2xl text-bone/90 mt-3 max-w-2xl leading-snug">{HERO.sub}</p>
             <div className="mt-6"><PlayButton big /></div>
             <p className="font-body text-stone-300 mt-3 text-base">Gratis en el navegador, en ordenador o móvil. Sin registro ni descargas.</p>
             <p className="alpha-note mt-3" data-testid="alpha-note"><span className="alpha-tag">ALPHA</span> {ALPHA_NOTE}{DONATE_URL && <> <a href="#apoyar" className="underline decoration-dotted hover:text-parchment">Si quieres que avance más rápido, puedes apoyarlo.</a></>}</p>
@@ -72,13 +62,26 @@ export function App() {
         </div>
       </section>
 
+      {/* Tráiler, justo después de la portada */}
+      <section id="trailer" className="max-w-6xl mx-auto px-4 pt-16 pb-8 scroll-mt-14">
+          <div className="panel overflow-hidden border border-stone-800 shadow-2xl">
+            <video className="w-full aspect-video block bg-black" poster="./trailer/poster.jpg" controls muted loop playsInline preload="none" data-testid="trailer-video">
+              <source src="./trailer/cryptraiders-trailer.webm" type="video/webm" />
+              <source src="./trailer/cryptraiders-trailer.mp4" type="video/mp4" />
+              Tu navegador no puede reproducir el vídeo.
+            </video>
+          </div>
+          <p className="font-body text-stone-400 mt-2">Tráiler · imágenes reales de la alpha.</p>
+      </section>
+
       <VarkHollowSection />
 
-      {/* El juego: ciclo, rasgos, clases y Kael */}
-      <section id="juego" className="max-w-6xl mx-auto px-4 py-24 scroll-mt-14">
-        <p className="font-display text-gold tracking-[0.3em] text-sm uppercase">El juego</p>
+      {/* Mecánicas: ciclo, todas las mecánicas, clases y aliados */}
+      <section id="mecanicas" className="max-w-6xl mx-auto px-4 py-24 scroll-mt-14">
+        <span id="juego" aria-hidden className="block -translate-y-14" />
+        <p className="font-display text-gold tracking-[0.3em] text-sm uppercase">Mecánicas</p>
         <div className="grid md:grid-cols-[1fr_1.2fr] gap-12 items-start mt-2">
-          <h2 className="font-display text-4xl md:text-5xl text-parchment leading-tight">Bajas a por oro. Si vuelves, vuelves rico.</h2>
+          <h2 className="font-display text-4xl md:text-5xl text-parchment leading-tight">El oro está abajo. La salida, también.</h2>
           <ol className="loop" aria-label="Una expedición, paso a paso">
             {LOOP.map((s) => (
               <li key={s.verb} className="loop-step">
@@ -88,17 +91,7 @@ export function App() {
             ))}
           </ol>
         </div>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-x-10 gap-y-8 mt-16">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="flex gap-4">
-              <div className="item-slot shrink-0"><img src={iconUrl(f.icon, 4)} width={48} height={48} alt="" className="pixelated" /></div>
-              <div>
-                <h3 className="font-display text-xl text-gold">{f.title}</h3>
-                <p className="font-body text-lg text-stone-300 leading-snug mt-1">{f.text}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        <MechanicsGrid />
 
         <h3 id="clases" className="font-display text-3xl md:text-4xl text-parchment mt-20 scroll-mt-14">Elige quién baja</h3>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
@@ -117,13 +110,7 @@ export function App() {
           })}
         </div>
 
-        <div className="flex items-end gap-6 mt-16 kael-quote">
-          <img src={monsterUrl('rival', 6)} width={96} alt="Kael el Errante" className="pixelated -scale-x-100 shrink-0" />
-          <blockquote className="dialogue">
-            «Repartimos lo que encontremos. Tú vigila mi espalda y yo la tuya.»
-            <span className="block text-base not-italic text-stone-400 mt-1">Kael el Errante. Aparece en una de cada tres bajadas a la Mazmorra.</span>
-          </blockquote>
-        </div>
+        <AlliesBlock />
       </section>
 
       {/* Galería: tráiler, capturas y móvil */}
@@ -131,15 +118,8 @@ export function App() {
         <div className="max-w-6xl mx-auto px-4 py-24">
           <p className="font-display text-gold tracking-[0.3em] text-sm uppercase">Galería</p>
           <h2 className="font-display text-3xl md:text-5xl text-parchment mt-2">Así se juega ahora mismo</h2>
-          <div className="panel overflow-hidden border border-stone-800 shadow-2xl mt-8">
-            <video className="w-full aspect-video block bg-black" poster="./trailer/poster.jpg" controls muted loop playsInline preload="none" data-testid="trailer-video">
-              <source src="./trailer/cryptraiders-trailer.webm" type="video/webm" />
-              <source src="./trailer/cryptraiders-trailer.mp4" type="video/mp4" />
-              Tu navegador no puede reproducir el vídeo.
-            </video>
-          </div>
-          <p className="font-body text-stone-400 mt-2">Tráiler · imágenes reales de la alpha.</p>
-          <div className="mt-12"><ShotCarousel shots={SHOTS} /></div>
+
+          <div className="mt-8"><ShotCarousel shots={SHOTS} /></div>
           <div className="grid lg:grid-cols-[1fr_1fr] gap-10 items-center mt-16">
             <div>
               <h3 className="font-display text-3xl text-parchment">También en el móvil</h3>

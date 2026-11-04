@@ -31,7 +31,7 @@ const OUT = process.argv[3] || '/tmp/claude-0/landing';
     await p.click('[data-testid=btn-chronicle]'); await p.waitForTimeout(200);
     if (!(await p.isVisible('[data-testid=chronicle]'))) errs.push(`${name}: la crónica no se despliega`);
     await p.screenshot({ path: `${OUT}/${name}-cronica.png` });
-    for (const id of ['juego', 'galeria', 'hoja-de-ruta']) { await p.evaluate((id) => document.getElementById(id).scrollIntoView(), id); await p.waitForTimeout(400); await p.screenshot({ path: `${OUT}/${name}-${id}.png` }); }
+    for (const id of ['trailer', 'mecanicas', 'galeria', 'hoja-de-ruta']) { await p.evaluate((id) => document.getElementById(id).scrollIntoView(), id); await p.waitForTimeout(400); await p.screenshot({ path: `${OUT}/${name}-${id}.png` }); }
     await p.screenshot({ path: `${OUT}/${name}-completa.png`, fullPage: true });
     await ctx.close();
   }

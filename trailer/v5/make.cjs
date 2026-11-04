@@ -15,12 +15,12 @@ const cards = {
   combate: low('COMBATE POR TURNOS', 'dos ataques especiales por mano · una habilidad de clase'),
   equipo: low('<span style="font-size:46px">MÁS DE 50 ARMAS Y PIEZAS NUEVAS</span>', 'de común a legendario · con atributos como «del vampiro»', 'gold'),
   jefe: low('UN JEFE AL FONDO', 'de cada escenario', 'red'),
-  aliado: low('¿ALIADO…', 'Kael el Errante también busca el oro'),
+  aliado: low('¿ALIADO…', 'otros saqueadores también buscan el oro'),
   traidor: low('…O TRAIDOR?', 'si te traiciona, es a muerte', 'red'),
   mercaderes: low('<span style="font-size:46px">MERCADERES · FORJA · CONTRATOS</span>', 'prepárate en el Bastión antes de bajar'),
   atuendos: low('ATUENDOS', 'con el oro del juego · solo estéticos', 'gold'),
   movil: '<div class="c" style="justify-content:flex-start;padding-top:56px"><div class="big2 gold" style="font-size:52px">TAMBIÉN EN EL MÓVIL</div><div class="sub" style="margin-top:8px">a pantalla completa, con controles táctiles</div></div>'
-    + '<div style="position:absolute;left:122px;top:192px;width:1036px;height:498px;border-radius:40px;border:3px solid #3a3741;box-shadow:inset 0 0 0 15px #15131a, inset 0 0 0 18px #07060a, 0 0 60px rgba(196,40,59,.25)"></div>',
+    + '<div style="position:absolute;left:182px;top:214px;width:916px;height:442px;border-radius:40px;border:3px solid #3a3741;box-shadow:inset 0 0 0 15px #15131a, inset 0 0 0 18px #07060a, 0 0 60px rgba(196,40,59,.25)"></div>',
   sal: low('SAL CON VIDA', 'Si escapas, te lo quedas todo. Si caes, lo pierdes todo.'),
   final: '<div class="c"><div class="logo" style="font-size:96px">CRYPT RAIDERS</div><div class="mid gold" style="font-size:34px;margin-top:18px">Confía en tu espada. En nadie más.</div><div class="sub" style="margin-top:34px">Juega gratis la alpha en cryptraiders.es</div></div>',
 };

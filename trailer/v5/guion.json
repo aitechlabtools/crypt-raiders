@@ -1,5 +1,5 @@
 {
- "nota": "Guion del tráiler v5 (60 s). Cada toma: [carpeta de fotogramas, inicio en la toma (s), duración (s), recorte, color]. Rótulos: [png, inicio, fin] en el tiempo del vídeo. Para cambiarlo: edita este archivo y ejecuta npm run trailer:render.",
+ "nota": "Guion del tráiler v5 (45 s). Cada toma: [carpeta de fotogramas, inicio en la toma (s), duración (s), recorte, color]. Rótulos: [png, inicio, fin] en el tiempo del vídeo. Para cambiarlo: edita este archivo y ejecuta npm run trailer:render.",
  "shots": [
   [
    "card",
@@ -18,70 +18,70 @@
   [
    "z-afueras",
    0.6,
-   0.5,
+   0.3333,
    null,
    "dun"
   ],
   [
    "z-castillo",
    0.6,
-   0.5,
+   0.3333,
    null,
    "dun"
   ],
   [
    "z-calabozos",
    0.6,
-   0.5,
+   0.3333,
    null,
    "dun"
   ],
   [
    "z-osario",
    0.6,
-   0.5,
+   0.3333,
    null,
    "dun"
   ],
   [
    "z-catacumbas",
    0.6,
-   0.5,
+   0.3333,
    null,
    "dun"
   ],
   [
    "z-panteon",
    0.6,
-   0.5,
+   0.3333,
    null,
    "dun"
   ],
   [
    "z-carmesi",
    0.6,
-   0.5,
+   0.3333,
    null,
    "dun"
   ],
   [
    "z-puertas",
    0.6,
-   0.5,
+   0.3333,
    null,
    "dun"
   ],
   [
    "z-rios",
    0.6,
-   0.5,
+   0.3333,
    null,
    "dun"
   ],
   [
    "z-trono",
    0.6,
-   0.5,
+   0.3333,
    null,
    "dun"
   ],
@@ -94,22 +94,15 @@
   ],
   [
    "c-duelo",
-   1.9,
+   6.0,
    1.7,
    "cmb",
    "ui"
   ],
   [
    "c-duelo",
-   8.0,
-   1.65,
-   "cmb",
-   "ui"
-  ],
-  [
-   "c-duelo",
-   22.65,
-   1.65,
+   8.85,
+   1.7,
    "cmb",
    "ui"
   ],
@@ -172,7 +165,7 @@
   [
    "card",
    0,
-   7.25,
+   5.6667,
    null,
    null
   ]
@@ -191,57 +184,57 @@
   [
    "mapas",
    5.15,
-   9.95
+   8.28
   ],
   [
    "botin",
-   10.15,
-   12.55
+   8.48,
+   10.88
   ],
   [
    "combate",
-   12.75,
-   17.55
+   11.08,
+   14.28
   ],
   [
    "equipo",
-   17.75,
-   22.05
+   14.48,
+   18.78
   ],
   [
    "mercaderes",
-   22.25,
-   26.25
+   18.98,
+   22.98
   ],
   [
    "atuendos",
-   26.45,
-   28.85
+   23.18,
+   25.58
   ],
   [
    "movil",
-   29.05,
-   33.35
+   25.78,
+   30.08
   ],
   [
    "aliado",
-   33.55,
-   35.95
+   30.28,
+   32.68
   ],
   [
    "traidor",
-   36.15,
-   38.55
+   32.88,
+   35.28
   ],
   [
    "sal",
-   38.75,
-   42.55
+   35.48,
+   39.28
   ],
   [
    "final",
-   43.0,
-   49.25
+   39.73,
+   44.4
   ]
  ],
  "clip": [
@@ -274,4 +267,4 @@
    "dun"
   ]
  ]
-}
+}

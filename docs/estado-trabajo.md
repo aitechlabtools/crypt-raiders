@@ -1,8 +1,30 @@
 # Crypt Raiders · Estado del trabajo (traspaso entre chats)
 
-Última actualización: 3 de noviembre de 2026.
+Última actualización: 4 de noviembre de 2026.
 Este documento resume todo lo hablado y hecho para que otro chat de Claude pueda continuar sin perder contexto.
 Léelo junto con CLAUDE.md (reglas permanentes del proyecto).
+
+## Novedades del 4/11 (tarde)
+- **Despliegue arreglado (0.2.2.1):** los tests de equilibrio fallaban en GitHub (el mago perdía casi siempre contra los jefes
+  de mitad de juego). Cambios: Último bastión 2 turnos/recarga 9, Escudo de maná 30 %/recarga 3, Maldición de debilidad con daño
+  mágico x1.0, Aplastar x1.4, mago +12 de vida por nivel (antes +10), Señor del Osario ataque 23 (antes 25), Reina Velada magia 25
+  (antes 27). Borrado src/shared/MobileNotice.tsx. 188 tests en verde.
+- **Tráiler v5 a 45 s:** mapas de 1/3 s, combate en dos intercambios (golpe y contragolpe), móvil más pequeño, logo final 5,7 s y
+  rótulo «¿Aliado… otros saqueadores también buscan el oro». Sincronía de sonido medida: golpes y portal a 1–2 fotogramas.
+  - render.py redondea cada toma a fotogramas enteros (antes se acumulaba retraso y la imagen iba por detrás del sonido).
+  - `HIT_LAG` (retraso entre el golpe y su destello) depende de cada grabación: 0,32 s en la actual. Si se vuelven a grabar las
+    tomas (`node scripts/trailer5-capture.cjs http://localhost:5173/play/ /tmp/claude-0/t5`), hay que medirlo otra vez y elegir de
+    nuevo las ventanas de «c-duelo» en guion.json con hits.json.
+- **Landing v3:** orden Portada → Tráiler → VarkHollow → Mecánicas → Galería → Hoja de ruta → «La puerta está abierta» → Pie.
+  - Menú: VarkHollow · Mecánicas · Galería · Hoja de ruta (+ Jugar y Apoyar). El tráiler no va en el menú (está bajo la portada).
+    Al volver arriba ya no queda ninguna opción marcada. `#juego` sigue funcionando para enlaces antiguos.
+  - Portada sin subtítulo: solo el título, «Confía en tu espada. En nadie más.» y el botón.
+  - Mecánicas: título «El oro está abajo. La salida, también.», los cinco pasos y 12 tarjetas en tres grupos (En la expedición,
+    En el Bastión, Para crecer) en src/landing/mechanics.tsx. En el móvil se ven 6 y el botón «Ver todas las mecánicas».
+  - Bloque «No bajas solo» tras «Elige quién baja»: triángulos de confianza (colores de config/wanderers.ts) y cinco personajes
+    reales con sus frases del juego: Kael (destacado), Sela, Malek, Bram (frase de Garra Roja, firmada) y Tobías (prisionero).
+  - Maquetas y capturas finales: mockups/landing-v3 (index.html; capturas con `node mockups/landing-v3/capturar.cjs <url> <carpeta>`).
+  - Asset pendiente (lo diseña el usuario): icono de «En el ordenador y en el móvil» (móvil o mando); ahora usa la linterna.
 
 ## Cómo trabajamos
 - Nombre del juego: **Crypt Raiders** (antes DREADBOUND; cambiado el 3/11). Dominio nuevo: cryptraiders.es.

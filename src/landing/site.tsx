@@ -32,7 +32,7 @@ export const LEGAL_LINKS = [
   { href: './cookies.html', label: 'Política de cookies' },
 ];
 
-const NAV = [['varkhollow', 'VarkHollow'], ['juego', 'El juego'], ['galeria', 'Galería'], ['hoja-de-ruta', 'Hoja de ruta']] as const;
+const NAV = [['varkhollow', 'VarkHollow'], ['mecanicas', 'Mecánicas'], ['galeria', 'Galería'], ['hoja-de-ruta', 'Hoja de ruta']] as const;
 
 /** Menú fijo: 4 enlaces (en móvil, plegados en ☰), Jugar siempre visible y Apoyar (en móvil, dentro del menú). Resalta la sección visible. */
 export function SiteHeader({ home = '' }: { home?: string }) {
@@ -40,8 +40,11 @@ export function SiteHeader({ home = '' }: { home?: string }) {
   const [active, setActive] = useState('');
   useEffect(() => {
     if (home) return;
-    const els = NAV.map(([id]) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
-    const io = new IntersectionObserver((es) => { for (const e of es) if (e.isIntersecting) setActive(e.target.id); }, { rootMargin: '-45% 0px -50% 0px' });
+    // También se observan la portada y el tráiler: al volver arriba, ninguna opción del menú queda marcada
+    const ids: string[] = ['top', 'trailer', ...NAV.map(([id]) => id)];
+    const els = ids.map((id) => document.getElementById(id)).filter(Boolean) as HTMLElement[];
+    const inNav = (id: string) => NAV.some(([n]) => n === id);
+    const io = new IntersectionObserver((es) => { for (const e of es) if (e.isIntersecting) setActive(inNav(e.target.id) ? e.target.id : ''); }, { rootMargin: '-45% 0px -50% 0px' });
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
   }, [home]);

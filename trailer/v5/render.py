@@ -6,8 +6,8 @@ TX = os.path.dirname(os.path.abspath(__file__))
 T = next((a for a in sys.argv[1:] if not a.startswith('--')), '/tmp/claude-0/t5')
 OUT = os.environ.get('TRAILER_OUT', f'{T}/out5'); PUB = os.path.join(TX, '..', '..', 'public', 'trailer')
 W, H, FPS = 1280, 720, 30
-# El golpe se ve (destello rojo y cifra de daño) 0,62 s después de que el combate lo resuelve: el sonido va con la imagen
-HIT_LAG = 0.62
+# El golpe se ve (destello rojo y cifra de daño) 0,32 s después (medido en la grabación de noviembre) de que el combate lo resuelve: el sonido va con la imagen
+HIT_LAG = 0.32
 os.makedirs(OUT, exist_ok=True)
 G = json.load(open(f'{TX}/guion.json'))
 ENC = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "17", "-pix_fmt", "yuv420p", "-r", str(FPS)]
@@ -34,7 +34,7 @@ def shot(i, src, t0, dur, cr, col, tag):
         fh.write(f"file '{sel[-1]['f']}'\n")
     vf = f'fps={FPS}'
     if cr == 'movil':
-        vf += f",scale=1000:462:flags=neighbor,pad={W}:{H}:140:210:color=0x07060a"
+        vf += f",scale=880:406:flags=neighbor,pad={W}:{H}:200:232:color=0x07060a"
     else:
         if cr: vf += ',' + CROP[cr]
         # Pixel art sin suavizado: escalado por vecino más próximo y empuje suave de cámara
@@ -52,6 +52,8 @@ if '--mux' not in sys.argv:
     parts, cuts, t = [], [], 0.0
     hits, marks = [], []
     for i, (src, t0, dur, cr, col) in enumerate(G['shots']):
+        # Duración en fotogramas enteros: si no, cada toma suma un pico y la imagen se va retrasando respecto al sonido
+        dur = round(dur * FPS) / FPS
         cuts.append(round(t, 3))
         # Golpes grabados (para el sonido): se pasan al tiempo del vídeo
         hp = f'{T}/{src}/hits.json'

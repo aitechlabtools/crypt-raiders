@@ -211,74 +211,100 @@ function ClassPath({ focus, onFocus }: { focus: string | null; onFocus: (id: str
   const earned = 1 + unlocksEarned(ch.level);
   const remaining = cls.classSkills.filter((id) => !unlocked.includes(id));
   const nextIdx = earned; // índice del próximo hito aún no alcanzado
-  const card = (id: string, state: 'equipped' | 'owned' | 'choose' | 'locked', extra?: ReactNode) => {
-    const s = getSkill(id); const on = focus === id;
-    const locked = state === 'locked';
+  const nextLv = MILESTONES[nextIdx];
+  const prevLv = MILESTONES[nextIdx - 1] ?? 1;
+  const frac = nextLv ? Math.min(1, (ch.level - prevLv + ch.xp / xpForNextLevel(ch.level)) / (nextLv - prevLv)) : 1;
+
+  // Tarjeta de una habilidad: equipada (grande), desbloqueada (toca para equiparla), candidata a elegir o bloqueada (gris)
+  const card = (id: string, state: 'equipped' | 'owned' | 'choose' | 'locked') => {
+    const s = getSkill(id); const on = focus === id; const locked = state === 'locked';
     return (
-      <div key={id} className={`flex gap-3 items-start p-2 border-2 ${state === 'equipped' ? 'border-gold bg-[#2a2116]' : state === 'choose' ? 'border-[#a56bff]' : on ? 'border-stone-500' : locked ? 'border-stone-800 bg-[#0b0a0e]' : 'border-stone-700'} ${state === 'owned' ? 'cursor-pointer hover:border-stone-500' : ''}`}
+      <div key={id} className={`flex gap-3 items-start p-2.5 border-2 ${state === 'equipped' ? 'border-gold bg-[#2a2116]' : state === 'choose' ? 'border-[#a56bff] bg-[#1a1424]' : on ? 'border-stone-500' : locked ? 'border-[#1f1d24] bg-[#0b0a0e]' : 'border-stone-700 bg-[#0d0c11]'} ${state === 'owned' ? 'cursor-pointer hover:border-stone-500' : ''}`}
         onClick={() => { if (state === 'owned') actions.equipClassSkill(id); onFocus(id); }} data-testid={`class-skill-${id}`} data-state={state}>
-        <span className={`mt-1 ${locked ? 'grayscale opacity-50' : ''}`}><Diamond fx={s.fx ?? 'holy'} color={C.class} size={state === 'equipped' ? 32 : 26} strong={state === 'equipped'} /></span>
+        <span className={`grid place-items-center shrink-0 ${state === 'equipped' ? 'w-11 h-11 my-0.5' : 'w-8 h-8'} ${locked ? 'grayscale opacity-45' : ''}`}><Diamond fx={s.fx ?? 'holy'} color={C.class} size={state === 'equipped' ? 22 : 20} strong={state === 'equipped'} /></span>
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-2">
-            <span className={`font-display text-[15px] ${locked ? 'text-stone-400' : 'text-parchment'}`}>{locked && <span className="inline-block align-middle mr-1"><Lock size={11} /></span>}{s.name}</span>
-            <span className="text-[11px] text-stone-400 whitespace-nowrap">{costText({ cost: s.cost, cd: s.cooldown ?? 0 }, res)}</span>
+            <span className={`font-display text-[15px] leading-tight ${locked ? 'text-stone-400' : 'text-parchment'}`}>{s.name}</span>
+            {locked ? <Lock size={12} /> : <span className="text-[11px] text-stone-400 whitespace-nowrap">{costText({ cost: s.cost, cd: s.cooldown ?? 0 }, res)}</span>}
           </span>
-          <span className={`block text-[14px] leading-snug ${locked ? 'text-stone-500' : 'text-stone-300'}`}>{s.description}</span>
-          {extra}
+          <span className={`block text-[14px] leading-snug mt-0.5 ${locked ? 'text-stone-500' : 'text-stone-300'}`}>{s.description}</span>
+          {locked && <span className="block text-[11px] text-stone-500 mt-1">{costText({ cost: s.cost, cd: s.cooldown ?? 0 }, res)}</span>}
           {state === 'owned' && <span className="block text-[12px] text-stone-400 mt-1">Toca para equiparla</span>}
-          {state === 'choose' && <button className="btn btn-gold py-1 px-3 text-xs min-h-[44px] mt-1.5" onClick={(e) => { e.stopPropagation(); actions.unlockClassSkill(id); }} data-testid={`btn-unlock-class-${id}`}>Elegir esta</button>}
+          {state === 'choose' && <button className="btn btn-gold py-1 px-3 text-xs min-h-[44px] mt-2" onClick={(e) => { e.stopPropagation(); actions.unlockClassSkill(id); }} data-testid={`btn-unlock-class-${id}`}>Elegir esta</button>}
         </span>
       </div>
     );
   };
-  const marker = (lv: number, reached: boolean, current?: boolean) => (
-    <span className={`absolute -left-[27px] top-1 w-[22px] h-[22px] rotate-45 border-2 grid place-items-center ${reached ? 'bg-[#2a2116] border-gold' : current ? 'bg-[#15131a] border-[#a56bff]' : 'bg-[#0d0c11] border-stone-700'}`}>
-      <span className="-rotate-45 text-[9px] font-display text-parchment">{lv}</span>
-    </span>
-  );
-  // Progreso hacia el próximo hito (por niveles, con la XP del nivel actual)
-  const nextLv = MILESTONES[nextIdx];
-  const prevLv = MILESTONES[nextIdx - 1] ?? 1;
-  const frac = nextLv ? Math.min(1, (ch.level - prevLv + ch.xp / xpForNextLevel(ch.level)) / (nextLv - prevLv)) : 1;
+
+  // Carril: una columna fija con la línea y los rombos centrados en ella (centro a 14 px del borde)
+  const RAIL = 28;
+  type St = 'done' | 'choose' | 'next' | 'later';
+  const rows = MILESTONES.map((lv, i) => {
+    const st: St = i < earned ? (unlocked[i] ? 'done' : 'choose') : i === nextIdx && pending === 0 ? 'next' : 'later';
+    return { lv, i, st };
+  });
+  const COLOR: Record<St, string> = { done: C.class, choose: C.class, next: '#a56bff', later: '#3a3741' };
+  const chip = (txt: string, color: string) => <span className="text-[11px] tracking-[0.12em] uppercase whitespace-nowrap" style={{ color }}>{txt}</span>;
   return (
     <div className="font-body" data-testid="class-path">
-      <h3 className="text-[11px] tracking-[0.15em] uppercase text-gold mb-1">Equipada</h3>
+      <h3 className="text-[11px] tracking-[0.15em] uppercase text-gold mb-1.5">Equipada</h3>
       {card(equipped, 'equipped')}
-      <p className="text-[13px] text-stone-400 mt-2 mb-4">Solo llevas una. Cámbiala cuando quieras: tocar una desbloqueada la equipa.</p>
-      <div className="relative pl-8 space-y-4">
-        <span className="absolute left-[10px] top-2 bottom-2 w-[2px]" style={{ background: `linear-gradient(180deg, ${C.class} 0%, ${C.class} ${(Math.min(earned, MILESTONES.length) / MILESTONES.length) * 100}%, #3a3741 ${(Math.min(earned, MILESTONES.length) / MILESTONES.length) * 100}%)` }} />
-        {MILESTONES.map((lv, i) => {
-          if (i < earned) {
-            const id = unlocked[i];
-            return (
-              <div key={lv} className="relative">
-                {marker(lv, true)}
-                <div className="text-[11px] tracking-[0.15em] uppercase text-stone-400 mb-1">Nivel {lv} · {id ? 'elegida' : 'por elegir'}</div>
-                {!id && i > unlocked.length ? <p className="text-[14px] text-stone-400 italic px-2">Elige primero la del hito anterior; luego te tocará esta.</p>
-                  : id ? (id === equipped ? <div className="text-[13px] text-stone-400 italic px-2">{getSkill(id).name} (equipada, arriba)</div> : card(id, 'owned'))
-                  : <div className="space-y-2"><p className="text-[14px] text-gold">{remaining.length > 1 ? '¡Hito alcanzado! Elige 1 de estas. Las demás seguirán esperando al próximo hito.' : '¡Hito alcanzado! La última habilidad de tu clase te espera.'}</p>{remaining.map((r) => card(r, 'choose'))}</div>}
-              </div>
-            );
-          }
-          if (i === nextIdx && pending === 0) {
-            return (
-              <div key={lv} className="relative">
-                {marker(lv, false, true)}
-                <div className="flex items-center gap-2 text-[14px] text-parchment"><Lock /> Nivel {lv}: elegirás 1 de estas habilidades.</div>
-                <div className="flex items-center gap-2 mt-1 mb-2"><div className="h-1.5 flex-1 bg-stone-800"><div className="h-full bg-arcane" style={{ width: `${frac * 100}%` }} /></div><span className="text-[12px] text-stone-400 whitespace-nowrap">{lv - ch.level === 1 ? 'Te falta 1 nivel' : `Te faltan ${lv - ch.level} niveles`}</span></div>
-                <div className="space-y-2">{remaining.map((r) => card(r, 'locked'))}</div>
-              </div>
-            );
-          }
-          const left = Math.max(0, cls.classSkills.length - (i));
-          return (
-            <div key={lv} className="relative text-[14px] text-stone-500">
-              {marker(lv, false)}
-              <div className="flex items-center gap-2 pt-0.5"><Lock /> {left > 1 ? `Nivel ${lv}: elegirás 1 de las ${left} que queden.` : `Nivel ${lv}: la última que quede será tuya.`}</div>
+      <p className="text-[13px] text-stone-400 mt-2">Solo llevas una. Toca otra de las que tengas para cambiarla.</p>
+
+      <div className="flex items-baseline justify-between mt-6 mb-3 border-b border-stone-800 pb-1.5">
+        <h3 className="text-[11px] tracking-[0.15em] uppercase text-gold">Camino de hitos</h3>
+        <span className="text-[11px] text-stone-400">{unlocked.length} de {cls.classSkills.length} habilidades</span>
+      </div>
+      <ol className="relative">
+        {rows.map(({ lv, i, st }, k) => {
+          const last = k === rows.length - 1;
+          const id = unlocked[i];
+          const below = rows[k + 1];
+          // Tramo de línea hasta el hito siguiente: dorado si ese hito ya se alcanzó
+          const seg = !last && <span className="absolute w-[2px]" style={{ left: RAIL / 2 - 1, top: 15, bottom: -15, background: below.st === 'done' || below.st === 'choose' ? C.class : '#2e2b35' }} aria-hidden />;
+          const marker = (
+            <span className="absolute grid place-items-center" style={{ left: 0, top: 1, width: RAIL, height: RAIL }} aria-hidden>
+              <span className="absolute rotate-45 border-2" style={{ width: 20, height: 20, borderColor: COLOR[st], background: st === 'done' || st === 'choose' ? '#2a2116' : '#0d0c11', boxShadow: st === 'next' ? '0 0 10px #a56bff88' : undefined }} />
+              <span className={`relative font-display text-[10px] leading-none ${st === 'later' ? 'text-stone-500' : 'text-parchment'}`}>{lv}</span>
+            </span>
+          );
+          const head = (txt: ReactNode, right?: ReactNode) => (
+            <div className="flex items-center justify-between gap-2 min-h-[30px]">
+              <span className="font-display text-[15px] text-parchment">{txt}</span>{right}
             </div>
           );
+          let body: ReactNode = null;
+          if (st === 'done') {
+            body = <>
+              {head(<>Nivel {lv}</>, chip(id === equipped ? 'Elegida · equipada' : 'Elegida', C.class))}
+              {id === equipped
+                ? <div className="flex items-center gap-2 px-2.5 py-2 border border-[#3a2f1c] bg-[#15120d]"><Diamond fx={getSkill(id).fx ?? 'holy'} color={C.class} size={14} /><span className="font-display text-[14px] text-gold">{getSkill(id).name}</span><span className="text-[12px] text-stone-400 ml-auto">arriba</span></div>
+                : card(id, 'owned')}
+            </>;
+          } else if (st === 'choose') {
+            body = i > unlocked.length
+              ? <>{head(<>Nivel {lv}</>, chip('Por elegir', C.class))}<p className="text-[14px] text-stone-400 italic">Elige primero la del hito anterior; luego te tocará esta.</p></>
+              : <>{head(<>Nivel {lv}</>, chip('¡Elige ya!', C.class))}
+                  <p className="text-[14px] text-gold mb-2">{remaining.length > 1 ? 'Hito alcanzado. Elige 1; las demás seguirán esperando al próximo hito.' : 'Hito alcanzado. La última habilidad de tu clase te espera.'}</p>
+                  <div className="space-y-2">{remaining.map((r) => card(r, 'choose'))}</div></>;
+          } else if (st === 'next') {
+            body = <>
+              {head(<>Nivel {lv}</>, chip(lv - ch.level === 1 ? 'Te falta 1 nivel' : `Te faltan ${lv - ch.level} niveles`, '#c79bff'))}
+              <div className="h-1.5 bg-stone-800 mb-2"><div className="h-full bg-arcane" style={{ width: `${frac * 100}%` }} /></div>
+              <p className="text-[14px] text-stone-300 mb-2">Elegirás 1 de estas:</p>
+              <div className="space-y-2">{remaining.map((r) => card(r, 'locked'))}</div>
+            </>;
+          } else {
+            const left = cls.classSkills.length - i;
+            body = head(<span className="text-stone-500">Nivel {lv}</span>, <span className="text-[13px] text-stone-500 text-right">{left > 1 ? `Elegirás 1 de las ${left} que queden` : 'La última que quede'}</span>);
+          }
+          return (
+            <li key={lv} className={`relative ${last ? '' : 'pb-4'}`} style={{ paddingLeft: RAIL + 12 }} data-hito={lv} data-state={st}>
+              {seg}{marker}{body}
+            </li>
+          );
         })}
-      </div>
+      </ol>
     </div>
   );
 }

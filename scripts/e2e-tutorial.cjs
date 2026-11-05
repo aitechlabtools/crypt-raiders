@@ -37,6 +37,8 @@ const DEVICE = process.argv[4];
       await page.waitForTimeout(250);
     }
   };
+  const pos = () => G(() => { const p = window.__CRYPTRAIDERS__.scene().player; return [Math.round(p.x * 10) / 10, Math.round(p.y * 10) / 10]; });
+  const walk = async (key, ms) => { await page.keyboard.down(key); await page.waitForTimeout(ms); await page.keyboard.up(key); await page.waitForTimeout(150); };
   const use = async () => { if (touch) await tap('[data-testid=touch-action]'); else await page.keyboard.press('e'); await page.waitForTimeout(300); };
 
   await page.goto(BASE + '?debug&tutorial');
@@ -59,6 +61,7 @@ const DEVICE = process.argv[4];
   await page.screenshot({ path: `${OUT}/01-moverse.png` });
 
   // 1 · Moverse
+  if (!touch) { await page.mouse.click(5, 450); await page.mouse.move(5, 450); const a = await pos(); await walk('ArrowRight', 500); const b2 = await pos(); ok(a[0] !== b2[0] || a[1] !== b2[1], `al principio el personaje anda con el teclado (${a} → ${b2})`); }
   const r = (i) => [1 + i * 9 + 2, 4];
   await tp(...r(1)); ok(await waitStep('fight'), 'paso 1: moverse');
   // 2 · Combate fácil
@@ -80,6 +83,7 @@ const DEVICE = process.argv[4];
   ok(await waitStep('equip'), 'paso 4: abre el cofre de hierro con la llave');
   ok(await G(() => document.querySelector('[data-testid=btn-inventory]').classList.contains('tut-pulse')), 'el botón de inventario se resalta');
   await page.screenshot({ path: `${OUT}/04-equipar.png` });
+  if (!touch) { const a = await pos(); await walk('ArrowRight', 700); const b2 = await pos(); ok(a[0] === b2[0] && a[1] === b2[1], 'pasos de inventario: el personaje no se mueve hasta hacerlos'); }
   // 5 · Equiparse la capucha
   await G(() => { const d = window.__CRYPTRAIDERS__; const i = d.getState().expedition.backpack.findIndex((x) => x?.itemId === 'leather_hood'); d.actions.quickEquip({ kind: 'grid', container: 'backpack', index: i }); });
   ok(await waitStep('pocket'), 'paso 5: equiparse la capucha');
@@ -89,8 +93,17 @@ const DEVICE = process.argv[4];
     d.actions.transfer({ kind: 'grid', container: 'backpack', index: c }, { kind: 'grid', container: 'backpack', index: pch });
     const i = d.getState().expedition.backpack.findIndex((x) => x?.itemId === 'gold_pouch'); d.actions.quickMove({ kind: 'grid', container: 'backpack', index: i }, 'pocket'); });
   ok(await waitStep('potion'), 'paso 5b: monedas al saquito y saquito al bolsillo seguro');
-  // 6 · Poción tras la trampa
-  await tp(1 + 27 + 3, 4);
+  // 6 · Poción tras la trampa: se llega andando (la fila de pinchos va de pared a pared y no se puede esquivar)
+  if (!touch) {
+    await tp(1 + 27 - 1, 3);
+    const hp0 = await G(() => window.__CRYPTRAIDERS__.getState().expedition.hp);
+    for (let k = 0; k < 8 && (await G(() => window.__CRYPTRAIDERS__.getState().expedition.hp)) >= hp0; k++) { await walk('ArrowRight', 250); if (process.env.DBG) console.log('  pos', await pos(), 'hp', await G(() => window.__CRYPTRAIDERS__.getState().expedition.hp), 'paso', await stepId()); }
+    ok((await G(() => window.__CRYPTRAIDERS__.getState().expedition.hp)) < hp0, 'los pinchos hieren aunque entres pegado a la pared');
+    const a = await pos(); await walk('ArrowRight', 700); const b2 = await pos();
+    ok(a[0] === b2[0] && a[1] === b2[1], 'herido por la trampa: no te mueves hasta curarte');
+  } else {
+    await tp(1 + 27 + 3, 4);
+  }
   await page.waitForTimeout(800);
   const hurt = await G(() => window.__CRYPTRAIDERS__.getState().expedition.hp);
   if (touch) await tap('[data-testid=touch-potion]'); else await page.keyboard.press('q');
@@ -128,8 +141,13 @@ const DEVICE = process.argv[4];
   await page.waitForSelector('[data-testid=combat]', { timeout: 8000 });
   ok((await G(() => window.__CRYPTRAIDERS__.getState().combat.kind)) === 'betrayal-by-rival', 'paso 10: Osric avisa y traiciona');
   await page.screenshot({ path: `${OUT}/10-traicion.png` });
+  await G(() => { const d = window.__CRYPTRAIDERS__; window.__bagLabels = new Set(); setInterval(() => Object.values(d.getState().bags).forEach((b) => window.__bagLabels.add(b.id + '|' + b.label)), 30); });
   await fight();
   ok(await waitStep('extract'), 'Osric es fácil de vencer');
+  const nBags = await G(() => Object.keys(window.__CRYPTRAIDERS__.getState().bags).length);
+  const bagsAfter = await G(() => [...window.__bagLabels].map((x) => x.split('|')[1]));
+  ok(bagsAfter.filter((l) => /Osric|combate|Saco/.test(l)).length === 1, `al vencer a Osric cae un solo saco con su botín (${bagsAfter.join(' · ')})`);
+  void nBags;
   // 11 · Extraer
   await tp(1 + 63 + 2, 4);
   await page.waitForTimeout(400);

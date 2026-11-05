@@ -125,6 +125,8 @@ export interface TutorialRun {
   replay: Profile | null;
   /** Pociones que llevabas al empezar el paso de la poción. */
   potionsAt?: number;
+  /** Ya pisó los pinchos (el paso de la poción empieza entonces). */
+  trapHit?: boolean;
   betrayalStarted?: boolean;
 }
 
@@ -366,6 +368,15 @@ function enemyLevel(entityId: string | null): number {
 function combatLevel(): number {
   const s = state;
   return zoneEnemyLevel(areaDef(s.dungeon?.subzone, s.dungeon?.zone), s.profile?.character.level ?? 1);
+}
+
+/** Tutorial: el personaje no puede moverse hasta cumplir el paso (inventario, y curarse tras los pinchos). */
+export function tutorialFrozen(s: GameState = state): boolean {
+  const t = s.tutorial;
+  const step = t ? TUTORIAL_STEPS[t.step] : null;
+  if (!t || !step?.freeze) return false;
+  if (step.id === 'potion') return t.potionsAt !== undefined;
+  return true;
 }
 
 export const actions = {
@@ -1184,9 +1195,10 @@ export const actions = {
       case 'potion': {
         // Al llegar a la hoguera, la trampa (o el camino) te deja herido para practicar con la poción
         if (t.potionsAt === undefined) {
-          if (room < 3) return;
+          // El paso empieza cuando los pinchos te hieren (fila de pared a pared: no se pueden esquivar)
+          if (!t.trapHit) return;
           const max = computeStats(s.profile!.character.classId, s.profile!.character.level, e.equipment).maxHp;
-          if (e.hp > max * 0.7) { set({ expedition: { ...e, hp: Math.round(max * 0.55) } }); sfx('trap'); toast('¡Una trampa de pinchos! Te has hecho daño.', 'danger'); }
+          if (e.hp > max * 0.7) set({ expedition: { ...e, hp: Math.round(max * 0.55) } });
           set({ tutorial: { ...t, potionsAt: countItem(state.expedition!.backpack, 'health_potion') } });
           return;
         }
@@ -1217,7 +1229,7 @@ export const actions = {
       }
       default: break;
     }
-    if (done && t.step < TUTORIAL_STEPS.length - 1) { set({ tutorial: { ...t, step: t.step + 1, potionsAt: undefined } }); sfx('click'); }
+    if (done && t.step < TUTORIAL_STEPS.length - 1) { set({ tutorial: { ...state.tutorial!, step: t.step + 1, potionsAt: undefined } }); sfx('click'); }
   },
 
   tick() {
@@ -1272,6 +1284,7 @@ export const actions = {
     set({ expedition: { ...s.expedition, hp } });
     sfx('trap');
     toast(`¡Una trampa de pinchos! -${damage} de vida.`, 'danger');
+    if (s.tutorial && !s.tutorial.trapHit) set({ tutorial: { ...s.tutorial, trapHit: true } });
     if (hp <= 0) void actions.finishExpedition('died');
   },
 
@@ -1677,6 +1690,7 @@ export const actions = {
             { const pr = state.profile!; set({ profile: { ...pr, bestiary: noteKill(pr.bestiary, e.id) } }); }
           }
         }
+        let rivalBag: Bag | null = null;
         if (rc && rc.side === 'B') {
           {
             xp += 60;
@@ -1685,9 +1699,7 @@ export const actions = {
             // El cuerpo del errante deja una bolsa con sus pertenencias (y lo que te robó o le diste)
             const bagGrid = addManyToGrid(emptyGrid(12), [...rival.bagItemIds.map((id) => ({ uid: makeUid(), itemId: id, qty: 1 })), ...(rivalCoins > 0 ? [coinsStack(rivalCoins)] : [])]).grid;
             const [x, y] = s.hud.playerTile;
-            const bag: Bag = { id: makeUid('bag'), x, y, grid: bagGrid, label: `Pertenencias de ${getWanderer(rival.who).name.split(' ')[0]}` };
-            set((st) => ({ bags: { ...st.bags, [bag.id]: bag } }));
-            bus.emit('bags-changed');
+            rivalBag = { id: makeUid('bag'), x, y, grid: bagGrid, label: `Pertenencias de ${getWanderer(rival.who).name.split(' ')[0]}` };
           }
         }
         // Subzonas muy por debajo de tu nivel: menos experiencia y oro (config/subzones.ts)
@@ -1696,14 +1708,23 @@ export const actions = {
           if (pen) { xp = Math.round(xp * pen.xp); gold = Math.round(gold * pen.gold); }
         }
         // En el tutorial, la rata siempre suelta algo de oro (para practicar con el saco del botín)
-        if (s.tutorial && gold < 4) gold = 4;
+        if (s.tutorial && gold < 4 && !rivalBag) gold = 4;
         // Oro físico: el botín (objetos y monedas) cae en un saco en el suelo; tú decides qué te llevas
         const dropped = [...items, ...(gold > 0 ? [coinsStack(gold)] : [])];
         exp.goldFound += gold;
         exp.xpGained += xp;
         exp.kills = kills;
         let bagId: string | null = null;
-        if (dropped.length) {
+        // Si el único enemigo era el errante, todo cae en UNA bolsa: la de sus pertenencias (antes salían dos sacos)
+        const foeOnly = !next.combatants.some((c) => c.side === 'B' && c.ref && c.ref !== 'rival');
+        if (rivalBag) {
+          if (dropped.length && foeOnly) rivalBag = { ...rivalBag, grid: addManyToGrid(emptyGrid(Math.max(12, rivalBag.grid.length + dropped.length)), [...rivalBag.grid.filter((x): x is ItemStack => !!x && !isCover(x)), ...dropped]).grid };
+          const rb = rivalBag;
+          set((st) => ({ bags: { ...st.bags, [rb.id]: rb } }));
+          bus.emit('bags-changed');
+          if (foeOnly) bagId = rb.id;
+        }
+        if (dropped.length && !(rivalBag && foeOnly)) {
           const [x, y] = s.hud.playerTile;
           const foe = next.combatants.find((c) => c.side === 'B' && c.ref && c.ref !== 'rival');
           const bag: Bag = { id: makeUid('bag'), x, y, grid: addManyToGrid(emptyGrid(Math.max(12, dropped.length)), dropped).grid, label: foe ? `Saco de ${getEnemy(foe.ref!).name}` : 'Saco del combate', allyShare: state.rival.disposition === 'allied' && next.combatants.some((c) => c.id === 'rival' && c.side === 'A' && c.hp > 0) };

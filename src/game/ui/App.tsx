@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { DragLayer } from './pointerDrag';
+import { getState } from '../state/store';
 import { RotateNotice } from '../../shared/RotateNotice';
 import { actions, useGame } from '../state/store';
 import { TitleScreen, CreateScreen } from './TitleScreen';
@@ -26,6 +27,10 @@ export function App() {
   useEffect(() => {
     const h = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.tagName === 'INPUT') return;
+      // En la mazmorra no: Phaser ignora las teclas con preventDefault (las flechas dejaban de mover al personaje) y él
+      // mismo evita el desplazamiento de las teclas que usa. Con un combate o una ventana abiertos, sí se bloquea aquí.
+      const st = getState();
+      if (st.screen === 'dungeon' && !st.combat && !st.modal) return;
       if ([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) e.preventDefault();
     };
     window.addEventListener('keydown', h);

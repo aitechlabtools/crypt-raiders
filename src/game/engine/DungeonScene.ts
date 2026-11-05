@@ -14,7 +14,7 @@ import { buildDungeon, CRYPTS_OF_UMBRAVEL, findPath, roomAt, type BuiltDungeon, 
 import { getEnemy } from '../../core/data/enemies';
 import { registerTextures, registerHeroTextures } from './textures';
 import { lookSignature } from '../../shared/gearLook';
-import { actions, getState, subscribe } from '../state/store';
+import { actions, getState, subscribe, tutorialFrozen } from '../state/store';
 import { bus } from '../state/bus';
 import { sfx } from '../audio';
 
@@ -518,7 +518,8 @@ export class DungeonScene extends Phaser.Scene {
     const paused = this.paused();
 
     if (!paused) {
-      this.updatePlayer(dt);
+      // Tutorial: quieto hasta cumplir el paso (inventario, curarse)
+      if (tutorialFrozen()) { this.path = []; this.player.moving = false; } else this.updatePlayer(dt);
       this.updateEnemies(dt);
       this.updateRival(dt);
       this.updateMerc(dt);

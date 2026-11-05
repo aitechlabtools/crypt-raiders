@@ -454,3 +454,9 @@ sin sección ni botón de Windows, tráiler de 60 s.
 ## Encargos guardados
 - Skins de traje completo: HECHO (docs/plan-skins.md, maquetas en mockups/skins).
 - Fase 10 (cierre): HECHO (docs/pendiente-landing.md).
+
+## Tutorial (pulido)
+- Pasos de inventario (capucha y bolsillo seguro): el personaje no se mueve hasta hacerlos.
+- Hoguera: fila de pinchos de pared a pared; el paso de la poción empieza al herirte y no te mueves hasta curarte.
+- Al vencer a Osric cae un solo saco («Pertenencias de Osric») con todo su botín.
+- Arreglado: las flechas del teclado no movían al personaje en la mazmorra (App.tsx cancelaba la tecla y Phaser la ignoraba).

@@ -29,8 +29,8 @@ export const TUTORIAL_MAP: DungeonDef = {
     // 3 · Baúl con la llave y cofre de hierro con equipo
     { kind: 'chest', id: 't_box', table: 'tut:box', x: rx(2) + 1, y: Y + 1 },
     { kind: 'chest', id: 't_rich', table: 'tut:rich', x: rx(2) + 4, y: Y + 3 },
-    // 4 · Una trampa marcada antes de la hoguera
-    { kind: 'trap', id: 't_trap', x: rx(3) + 1, y: Y + 2 },
+    // 4 · Una fila de pinchos de pared a pared al entrar en la hoguera: no se puede esquivar (para practicar con la poción)
+    ...Array.from({ length: ROOM_H }, (_, k) => ({ kind: 'trap' as const, id: `t_trap${k}`, x: rx(3) + 1, y: Y + k })),
     // 5 · Osric junto a la puerta rota
     { kind: 'rival', x: rx(4) + 3, y: Y + 2 },
     // 6 · Dos bandidos
@@ -54,6 +54,12 @@ export function tutorialRoomOf(x: number): number {
   return Math.max(0, Math.min(ROOMS.length - 1, Math.floor((x - 1) / (ROOM_W + GAP))));
 }
 
+/** Texto del paso de la poción ANTES de pisar los pinchos (el paso se activa al herirte). */
+export const TUTORIAL_POTION_BEFORE = {
+  desktop: 'Sigue hacia la hoguera. Mira bien dónde pisas…',
+  touch: 'Sigue hacia la hoguera. Mira bien dónde pisas…',
+};
+
 export type TutorialTarget = { tile: [number, number] } | { ui: string } | null;
 
 export interface TutorialStep {
@@ -64,6 +70,8 @@ export interface TutorialStep {
   target: TutorialTarget;
   /** Punto seguro: si caes a partir de este paso, vuelves aquí. */
   checkpoint: number;
+  /** El personaje no se puede mover hasta cumplir el paso (pasos de inventario y de curarse). */
+  freeze?: boolean;
 }
 
 export const TUTORIAL_STEPS: TutorialStep[] = [
@@ -72,9 +80,9 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   { id: 'gold', checkpoint: 2, target: { ui: 'btn-take-gold' }, desktop: 'La rata ha soltado un saco. Coge las monedas: el oro ocupa sitio en tu mochila y, si mueres, lo pierdes.', touch: 'La rata ha soltado un saco. Toca «Coger el oro»: el oro ocupa sitio en tu mochila y, si mueres, lo pierdes.' },
   { id: 'box', checkpoint: 2, target: { tile: [rx(2) + 1, Y + 1] }, desktop: 'Ese baúl no tiene cerradura. Acércate y ábrelo con E. Coge lo que haya dentro.', touch: 'Ese baúl no tiene cerradura. Acércate y toca Usar para abrirlo. Coge lo que haya dentro.' },
   { id: 'rich', checkpoint: 2, target: { tile: [rx(2) + 4, Y + 3] }, desktop: 'Ya tienes la llave de hierro. Abre el cofre de hierro con E.', touch: 'Ya tienes la llave de hierro. Toca Usar junto al cofre de hierro para abrirlo.' },
-  { id: 'equip', checkpoint: 2, target: { ui: 'btn-inventory' }, desktop: 'Has encontrado una capucha. Abre el inventario (I) y haz doble clic en ella para ponértela.', touch: 'Has encontrado una capucha. Abre el inventario, toca la capucha y luego Equipar.' },
-  { id: 'pocket', checkpoint: 2, target: { ui: 'btn-inventory' }, desktop: 'El cofre traía un saquito de oro. En el inventario, suelta tus monedas encima y lleva el saquito al bolsillo seguro: lo que guardes ahí no se pierde al morir.', touch: 'El cofre traía un saquito de oro. En el inventario, toca las monedas y luego el saquito, y después «Al bolsillo seguro»: lo que guardes ahí no se pierde al morir.' },
-  { id: 'potion', checkpoint: 3, target: { ui: 'btn-potion' }, desktop: 'La trampa te ha herido. Bebe una poción con Q o con el botón Poción.', touch: 'La trampa te ha herido. Toca el botón de poción para curarte.' },
+  { id: 'equip', checkpoint: 2, freeze: true, target: { ui: 'btn-inventory' }, desktop: 'Has encontrado una capucha. Abre el inventario (I) y haz doble clic en ella para ponértela.', touch: 'Has encontrado una capucha. Abre el inventario, toca la capucha y luego Equipar.' },
+  { id: 'pocket', checkpoint: 2, freeze: true, target: { ui: 'btn-inventory' }, desktop: 'El cofre traía un saquito de oro. En el inventario, suelta tus monedas encima y lleva el saquito al bolsillo seguro: lo que guardes ahí no se pierde al morir.', touch: 'El cofre traía un saquito de oro. En el inventario, toca las monedas y luego el saquito, y después «Al bolsillo seguro»: lo que guardes ahí no se pierde al morir.' },
+  { id: 'potion', checkpoint: 3, freeze: true, target: { ui: 'btn-potion' }, desktop: 'La trampa te ha herido. Bebe una poción con Q o con el botón Poción.', touch: 'La trampa te ha herido. Toca el botón de poción para curarte.' },
   { id: 'talk', checkpoint: 3, target: { tile: [rx(4) + 3, Y + 2] }, desktop: 'Un mercenario errante. El triángulo de su cabeza indica cuánto puedes fiarte de él. Acércate y habla con él (E).', touch: 'Un mercenario errante. El triángulo de su cabeza indica cuánto puedes fiarte de él. Acércate y toca Usar para hablar.' },
   { id: 'ally', checkpoint: 4, target: { ui: 'rival-ally' }, desktop: 'Alíate con Osric: luchará a tu lado a cambio de su parte del botín.', touch: 'Alíate con Osric: luchará a tu lado a cambio de su parte del botín.' },
   { id: 'together', checkpoint: 4, target: { tile: [rx(5) + 3, Y + 2] }, desktop: 'Dos bandidos en el patio. Osric lucha solo; tú sigue atacando.', touch: 'Dos bandidos en el patio. Osric lucha solo; tú sigue atacando.' },

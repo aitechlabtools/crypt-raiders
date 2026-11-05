@@ -93,6 +93,7 @@ export function startPointerDrag(e: React.PointerEvent, from: Loc, itemId: strin
   const hold = touch ? window.setTimeout(() => { armed = true; navigator.vibrate?.(8); }, HOLD_MS) : undefined;
 
   let raf = 0;
+  let overEl: HTMLElement | null = null;
   let px = x0, py = y0;
   // Cada cuadro como mucho: se coloca el icono y se busca el destino. Solo se avisa a React si cambia el destino.
   const frame = () => {
@@ -101,13 +102,15 @@ export function startPointerDrag(e: React.PointerEvent, from: Loc, itemId: strin
     live.x = px; live.y = ty;
     const t = targetAt(px, ty);
     const over = t?.raw ?? null;
+    // El destino se ilumina directamente en el DOM: así no se vuelven a pintar todas las casillas al cruzar cada una
+    if (t?.el !== overEl) { overEl?.classList.remove('drag-over'); overEl = t?.el ?? null; overEl?.classList.add('drag-over'); }
     // Pestaña del almacén: si se queda encima un momento, se abre esa página
     if (over !== lastPage) {
       window.clearTimeout(pageTimer); lastPage = over;
       const pt = over ? (JSON.parse(over) as DropTarget) : null;
       if (pt?.type === 'page' && pt.owned) pageTimer = window.setTimeout(() => actions.setStashPage(pt.page), PAGE_HOVER_MS);
     }
-    if (!state || state.over !== over) set({ from, lootId, itemId, x: px, y: ty, touch, over });
+    if (!state) set({ from, lootId, itemId, x: px, y: ty, touch, over: null });
     placeGhost();
   };
   const move = (x: number, y: number, ev?: Event) => {
@@ -139,6 +142,7 @@ export function startPointerDrag(e: React.PointerEvent, from: Loc, itemId: strin
 
   function end(raw: string | null, released = false) {
     if (raf) { cancelAnimationFrame(raf); raf = 0; }
+    overEl?.classList.remove('drag-over'); overEl = null;
     window.clearTimeout(hold); window.clearTimeout(pageTimer);
     window.removeEventListener('pointermove', onPointerMove);
     window.removeEventListener('pointerup', onUp);

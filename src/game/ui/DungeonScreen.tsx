@@ -1,5 +1,5 @@
 import { useClearOnDrop } from './pointerDrag';
-import { gridGold } from '../../core/gold';
+import { gridGold, isCoins } from '../../core/gold';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
 import { DungeonScene, activeScene } from '../engine/DungeonScene';
@@ -539,7 +539,9 @@ function DungeonInventory() {
   const stats = computeStats(ch.classId, ch.level, s.expedition.equipment);
   return (
     <Modal onClose={() => actions.closeModal()} wide testId="dungeon-inventory">
-      <div className="flex items-center justify-between mb-3"><h2 className="panel-title text-xl">Inventario</h2><button className="btn text-sm" onClick={() => actions.sortContainer('backpack')}>Ordenar</button></div>
+      <div className="flex items-center justify-between mb-3"><h2 className="panel-title text-xl">Inventario</h2><div className="flex gap-2">
+        <button className="btn text-sm" style={{ minHeight: 44 }} onClick={() => actions.groupGold('backpack')} data-testid="group-gold-dungeon" title="Mete las monedas sueltas en tus saquitos y sacos">Agrupar oro</button>
+        <button className="btn text-sm" style={{ minHeight: 44 }} onClick={() => actions.sortContainer('backpack')}>Ordenar</button></div></div>
       <div className="grid md:grid-cols-2 gap-5">
         <div className="space-y-4">
           <EquipmentView equipment={s.expedition.equipment} selected={sel} onSelect={setSel} mode="dungeon" portrait={<PlayerSprite scale={5} />} />
@@ -632,7 +634,11 @@ function TutorialGuide() {
   const raw = TUTORIAL_STEPS[t.step];
   // Paso de la poción: no se muestra nada hasta que los pinchos te hieren
   const step = raw?.id === 'potion' && t.potionsAt === undefined ? undefined : raw;
-  const target = step?.target && 'ui' in step.target ? (touch && step.target.ui === 'btn-potion' ? 'touch-potion' : step.target.ui) : null;
+  const invOpen = useGame((s) => s.modal?.type === 'inventory');
+  const looseCoins = useGame((s) => !!s.expedition?.backpack.some((x) => x && isCoins(x)));
+  const base = step?.target && 'ui' in step.target ? (touch && step.target.ui === 'btn-potion' ? 'touch-potion' : step.target.ui) : null;
+  // Bolsillo seguro: con el inventario abierto, se resalta «Agrupar oro» mientras queden monedas sueltas
+  const target = step?.id === 'pocket' && invOpen ? (looseCoins ? 'group-gold-dungeon' : null) : base;
   useEffect(() => {
     if (!target) return;
     let el: Element | null = null;

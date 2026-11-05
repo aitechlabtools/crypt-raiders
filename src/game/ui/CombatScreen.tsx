@@ -200,7 +200,7 @@ export function CombatScreen() {
         <StageFighter c={player} x={playerX} bottom={4.5} h={52} shadowW={17} shadowBottom={5} anim={anim} floats={floats} active={actor?.id === player.id} hero={{ classId: profile.character.classId, appearance: profile.character.appearance, equipment: expedition?.equipment ?? profile.equipment, skin: wornSkin(profile) }} />
 
         <div className="absolute left-[3%] top-[5%] flex flex-col gap-2 info-stack">
-          {sideB.map((c) => <InfoFrame key={c.id} c={c} level={c.id === 'rival' ? undefined : profile.character.level} />)}
+          {sideB.map((c) => <InfoFrame key={c.id} c={c} level={c.level} />)}
         </div>
         <div className="absolute right-[3%] bottom-[6%] flex flex-col items-end gap-2 info-stack info-stack-br">
           {allies.map((c) => <InfoFrame key={c.id} c={c} small />)}

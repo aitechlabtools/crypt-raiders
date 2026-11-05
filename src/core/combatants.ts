@@ -67,7 +67,7 @@ export function enemyCombatant(enemyId: string, instanceId: string, side: Side =
     stats, hp: stats.maxHp, mp: 0,
     resourceName: '—', resourceRegen: 0, statuses: [], skills: [...e.skills],
     basicAttack: e.basicAttack, control: 'ai', skillChance: e.skillChance,
-    undead: e.undead, defending: false, potions: 0, boss: e.boss, ref: enemyId,
+    undead: e.undead, defending: false, potions: 0, boss: e.boss, ref: enemyId, level,
     phase2: e.phase2,
   };
 }

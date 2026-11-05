@@ -37,6 +37,8 @@ export interface Combatant {
   /** Pociones de vida que puede usar la IA (el jugador usa su mochila). */
   potions: number;
   boss?: boolean;
+  /** Nivel de la criatura en este combate (solo para mostrarlo: las estadísticas ya vienen escaladas). */
+  level?: number;
   /** Referencia libre (id de enemigo, del rival...) para quien orquesta el combate. */
   ref?: string;
   /** Actitud de un compañero controlado por la IA (mercenarios): agresivo o prudente. */

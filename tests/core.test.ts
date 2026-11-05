@@ -330,3 +330,11 @@ describe('Mazmorra', () => {
   });
 });
 
+
+// El recuadro del enemigo enseña su nivel real (no el del jugador)
+describe('Nivel de las criaturas en combate', () => {
+  it('cada criatura guarda el nivel con el que se creó', () => {
+    expect(enemyCombatant('skeleton', 'e1', 'B', 12).level).toBe(12);
+    expect(enemyCombatant('skeleton', 'e2', 'B').level).toBe(1);
+  });
+});

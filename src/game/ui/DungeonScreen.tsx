@@ -22,7 +22,10 @@ import { getMerc } from '../../core/data/mercenaries';
 import { mercBaseStats, STANCE_DESC, STANCE_NAME } from '../../core/mercenaries';
 import { getWanderer } from '../../core/data/wanderers';
 import { TUTORIAL_STEPS } from '../../core/data/tutorial';
-import { RISK, GOLD_SHARE, type RiskLevel } from '../../config/wanderers';
+import { RISK, GOLD_SHARE, SHARE_FAIR_RATIO, type RiskLevel } from '../../config/wanderers';
+import { shareVerdict } from '../../core/social';
+import { pinnedQuests, questDef, questProgress } from '../../core/quests';
+import { planPayment } from '../../core/share';
 
 export function DungeonScreen() {
   const host = useRef<HTMLDivElement>(null);
@@ -97,6 +100,7 @@ export function DungeonScreen() {
       {modal?.type === 'loot' && <LootModal />}
       {modal?.type === 'rival' && <RivalModal />}
       {modal?.type === 'confirmBetray' && <ConfirmBetray />}
+      {modal?.type === 'rivalDemand' && <RivalDemand />}
       {modal?.type === 'inventory' && <DungeonInventory />}
       {modal?.type === 'pause' && <PauseModal />}
       {modal?.type === 'chestLock' && <ChestLockModal chestId={modal.chestId} table={modal.table} />}
@@ -179,12 +183,31 @@ function Hud() {
   );
 }
 
+/** Misiones fijadas: recordatorio con el progreso (las bajas de esta bajada ya cuentan; se apuntan al salir). */
+function PinnedQuestsHud({ width }: { width: string }) {
+  const profile = useGame((s) => s.profile);
+  const kills = useGame((s) => s.expedition?.kills);
+  if (!profile) return null;
+  const pins = pinnedQuests(profile);
+  if (!pins.length) return null;
+  return (
+    <div className={`panel p-2 ${width} border-gold`} data-testid="hud-pinned">
+      {pins.map((p) => {
+        const q = questDef(p.id);
+        const live = Math.min(q.count, questProgress(p, profile) + ((q.type === 'kill' || q.type === 'kill_boss') ? kills?.[q.target!] ?? 0 : 0));
+        return <div key={p.id} className="text-sm flex justify-between gap-2"><span className="truncate text-gold">★ {q.name}</span><span className={live >= q.count ? 'text-heal' : 'text-stone-300'}>{live}/{q.count}</span></div>;
+      })}
+    </div>
+  );
+}
+
 /** Aliado (Kael) y mercenario: barras pequeñas bajo los botones de la derecha. */
 function Companions({ width }: { width: string }) {
   const rival = useGame((s) => s.rival);
   const merc = useGame((s) => s.merc);
   return (
     <>
+      <PinnedQuestsHud width={width} />
       {rival.disposition === 'allied' && (
         <button className={`panel p-2 ${width} border-heal text-left`} onClick={() => actions.interactRival()} data-testid="hud-ally">
           <div className="text-xs text-heal mb-1 flex items-center gap-1.5"><RiskBadge risk={rival.risk} size={14} /><span className="truncate">Aliado · {getWanderer(rival.who).name}</span></div>
@@ -279,6 +302,23 @@ function ChestLockModal({ chestId, table }: { chestId: string; table: string }) 
   );
 }
 
+/** Cuánto le has dado al errante del valor del botín y cómo lo ve. */
+function ShareMeter({ given, total, single, name }: { given: number; total: number; single?: boolean; name: string }) {
+  const v = shareVerdict(given, total, single);
+  const pct = total > 0 ? Math.min(1, given / total) : 0;
+  const txt = v === 'fair' ? `${name} está satisfecho.` : v === 'stingy' ? `${name} frunce el ceño.` : `${name} te mira mal.`;
+  const color = v === 'fair' ? '#6fbf73' : v === 'stingy' ? '#e0a040' : '#d0453a';
+  return (
+    <div className="mt-1.5" data-testid="share-meter" data-verdict={v}>
+      <div className="relative h-2.5 bg-[#0b0a0f] border border-stone-700">
+        <div className="h-full" style={{ width: `${pct * 100}%`, background: color }} />
+        <div className="absolute top-[-3px] bottom-[-3px] w-0.5 bg-parchment/70" style={{ left: `${SHARE_FAIR_RATIO * 100}%` }} title="Reparto justo" />
+      </div>
+      <div className="text-sm mt-0.5" style={{ color }}>{txt} <span className="text-stone-400">({Math.round(given)} de {Math.round(total)} monedas de valor)</span></div>
+    </div>
+  );
+}
+
 function LootModal() {
   const s = useGame((x) => x);
   const [sel, setSel] = useState<Loc | null>(null);
@@ -300,8 +340,9 @@ function LootModal() {
         <div className="panel p-3 mb-3 border-heal flex items-center gap-3">
           <MonsterSprite sprite={getWanderer(s.rival.who).sprite} scale={2} />
           <div className="font-body text-base flex-1">
-            <b className="text-heal">{getWanderer(s.rival.who).name.split(' ')[0]} espera su parte.</b> Selecciona un objeto y pulsa «Dar». Repartir baja su riesgo de traición; quedártelo todo lo sube.
-            {session.given.length > 0 && <div className="text-heal">Le has dado: {session.given.map((id) => getItem(id).name).join(', ')}.</div>}
+            <b className="text-heal">{getWanderer(s.rival.who).name.split(' ')[0]} espera su parte.</b> Selecciona algo y pulsa «Dar». Cuenta el valor, no el número de cosas: con una cuarta parte del botín (la marca de la barra) queda satisfecho y baja su riesgo de traición; si no le das nada, sube. Lo que repartas también rebaja lo que te pedirá en el portal.
+            <ShareMeter given={session.givenValue ?? 0} total={session.totalValue ?? 0} single={session.single} name={getWanderer(s.rival.who).name.split(' ')[0]} />
+            {(session.given.length > 0 || (session.givenGold ?? 0) > 0) && <div className="text-heal text-sm">Le has dado: {[...((session.givenGold ?? 0) > 0 ? [`${session.givenGold} monedas`] : []), ...session.given.map((id) => getItem(id).name)].join(', ')}.</div>}
           </div>
         </div>
       )}
@@ -429,10 +470,43 @@ function RivalModal() {
         {allied && <button className="btn btn-danger" onClick={() => actions.askBetray()} data-testid="rival-betray">Traicionar…</button>}
       </div>
       <p className="text-stone-400 mt-3 font-body text-sm" data-testid="rival-terms">
-        {allied ? `Lucha a tu lado. Quiere su parte de cada cofre y el ${Math.round(GOLD_SHARE * 100)} % del oro que encontréis juntos.` : `Si os aliáis, lucha a tu lado a cambio de su parte de los cofres y el ${Math.round(GOLD_SHARE * 100)} % del oro. El triángulo indica cuánto puedes fiarte.`}
+        {allied ? `Lucha a tu lado. Quiere su parte de cada cofre y de cada saco de combate, y al llegar al portal te pedirá el ${Math.round(GOLD_SHARE * 100)} % del oro (menos si repartes bien, más si no).` : `Si os aliáis, lucha a tu lado a cambio de su parte del botín y, en el portal, del ${Math.round(GOLD_SHARE * 100)} % del oro. El triángulo indica cuánto puedes fiarte.`}
         {' '}Una traición es a muerte y sin huida.
       </p>
       <button className="btn mt-3 text-sm" onClick={() => actions.closeModal()}>Cerrar</button>
+    </Modal>
+  );
+}
+
+/** En el portal, el errante aliado pide su parte: pagar, negarte o atacarle. */
+function RivalDemand() {
+  const s = useGame((x) => x);
+  const m = s.modal;
+  if (m?.type !== 'rivalDemand' || !s.expedition) return null;
+  const w = getWanderer(s.rival.who);
+  const first = w.name.split(' ')[0];
+  const pay = planPayment(s.expedition.backpack, s.expedition.pocket, m.amount);
+  const mood = m.pct < 0.2 ? `Has repartido bien durante la bajada: ${first} se conforma con el ${Math.round(m.pct * 100)} %.` : m.pct > 0.2 ? `Te has quedado con casi todo: ${first} pide el ${Math.round(m.pct * 100)} % y no está de humor.` : `Lo acordado: el ${Math.round(m.pct * 100)} % del oro ganado desde que os aliasteis.`;
+  return (
+    <Modal onClose={() => actions.closeModal()} testId="rival-demand">
+      <div className="flex items-center gap-3 mb-2">
+        <MonsterSprite sprite={w.sprite} scale={2} />
+        <h2 className="panel-title text-xl">{first} quiere su parte</h2>
+      </div>
+      <p className="font-body text-lg italic text-parchment">{m.line}</p>
+      <p className="font-body text-base text-stone-300 mt-2">{mood}</p>
+      <div className="panel p-3 mt-3 font-body text-base" data-testid="rival-demand-plan">
+        {pay.gold > 0 && <div><span className="text-gold">{pay.gold} monedas</span> de tu mochila{pay.pocket !== s.expedition.pocket && gridGold(pay.pocket) < gridGold(s.expedition.pocket) ? ' y del bolsillo seguro' : ''}.</div>}
+        {pay.items.length > 0 && <div>No llevas monedas suficientes: se cobra el resto con {pay.items.map((x) => getItem(x.itemId).name).join(', ')}.</div>}
+        {pay.short && <div className="text-ember">Ni con todo llega: se lleva lo que tienes.</div>}
+      </div>
+      <div className="flex gap-2 mt-4 flex-wrap">
+        <button className="btn btn-gold" onClick={() => actions.payRival()} data-testid="rival-pay">Pagar y cruzar</button>
+        <button className="btn btn-danger" onClick={() => actions.refuseRival()} data-testid="rival-refuse">Negarte</button>
+        <button className="btn btn-danger" onClick={() => actions.confirmBetray()} data-testid="rival-strike">Atacarle primero</button>
+        <button className="btn" onClick={() => actions.closeModal()} data-testid="rival-later">Todavía no</button>
+      </div>
+      <p className="text-sm text-stone-400 mt-3">Si te niegas, te atacará a muerte, sin huida posible. Si le atacas tú primero, empezará aturdido. Si ganas, te quedas con todo lo que lleva.{s.rival.who === 'kael' ? ' Kael no olvida.' : ''}</p>
     </Modal>
   );
 }

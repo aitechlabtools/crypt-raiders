@@ -275,8 +275,10 @@ export function StatsList({ stats, base, resourceName }: { stats: Stats; base?: 
   );
 }
 
-export function Bar({ value, max, color, label, testId }: { value: number; max: number; color: string; label?: string; testId?: string }) {
+export function Bar({ value, max, color, label, testId, spend = 0 }: { value: number; max: number; color: string; label?: string; testId?: string; /** Trozo que se gastaría (se marca parpadeando al final de la barra). */ spend?: number }) {
   const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
+  const lack = spend > value;
+  const spendPct = max > 0 && spend > 0 ? Math.min(pct, (Math.min(spend, value) / max) * 100) : 0;
   return (
     <div className="w-full" data-testid={testId}>
       {label && (
@@ -287,6 +289,9 @@ export function Bar({ value, max, color, label, testId }: { value: number; max: 
       )}
       <div className="bar">
         <div style={{ width: `${pct}%`, background: `linear-gradient(180deg, ${color} 0%, ${color} 55%, rgba(0,0,0,0.35) 100%)`, backgroundColor: color }} />
+        {spend > 0 && (lack
+          ? <span className="bar-spend lack" style={{ left: 0, width: `${pct}%` }} data-testid={testId ? `${testId}-spend` : undefined} />
+          : <span className="bar-spend" style={{ left: `${pct - spendPct}%`, width: `${spendPct}%` }} data-testid={testId ? `${testId}-spend` : undefined} />)}
       </div>
     </div>
   );

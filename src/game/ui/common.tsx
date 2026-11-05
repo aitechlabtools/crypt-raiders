@@ -18,6 +18,8 @@ import { combatLoadout } from '../../core/loadout';
 import { getSkill } from '../../core/data/skills';
 import { CLASSES } from '../../core/data/classes';
 import { wornSkin } from '../../core/skins';
+import { computeStats } from '../../core/stats';
+import { skillCost } from '../../config/progression';
 
 export function HeroSprite({ classId, appearance, equipment, skin, scale = 6, animate = true, pose = 'idle' as 'idle' | 'attack' | 'hurt', className = '' }: { classId: ClassId; appearance: Appearance; equipment?: Equipment; skin?: string | null; scale?: number; animate?: boolean; pose?: 'idle' | 'attack' | 'hurt'; className?: string }) {
   const [f, setF] = useState(0);
@@ -159,6 +161,8 @@ const SOURCE_LABEL = { class: 'De clase · siempre disponible', weapon: 'Del arm
 /** Habilidades disponibles con el equipo indicado, agrupadas: clase, arma y secundaria. */
 export function LoadoutPanel({ classId, equipment, compact = false }: { classId: ClassId; equipment: Equipment; compact?: boolean }) {
   const equipped = useGame((s) => s.profile?.classSkills.equipped);
+  const level = useGame((s) => s.profile?.character.level ?? 1);
+  const maxMp = computeStats(classId, level, equipment).maxMp;
   const kit = combatLoadout(classId, equipment, equipped);
   const res = CLASSES[classId].resourceName.toLowerCase();
   const hasOff = kit.groups.some((g) => g.source === 'offhand');
@@ -175,7 +179,7 @@ export function LoadoutPanel({ classId, equipment, compact = false }: { classId:
             return (
               <div key={id} className="mt-0.5">
                 <span className={g.source === 'class' ? 'text-gold' : g.source === 'offhand' ? 'text-frost' : 'text-parchment'}>{sk.name}</span>
-                <span className="text-xs text-stone-400"> · {sk.cost ? `${sk.cost} ${res}` : 'sin coste'}</span>
+                <span className="text-xs text-stone-400"> · {sk.cost ? `${skillCost(sk.cost, maxMp, CLASSES[classId].resource)} ${res}` : 'sin coste'}</span>
                 {!compact && <div className="font-body text-base text-stone-300 leading-snug">{sk.description}</div>}
               </div>
             );

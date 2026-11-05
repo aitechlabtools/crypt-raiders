@@ -1,4 +1,4 @@
-import { potionAmount } from '../config/progression';
+import { potionAmount, resourcePotionAmount, resourceGain, skillCost, turnRegen, IMPETUS_ON_HIT, IMPETUS_WHEN_HIT } from '../config/progression';
 import type { DamageKind, ItemEffect, SkillDef, Stats, StatusId, StatusInstance } from './types';
 import { makeRng, type Rng } from './rng';
 import { getSkill } from './data/skills';
@@ -154,7 +154,7 @@ export function cooldownLeft(c: Combatant, skillId: string): number {
 }
 
 export function canUseSkill(c: Combatant, skillId: string): boolean {
-  return c.skills.includes(skillId) && c.mp >= getSkill(skillId).cost && cooldownLeft(c, skillId) === 0;
+  return c.skills.includes(skillId) && c.mp >= costOf(c, skillId) && cooldownLeft(c, skillId) === 0;
 }
 
 // ── Fórmulas ──
@@ -192,6 +192,17 @@ export function fleeChance(actor: Combatant, foes: Combatant[]): number {
 
 // ── Aplicación de efectos ──
 
+/** Coste real de una habilidad para este combatiente (crece con su recurso máximo). */
+export function costOf(c: Combatant, skillId: string): number {
+  return skillCost(getSkill(skillId).cost, c.stats.maxMp, c.resourceName === 'Maná' ? 'mana' : 'impetus');
+}
+
+/** El ímpetu se gana peleando: golpeando con el arma y encajando golpes. */
+function gainImpetus(c: Combatant, n: number) {
+  if (c.resourceName !== 'Ímpetu' || c.stats.maxMp <= 0 || !alive(c)) return;
+  c.mp = Math.min(c.stats.maxMp, c.mp + n);
+}
+
 function dealDamage(s: CombatState, target: Combatant, amount: number, crit: boolean, source: 'hit' | 'dot' | 'doom', status?: StatusId) {
   if (target.shield && target.shield > 0 && source !== 'doom') {
     const absorbed = Math.min(target.shield, amount);
@@ -203,6 +214,7 @@ function dealDamage(s: CombatState, target: Combatant, amount: number, crit: boo
   const floor = hasStatus(target, 'endure') && source !== 'doom' ? 1 : 0;
   target.hp = Math.max(Math.min(floor, target.hp), target.hp - amount);
   if (source === 'hit') {
+    if (amount > 0) gainImpetus(target, IMPETUS_WHEN_HIT);
     // Estados que se gastan al recibir un golpe (bloqueo con escudo)
     for (const st of target.statuses.filter((x) => STATUSES[x.id].consumedOnHit)) {
       s.events.push({ type: 'status', targetId: target.id, status: st.id, applied: false });
@@ -244,7 +256,7 @@ function applyItemEffect(s: CombatState, actor: Combatant, effect: ItemEffect) {
     const h = heal(s, actor, potionAmount(effect.amount, actor.stats.maxHp));
     s.log.push(`${actor.name} recupera ${h} de vida.`);
   } else if (effect.kind === 'mana') {
-    const real = Math.min(actor.stats.maxMp - actor.mp, potionAmount(effect.amount, actor.stats.maxMp));
+    const real = Math.min(actor.stats.maxMp - actor.mp, resourcePotionAmount(effect.amount, actor.stats.maxMp));
     actor.mp += real;
     s.events.push({ type: 'mana', targetId: actor.id, amount: real });
     s.log.push(`${actor.name} recupera ${real} de ${actor.resourceName.toLowerCase()}.`);
@@ -303,6 +315,7 @@ function executeAction(s: CombatState, actor: Combatant, action: CombatAction, r
       } else {
         s.log.push(`${actor.name} usa ${atk.name}: ${r.amount} de daño${r.crit ? ' ¡CRÍTICO!' : ''}.`);
         dealDamage(s, target, r.amount, r.crit, 'hit');
+        gainImpetus(actor, IMPETUS_ON_HIT);
         onHitAffixes(s, actor, target, r.amount, rng, true);
       }
       return;
@@ -310,9 +323,10 @@ function executeAction(s: CombatState, actor: Combatant, action: CombatAction, r
     case 'skill': {
       const sk = getSkill(action.skillId);
       if (!actor.skills.includes(sk.id)) throw new Error('Habilidad no disponible');
-      if (actor.mp < sk.cost) throw new Error('Recurso insuficiente');
+      const cost = costOf(actor, sk.id);
+      if (actor.mp < cost) throw new Error('Recurso insuficiente');
       if (cooldownLeft(actor, sk.id) > 0) throw new Error('Habilidad en recarga');
-      actor.mp -= sk.cost;
+      actor.mp -= cost;
       if (sk.resetCooldowns) actor.cooldowns = {};
       const mod = actor.skillMods?.[sk.id];
       const cd = sk.cooldown ? Math.max(1, sk.cooldown + (mod?.cooldown ?? 0)) : 0;
@@ -355,7 +369,7 @@ function executeAction(s: CombatState, actor: Combatant, action: CombatAction, r
         s.log.push(`${actor.name} se envuelve en un escudo de ${actor.shield}.`);
       }
       if (sk.manaGain) {
-        const real = Math.min(actor.stats.maxMp - actor.mp, sk.manaGain);
+        const real = Math.min(actor.stats.maxMp - actor.mp, resourceGain(sk.manaGain, actor.stats.maxMp));
         actor.mp += real;
         s.events.push({ type: 'mana', targetId: actor.id, amount: real });
         s.log.push(`${actor.name} recupera ${real} de ${actor.resourceName.toLowerCase()}.`);
@@ -431,7 +445,7 @@ function endOfTurn(s: CombatState, actor: Combatant, used?: string) {
   }
   actor.statuses = actor.statuses.filter((x) => x.turns > 0);
   if (actor.shield && !hasStatus(actor, 'ward')) actor.shield = 0;
-  if (alive(actor)) actor.mp = Math.min(actor.stats.maxMp, actor.mp + actor.resourceRegen);
+  if (alive(actor) && actor.resourceRegen > 0) actor.mp = Math.min(actor.stats.maxMp, actor.mp + turnRegen(actor.resourceRegen, actor.stats.maxMp));
 }
 
 /** Cada turno propio resta 1 a las recargas (menos a la habilidad que se acaba de usar). */

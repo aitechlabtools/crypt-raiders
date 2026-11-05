@@ -24,7 +24,7 @@ export const MECH_GROUPS: { title: string; items: Mech[] }[] = [
     title: 'En el Bastión',
     items: [
       { icon: 'hammer_fire', title: 'La forja de Maese Brand', text: 'Recetas con los materiales que subes de cada zona. Cada pieza sale del yunque con su propia calidad.' },
-      { icon: 'coin', title: 'Encargos y reputación', text: 'Orvel, Vesper, Garra Roja y Brand te piden trabajos. Cúmplelos y te abren mejor mercancía y descuentos.' },
+      { icon: 'coin', title: 'Encargos y reputación', text: 'Orvel, Vesper, Garra Roja y Brand te piden trabajos. Elige cuáles aceptas y cúmplelos: te abren mejor mercancía y descuentos.' },
       { icon: 'bag3', title: 'El Coleccionista', text: 'Un goblin que compra joyas, tesoros y gemas mejor que nadie, y vende mochilas más grandes y sacos para tu oro.', newIcon: 'Mochila (provisional)' },
       { icon: 'robe_gold', title: 'Atuendos sin ventajas', text: 'Se compran con el oro del juego y solo cambian cómo te ves.' },
     ],

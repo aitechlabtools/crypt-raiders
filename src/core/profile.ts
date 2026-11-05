@@ -9,7 +9,7 @@ import type { Appearance, ClassId, Profile } from './types';
 import { CLASSES } from './data/classes';
 import { addToGrid, BACKPACK_SIZE, emptyEquipment, emptyGrid, LAYOUTS, repairGrid, STASH_SIZE } from './inventory';
 import { getItem } from './data/items';
-import { initialQuests } from './quests';
+import { initialQuests, migrateQuests } from './quests';
 import { makeUid } from './rng';
 import { POCKET_SIZE } from './data/chests';
 import { legacyLevelToNew } from '../config/progression';
@@ -90,13 +90,15 @@ export function sanitizeProfile(raw: unknown): Profile | null {
   const eq = { ...emptyEquipment(), ...(p.equipment ?? {}) };
   for (const k of Object.keys(eq) as (keyof typeof eq)[]) eq[k] = known(eq[k]) as typeof eq[typeof k];
   p.equipment = eq;
-  p.quests = initialQuests().map((q) => p.quests?.find((x) => x.id === q.id) ?? q);
+  const oldQuests = migrateQuests(p.quests ?? []);
+  p.quests = initialQuests().map((q) => oldQuests.find((x) => x.id === q.id) ?? q);
   p.tutorialSeen = p.tutorialSeen ?? { lobby: true, dungeon: true };
   // Subzonas, tutorial y Kael (4/11/2026): quien ya ha bajado alguna vez no repite el tutorial
   if (typeof p.tutorialDone !== 'boolean') p.tutorialDone = (p.stats?.expeditions ?? 0) > 0;
   const streak = Number((p.kael as { missStreak?: unknown } | undefined)?.missStreak);
   const met = Number((p.kael as { met?: unknown } | undefined)?.met);
-  p.kael = { missStreak: Number.isFinite(streak) && streak > 0 ? Math.floor(streak) : 0, met: Number.isFinite(met) && met > 0 ? Math.floor(met) : 0 };
+  const grudge = Number((p.kael as { grudge?: unknown } | undefined)?.grudge);
+  p.kael = { missStreak: Number.isFinite(streak) && streak > 0 ? Math.floor(streak) : 0, met: Number.isFinite(met) && met > 0 ? Math.floor(met) : 0, grudge: Number.isFinite(grudge) && grudge > 0 ? Math.min(3, Math.floor(grudge)) : 0 };
   p.classSkills = sanitizeClassSkills(p);
   p.lastSubzone = isSubzoneId(p.lastSubzone) ? p.lastSubzone : null;
   p.settings = Object.assign({ volume: 0.6, music: true }, p.settings ?? {});

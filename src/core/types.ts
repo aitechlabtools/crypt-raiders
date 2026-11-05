@@ -167,6 +167,10 @@ export interface QuestProgress {
   id: string;
   progress: number;
   claimed: boolean;
+  /** La has aceptado del tablón: solo avanzan las aceptadas (máximo MAX_ACTIVE_QUESTS a la vez). */
+  accepted?: boolean;
+  /** Fijada: se recuerda en Jugar y en la mazmorra. */
+  pinned?: boolean;
 }
 
 export interface ProfileStats {
@@ -226,7 +230,7 @@ export interface Profile {
   /** Tutorial guiado de la primera expedición completado (o saltado). Las partidas con expediciones lo tienen hecho. */
   tutorialDone: boolean;
   /** Kael el Errante: expediciones a la Mazmorra seguidas sin encontrarlo (para la aparición garantizada). */
-  kael: { missStreak: number; met?: number };
+  kael: { missStreak: number; met?: number; /** Veces que le negaste su parte o le atacaste (menos una por cada bajada en la que cumples). */ grudge?: number };
   /** Habilidades de clase: las desbloqueadas (la primera es la inicial) y la que llevas equipada. */
   classSkills: { unlocked: string[]; equipped: string };
   /** Mochila puesta (decide cuántas casillas tiene la mochila). No se pierde al morir. */

@@ -12,7 +12,7 @@ import { countItem, equippedValue, gridValue } from '../../../core/inventory';
 import { EXPEDITION_DURATION_MS } from '../../../core/expedition';
 import { xpForNextLevel } from '../../../core/stats';
 import { getMerc } from '../../../core/data/mercenaries';
-import { QUESTS } from '../../../core/data/quests';
+import { pinnedQuests, questDef, questProgress, readyQuestCount } from '../../../core/quests';
 import { PlayerSprite, MonsterSprite, Modal } from '../common';
 import { zoneBackdrop, zoneFor } from '../combatZones';
 import { iconUrl } from '../../../shared/art';
@@ -51,7 +51,8 @@ export function Jugar({ onNavigate }: { onNavigate: (t: QuickTarget) => void }) 
   const potions = countItem(profile.backpack, 'health_potion');
   const risk = gridValue(profile.backpack) + equippedValue(profile.equipment);
   const merc = profile.contract ? getMerc(profile.contract.mercId) : null;
-  const questsReady = profile.quests.filter((q) => !q.claimed && q.progress >= QUESTS.find((d) => d.id === q.id)!.count).length;
+  const questsReady = readyQuestCount(profile);
+  const pins = pinnedQuests(profile);
   const xpPct = Math.round((ch.xp / xpForNextLevel(ch.level)) * 100);
   // El mercenario, un poco más pequeño y detrás: el protagonista eres tú (escala entera)
   const mercScale = Math.max(2, heroScale - Math.max(1, Math.round(heroScale / 4)));
@@ -123,6 +124,11 @@ export function Jugar({ onNavigate }: { onNavigate: (t: QuickTarget) => void }) 
           <div className="lvl-ring" style={{ ['--p' as string]: xpPct }}><span>{ch.level}</span></div>
           <span className="text-[10px] tracking-[0.2em] uppercase text-stone-300">Nivel</span>
         </div>
+        {pins.length > 0 && (
+          <button className="panel p-2 text-left border-gold max-w-[260px]" onClick={() => onNavigate('quests')} data-testid="jugar-pinned">
+            {pins.map((p) => { const q = questDef(p.id); const n = questProgress(p, profile); return <div key={p.id} className="text-sm flex justify-between gap-3"><span className="truncate text-gold">★ {q.name}</span><span className={n >= q.count ? 'text-heal' : 'text-stone-300'}>{n}/{q.count}</span></div>; })}
+          </button>
+        )}
         <div className="flex gap-2">
           <Quick label="Misiones" icon="chalice" badge={questsReady} onClick={() => onNavigate('quests')} testId="quick-quests" />
           <Quick label="Reputación" icon="coin" onClick={() => onNavigate('merchants')} testId="quick-rep" />

@@ -14,7 +14,7 @@ import { getEnemy } from '../../../core/data/enemies';
 import { getItem } from '../../../core/data/items';
 import { isTwoHanded } from '../../../core/data/weapons';
 import { pendingUnlocks, unlocksEarned } from '../../../core/classSkills';
-import { CLASS_UNLOCK_LEVELS } from '../../../config/progression';
+import { CLASS_UNLOCK_LEVELS, skillCost } from '../../../config/progression';
 import { PlayerSprite } from '../common';
 import { ActionIcon } from '../combatActions';
 import { ItemIcon } from '../inventory';
@@ -33,14 +33,15 @@ function useKit() {
   const cls = CLASSES[ch.classId];
   const kit = combatLoadout(ch.classId, profile.equipment, profile.classSkills.equipped);
   const res = cls.resourceName.toLowerCase();
-  const mk = (id: string, src: Src): Atk => { const s = getSkill(id); return { id, name: s.name, desc: s.description, cost: s.cost, cd: s.cooldown ?? 0, fx: s.fx ?? 'slash', src }; };
+  const maxMp = computeStats(ch.classId, ch.level, profile.equipment).maxMp;
+  const mk = (id: string, src: Src): Atk => { const s = getSkill(id); return { id, name: s.name, desc: s.description, cost: skillCost(s.cost, maxMp, cls.resource), cd: s.cooldown ?? 0, fx: s.fx ?? 'slash', src }; };
   const basic: Atk = { id: 'basic', name: kit.basicAttack.name, desc: 'Ataque básico del arma que llevas. No gasta nada.', cost: 0, cd: 0, fx: kit.basicAttack.fx ?? 'slash', src: 'basic' };
   const mainId = profile.equipment.mainHand?.itemId; const offId = profile.equipment.offHand?.itemId;
   const two = mainId ? isTwoHanded(getItem(mainId)) : false;
   const right = { label: kit.right.label, itemId: mainId, items: [basic, ...kit.right.skills.map((id) => mk(id, 'weapon'))] };
   const left = { label: two ? `${kit.right.label} (a dos manos)` : kit.left.label, itemId: two ? mainId : offId, two, items: kit.left.skills.map((id) => mk(id, 'offhand')) };
   const cs = mk(kit.classSkill, 'class');
-  return { profile, ch, cls, res, right, left, cs };
+  return { profile, ch, cls, res, right, left, cs, maxMp };
 }
 
 const costText = (a: { cost: number; cd: number }, res: string) => `${a.cost ? `${a.cost} ${res}` : 'sin coste'}${a.cd ? ` · recarga ${a.cd}` : ''}`;
@@ -206,6 +207,7 @@ function ClassPath({ focus, onFocus }: { focus: string | null; onFocus: (id: str
   const ch = profile.character;
   const cls = CLASSES[ch.classId];
   const res = cls.resourceName.toLowerCase();
+  const maxMp = computeStats(ch.classId, ch.level, profile.equipment).maxMp;
   const { unlocked, equipped } = profile.classSkills;
   const pending = pendingUnlocks(profile);
   const earned = 1 + unlocksEarned(ch.level);
@@ -225,10 +227,10 @@ function ClassPath({ focus, onFocus }: { focus: string | null; onFocus: (id: str
         <span className="min-w-0 flex-1">
           <span className="flex items-baseline justify-between gap-2">
             <span className={`font-display text-[15px] leading-tight ${locked ? 'text-stone-400' : 'text-parchment'}`}>{s.name}</span>
-            {locked ? <Lock size={12} /> : <span className="text-[11px] text-stone-400 whitespace-nowrap">{costText({ cost: s.cost, cd: s.cooldown ?? 0 }, res)}</span>}
+            {locked ? <Lock size={12} /> : <span className="text-[11px] text-stone-400 whitespace-nowrap">{costText({ cost: skillCost(s.cost, maxMp, cls.resource), cd: s.cooldown ?? 0 }, res)}</span>}
           </span>
           <span className={`block text-[14px] leading-snug mt-0.5 ${locked ? 'text-stone-500' : 'text-stone-300'}`}>{s.description}</span>
-          {locked && <span className="block text-[11px] text-stone-500 mt-1">{costText({ cost: s.cost, cd: s.cooldown ?? 0 }, res)}</span>}
+          {locked && <span className="block text-[11px] text-stone-500 mt-1">{costText({ cost: skillCost(s.cost, maxMp, cls.resource), cd: s.cooldown ?? 0 }, res)}</span>}
           {state === 'owned' && <span className="block text-[12px] text-stone-400 mt-1">Toca para equiparla</span>}
           {state === 'choose' && <button className="btn btn-gold py-1 px-3 text-xs min-h-[44px] mt-2" onClick={(e) => { e.stopPropagation(); actions.unlockClassSkill(id); }} data-testid={`btn-unlock-class-${id}`}>Elegir esta</button>}
         </span>

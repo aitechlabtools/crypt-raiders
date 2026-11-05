@@ -29,7 +29,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
   warrior: {
     id: 'warrior', name: 'Guerrero', tagline: 'Acero, cicatrices y paciencia.',
     description: 'Vida y defensa elevadas. Aguanta en primera línea y castiga con golpes que hacen sangrar.',
-    playable: true, resourceName: 'Ímpetu', resource: 'impetus', resourceRegen: 2,
+    playable: true, resourceName: 'Ímpetu', resource: 'impetus', resourceRegen: 0,
     base: { maxHp: 120, maxMp: 20, atk: 16, def: 12, mag: 4, res: 8, spd: 9, crit: 5, eva: 3 },
     perLevel: { maxHp: 12, maxMp: 2, atk: 2, def: 2, res: 1 },
     classSkill: 'war_cry', classSkills: ['war_cry', 'bloodthirst', 'hold_line', 'steel_whirl', 'last_bastion'], weapons: 'Espadas, hachas y escudos',
@@ -41,7 +41,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
   mage: {
     id: 'mage', name: 'Mago', tagline: 'El conocimiento quema.',
     description: 'Daño elemental devastador a cambio de poca resistencia. Gestiona bien tu maná o caerás.',
-    playable: true, resourceName: 'Maná', resource: 'mana', resourceRegen: 2,
+    playable: true, resourceName: 'Maná', resource: 'mana', resourceRegen: 1,
     base: { maxHp: 92, maxMp: 45, atk: 6, def: 7, mag: 21, res: 12, spd: 11, crit: 6, eva: 5 },
     perLevel: { maxHp: 12, maxMp: 5, mag: 3, def: 1, res: 1 },
     classSkill: 'mana_shield', classSkills: ['mana_shield', 'blink', 'curse_weakness', 'blood_pact', 'abyss_comet'], weapons: 'Báculos y tomos',
@@ -53,7 +53,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
   rogue: {
     id: 'rogue', name: 'Pícaro', tagline: 'Nadie le oye llegar.',
     description: 'Velocidad, evasión y críticos. Envenena y desaparece antes de la respuesta.',
-    playable: false, resourceName: 'Ímpetu', resource: 'impetus', resourceRegen: 3,
+    playable: false, resourceName: 'Ímpetu', resource: 'impetus', resourceRegen: 0,
     base: { maxHp: 90, maxMp: 30, atk: 14, def: 8, mag: 5, res: 8, spd: 16, crit: 15, eva: 12 },
     perLevel: { maxHp: 8, atk: 2, spd: 1, crit: 1 },
     classSkill: 'shadow_veil', classSkills: ['shadow_veil'], weapons: 'Dagas',
@@ -63,7 +63,7 @@ export const CLASSES: Record<ClassId, ClassDef> = {
   cleric: {
     id: 'cleric', name: 'Clérigo', tagline: 'La luz también corta.',
     description: 'Curación, protección y castigo sagrado contra las criaturas de la oscuridad.',
-    playable: false, resourceName: 'Maná', resource: 'mana', resourceRegen: 2,
+    playable: false, resourceName: 'Maná', resource: 'mana', resourceRegen: 1,
     base: { maxHp: 100, maxMp: 40, atk: 10, def: 11, mag: 15, res: 15, spd: 8, crit: 4, eva: 3 },
     perLevel: { maxHp: 10, maxMp: 4, mag: 2, res: 2 },
     classSkill: 'prayer', classSkills: ['prayer'], weapons: 'Mazas, escudos y tomos',

@@ -8,7 +8,7 @@ import type { SkillDef } from '../types';
 export const SKILLS: Record<string, SkillDef> = {
   // ── Clase ──
   war_cry: { id: 'war_cry', name: 'Grito de guerra', description: 'Tu rabia sube: causas un 30% más de daño durante 3 turnos.', cost: 4, target: 'self', applies: [{ status: 'empower', chance: 1, turns: 3, self: true }], fx: 'holy' },
-  meditation: { id: 'meditation', name: 'Meditación', description: 'Recuperas 18 de maná a cambio del turno.', cost: 0, target: 'self', manaGain: 18, fx: 'holy' },
+  meditation: { id: 'meditation', name: 'Meditación', description: 'Recuperas cerca del 40% de tu maná a cambio del turno.', cost: 0, target: 'self', manaGain: 18, fx: 'holy' },
   shadow_veil: { id: 'shadow_veil', name: 'Velo de sombras', description: 'Te ocultas: recibes un 40% menos de daño durante 2 turnos.', cost: 3, target: 'self', applies: [{ status: 'protect', chance: 1, turns: 2, self: true }], fx: 'dark' },
   prayer: { id: 'prayer', name: 'Plegaria', description: 'Recuperas un 25% de tu vida.', cost: 5, target: 'self', healPct: 0.25, fx: 'holy' },
 
@@ -87,7 +87,7 @@ export const SKILLS: Record<string, SkillDef> = {
 
   // ── Tomos ──
   arcane_barrier: { id: 'arcane_barrier', name: 'Barrera arcana', description: 'Un escudo de luz: -40% de daño durante 3 turnos.', cost: 5, target: 'self', applies: [{ status: 'protect', chance: 1, turns: 3, self: true }], fx: 'shield' },
-  mana_siphon: { id: 'mana_siphon', name: 'Sifón de maná', description: 'Daño mágico (x0.9) y recuperas 10 de maná.', cost: 0, target: 'enemy', kind: 'magical', power: 0.9, manaGain: 10, fx: 'dark' },
+  mana_siphon: { id: 'mana_siphon', name: 'Sifón de maná', description: 'Daño mágico (x0.9) y recuperas algo de maná (cerca del 20%).', cost: 0, target: 'enemy', kind: 'magical', power: 0.9, manaGain: 10, fx: 'dark' },
 
   // ── Clérigo (preparado) ──
   sanctuary: { id: 'sanctuary', name: 'Santuario', description: 'Cura un 30% de tu vida y te protege 2 turnos.', cost: 6, target: 'self', healPct: 0.3, applies: [{ status: 'protect', chance: 1, turns: 2, self: true }], fx: 'holy' },

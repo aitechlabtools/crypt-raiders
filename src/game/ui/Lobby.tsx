@@ -3,7 +3,7 @@ import { BestiaryTab } from './BestiaryTab';
 import { useState, type ReactNode } from 'react';
 import { actions, useGame } from '../state/store';
 import { CLASSES } from '../../core/data/classes';
-import { QUESTS } from '../../core/data/quests';
+import { readyQuestCount } from '../../core/quests';
 import { xpForNextLevel } from '../../core/stats';
 import { PlayerSprite, HeroSprite, GoldAmount, Modal } from './common';
 import { SettingsModal } from './TitleScreen';
@@ -31,7 +31,7 @@ export function Lobby() {
   const layout = useLayout();
   const ch = profile.character;
   const cls = CLASSES[ch.classId];
-  const questsReady = profile.quests.filter((q) => !q.claimed && q.progress >= QUESTS.find((d) => d.id === q.id)!.count).length;
+  const questsReady = readyQuestCount(profile);
   const tabs: PillTab<LobbyTab>[] = [
     { id: 'play', label: 'Jugar' }, { id: 'character', label: 'Personaje' }, { id: 'stash', label: 'Alijo' }, { id: 'merchants', label: 'Mercaderes' },
     { id: 'quests', label: 'Misiones', badge: questsReady }, { id: 'bestiary', label: 'Bestiario' }, { id: 'shop', label: 'Tienda' },

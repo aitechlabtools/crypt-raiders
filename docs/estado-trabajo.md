@@ -388,6 +388,47 @@ sin sección ni botón de Windows, tráiler de 60 s.
   Rehacerlo entero: npm run dev y luego npm run trailer (graba las tomas y monta); solo montaje: npm run trailer:render.
   En la landing se reproduce silenciado, en bucle y con playsinline. También genera public/trailer/clip.* (sin uso ahora).
 
+## Ímpetu, maná y botín del combate — HECHO el 5/11 (commit pendiente del usuario)
+- Antes el recurso no se acababa nunca (+2 por turno, costes fijos de 1 a 5) y los tónicos no servían.
+- Ímpetu (guerrero y pícaro): ya no se recupera solo. +3 al acertar un ataque normal y +1 al recibir un golpe (config/progression.ts).
+- Maná: se recupera al final del turno, el 3 % del máximo aprox. (mínimo 1). Meditación y Sifón recuperan en proporción al máximo.
+- Costes que crecen con el máximo: skillCost (referencia 25 de ímpetu y 50 de maná); costOf(c, id) en core/combat.ts. Se ve el coste real
+  en combate, en Personaje y en el panel de habilidades.
+- Tónicos y pociones de maná: 25 o el 35 % del máximo (antes 18 %).
+- Combate: números junto a cada barra (PV 39/283, IM 30/44). Al señalar una habilidad (ratón, teclado o mantener pulsado) parpadea en la
+  barra el trozo que gastaría (rojo si no llega).
+- Victoria: las monedas ya no salen junto a la XP; aparecen dentro de «En el saco» con su icono (hay que cogerlas del saco).
+
+## Reparto con el errante aliado — HECHO el 5/11 (commit pendiente del usuario)
+- El reparto se mide por VALOR (core/social.ts → shareVerdict/shareLoot): dar ≥25 % del valor del botín es justo (baja el
+  riesgo), algo pero menos es tacaño (no cambia) y nada es avaricioso (lo sube). Medidor en la ventana del botín.
+- También piden reparto los sacos de combate en los que luchó el errante (Bag.allyShare) y los cofres de un solo objeto raro o mejor
+  (quedárselo solo es tacaño). Las monedas que le das van a su bolsa.
+- En el portal (actions.requestExtract) te pide su parte del oro ganado desde que os aliasteis, contando el bolsillo seguro:
+  10 % si repartiste bien, 20 % normal, 30 % si fuiste avaricioso. Pagar (mochila → bolsillo → objetos, core/share.ts),
+  negarte (combate a muerte sin huida) o atacarle primero (empieza aturdido). «Todavía no» cierra la ventana.
+- Kael guarda rencor (profile.kael.grudge, máx. 3): si le niegas su parte o le atacas, la próxima vez llega con riesgo naranja;
+  cada bajada en la que le pagas, se le pasa uno.
+- Prueba: node scripts/reparto-check.cjs <url>/play/ <carpeta> [dispositivo].
+
+## Misiones y mercaderes — HECHO el 5/11 (commit pendiente del usuario)
+- El aviso verde de «Misiones» contaba también misiones completadas que aún no te ofrecen (de otro nivel o fuera de las 3 que
+  se ven): ahora usa readyQuestCount (core/quests.ts), el mismo cálculo que el tablón, en la barra, en Jugar y en Mercaderes.
+- Mercaderes: «Hablar» ya no sale en dorado en Maese Brand (restos de la maqueta) y los botones quedan alineados abajo.
+- Misiones: textos más grandes (nombre, descripción, progreso, recompensas y nota) y botones de 44 px.
+- Tablón y misiones aceptadas (core/quests.ts): cada mercader enseña todas las de tu nivel (primero las de tu zona); aceptas
+  hasta 5 (MAX_ACTIVE_QUESTS) y solo avanzan las aceptadas. Dejar una la devuelve al tablón y pierde lo hecho. Las repetibles
+  vuelven al tablón al cobrarlas. Fijar: recordatorio en Jugar y en la mazmorra (con las bajas de la bajada en curso).
+  Las de zonas muy por debajo (nivel − zona > 39) se pliegan en «Encargos antiguos». Partidas antiguas: las misiones con
+  progreso pasan a aceptadas (migrateQuests, una sola vez). Prueba: node scripts/misiones-check.cjs <url>/play/ <carpeta> [dispositivo].
+
+## Retoques de landing y menús — HECHO el 5/11 (commit pendiente del usuario)
+- Landing, VarkHollow: la línea del descenso pasa por el centro de los rombos.
+- Landing, aliados: más aire entre el texto y las fichas, y tres puntos que explican el reparto (cofres y sacos por valor,
+  qué pasa si das poco o nada, y la parte del oro en el portal).
+- Juego: los títulos de pantalla con `border-0` (Atuendos, Mercaderes, Misiones) ya no sacan la raya de debajo.
+- Ventana del botín con aliado: el aviso explica la marca de la barra y que repartir rebaja lo que pide en el portal.
+
 ## Encargos guardados
 - Skins de traje completo: HECHO (docs/plan-skins.md, maquetas en mockups/skins).
 - Fase 10 (cierre): HECHO (docs/pendiente-landing.md).

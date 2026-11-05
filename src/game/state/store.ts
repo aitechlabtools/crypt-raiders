@@ -4,19 +4,19 @@
 // ════════════════════════════════════════════════════════════════════
 import { useSyncExternalStore } from 'react';
 import type { Appearance, ClassId, Grid, ItemStack, Profile, Rarity } from '../../core/types';
-import { AFFIXES, RARITY_RULES, rollStacks } from '../../core/data/rarity';
+import { AFFIXES, RARITY_ORDER, RARITY_RULES, rollStacks } from '../../core/data/rarity';
 import { createProfile, grantRecruitKit, needsRecruitKit } from '../../core/profile';
 import { clearUndo, loadSave, loadUndo, saveSave, saveUndo } from '../persistence/db';
 import { backupFileName, backupStatus, backupToCode, backupToJson, buildBackup, totalExpeditions, type BackupStatus } from '../../core/backup';
 import { STASH_PAGE_SIZE } from '../../config/stash';
 import { addCharacter, applyProfile, composeProfile, currentCharacterId, emptySave, MAX_CHARACTERS, removeCharacter, type SaveData } from '../../core/save';
 import { startExpedition, endExpedition, timeLeft, abandonInterruptedExpedition, type ExpeditionState, type ExpeditionSummary, type EndReason } from '../../core/expedition';
-import { addManyToGrid, addToGrid, anchorIndex, countItem, emptyGrid, isMulti, LAYOUTS, removeItem, sortGrid, transfer, quickEquip, quickMove, type Containers, type ContainerId, type Loc, stackAt, clearAt } from '../../core/inventory';
+import { addManyToGrid, addToGrid, anchorIndex, countItem, emptyGrid, isMulti, LAYOUTS, removeItem, sortGrid, transfer, cloneGrid, removeAt, isCover, quickEquip, quickMove, type Containers, type ContainerId, type Loc, stackAt, clearAt } from '../../core/inventory';
 import { buy, sell } from '../../core/economy';
 import { addToPage, buySharedPage, buyStashPage, joinPages, pageCount, pageSlice as pageSliceOf, sortPage, splitPages, type StashPage } from '../../core/stashPages';
 import { equipBag } from '../../core/bag';
-import { coins as coinsStack, gridGold, groupGold, splitCoins, withdrawCoins } from '../../core/gold';
-import { earnGoldSafe, NO_ROOM_FOR_GOLD, putCoinsPartial, setGoldExactly, syncGold, takeCoins } from '../../core/wallet';
+import { coins as coinsStack, gridGold, groupGold, isCoins, splitCoins, withdrawCoins } from '../../core/gold';
+import { earnGoldSafe, NO_ROOM_FOR_GOLD, putCoinsPartial, setGoldExactly, stackGoldValue, syncGold } from '../../core/wallet';
 import { COIN_ID } from '../../config/gold';
 import { computeStats } from '../../core/stats';
 import { createCombat, performAction, runAITurn, currentActor, getCombatant, type CombatAction, type CombatState } from '../../core/combat';
@@ -35,15 +35,17 @@ import { getItem } from '../../core/data/items';
 import { CLASSES } from '../../core/data/classes';
 import { equipClassSkill, unlockClassSkill } from '../../core/classSkills';
 import { getSkill } from '../../core/data/skills';
-import { questDef, isComplete } from '../../core/quests';
+import { questDef, isComplete, acceptQuest as acceptQuestCore, abandonQuest as abandonQuestCore, togglePin as togglePinCore, afterClaim } from '../../core/quests';
 import { applyXp } from '../../core/stats';
-import { potionAmount } from '../../config/progression';
+import { potionAmount, resourcePotionAmount } from '../../config/progression';
 import { rollLoot, adaptDrops, CHEST_TABLES, subzoneChestTable } from '../../core/loot';
 import { makeRng, makeUid, randomSeed } from '../../core/rng';
-import { noRival, initialRival, talk, greetLine, proposeAlliance, rejectRival, leaveAlliance, shareLoot, evaluateBetrayal, playerBetrays, playerAttacksNeutral, rollEncounter, goldShare, type RivalState } from '../../core/social';
+import { noRival, initialRival, talk, greetLine, proposeAlliance, rejectRival, leaveAlliance, shareLoot, evaluateBetrayal, playerBetrays, playerAttacksNeutral, rollEncounter, goldShare, sharePct, demandLine, refusedLine, refuseShare, type RivalState } from '../../core/social';
+import { lootValue, planPayment } from '../../core/share';
 import { getWanderer } from '../../core/data/wanderers';
 import { TUTORIAL_MAP, TUTORIAL_REWARD, TUTORIAL_STEPS, tutorialRoomCenter, tutorialRoomOf } from '../../core/data/tutorial';
-import { GOLD_SHARE, ROB_ITEMS } from '../../config/wanderers';
+import { ROB_ITEMS, SHARE_SINGLE_MIN_RARITY } from '../../config/wanderers';
+const rarityRank = (r: string) => RARITY_ORDER.indexOf(r as (typeof RARITY_ORDER)[number]);
 import { bus } from './bus';
 import { buySkin, equipSkin } from '../../core/skins';
 import { getSkin } from '../../core/data/skins';
@@ -83,12 +85,19 @@ export interface LootSession {
   initialCount: number;
   given: string[];
   shareAsked: boolean;
+  /** Valor del botín al abrirlo y lo que le has dado al errante (monedas incluidas). */
+  totalValue?: number;
+  givenValue?: number;
+  givenGold?: number;
+  /** Cofre de un solo objeto (quedártelo solo es tacaño). */
+  single?: boolean;
 }
 
 export type Modal =
   | { type: 'loot'; session: LootSession }
   | { type: 'rival' }
   | { type: 'confirmBetray' }
+  | { type: 'rivalDemand'; amount: number; pct: number; line: string }
   | { type: 'inventory' }
   | { type: 'pause' }
   | { type: 'chestLock'; chestId: string; table: string }
@@ -97,7 +106,7 @@ export type Modal =
   | { type: 'merc' }
   | null;
 
-export interface Bag { id: string; x: number; y: number; grid: Grid; label: string }
+export interface Bag { id: string; x: number; y: number; grid: Grid; label: string; /** Saco de un combate en el que luchó el errante aliado: espera su parte. */ allyShare?: boolean }
 
 export interface DungeonHud {
   room: string;
@@ -738,7 +747,7 @@ export const actions = {
       const cls = CLASSES[s.profile.character.classId];
       if (def.resource && def.resource !== cls.resource) return invError(`Esto no te sirve: tú usas ${cls.resourceName.toLowerCase()}.`);
       if (exp.mp >= stats.maxMp) return invError(`Ya tienes el ${cls.resourceName.toLowerCase()} al máximo.`);
-      exp.mp = Math.min(stats.maxMp, exp.mp + potionAmount(def.use.amount, stats.maxMp));
+      exp.mp = Math.min(stats.maxMp, exp.mp + resourcePotionAmount(def.use.amount, stats.maxMp));
     } else if (def.use.kind === 'cleanse') {
       // Veneno, quemadura y sangrado solo existen dentro del combate: fuera no gastes el antídoto
       return invError('El antídoto solo sirve en combate, contra veneno, quemadura o sangrado.');
@@ -938,11 +947,39 @@ export const actions = {
     toast('El intendente te presta un equipo de recluta.', 'info');
   },
 
+  acceptQuest(id: string) {
+    const p = state.profile;
+    if (!p) return;
+    const r = acceptQuestCore(p, id);
+    if (!r.ok) return invError(r.error);
+    set({ profile: r.profile });
+    sfx('click');
+    toast(`Misión aceptada: ${questDef(id).name}`, 'info');
+    void saveNow();
+  },
+
+  abandonQuest(id: string) {
+    const p = state.profile;
+    if (!p) return;
+    set({ profile: abandonQuestCore(p, id) });
+    sfx('click');
+    toast(`Dejas la misión: ${questDef(id).name}. Vuelve al tablón.`, 'info');
+    void saveNow();
+  },
+
+  togglePinQuest(id: string) {
+    const p = state.profile;
+    if (!p) return;
+    set({ profile: togglePinCore(p, id) });
+    sfx('click');
+    void saveNow();
+  },
+
   claimQuest(id: string) {
     const p = state.profile;
     if (!p) return;
     const q = p.quests.find((x) => x.id === id);
-    if (!q || q.claimed || !isComplete(q, p)) return;
+    if (!q || q.claimed || !q.accepted || !isComplete(q, p)) return;
     const def = questDef(id);
     const xp = applyXp(p.character.level, p.character.xp, def.reward.xp);
     // Las entregas se gastan: primero de la mochila, luego del almacén
@@ -960,8 +997,8 @@ export const actions = {
         ...earnGoldSafe({ ...p, backpack, stash }, def.reward.gold),
         character: { ...p.character, level: xp.level, xp: xp.xp },
         reputation: { ...p.reputation, [def.vendor]: after },
-        // Las repetibles vuelven a empezar; las demás quedan cobradas
-        quests: p.quests.map((x) => (x.id === id ? (def.repeatable ? { ...x, progress: 0 } : { ...x, claimed: true }) : x)),
+        // Las repetibles vuelven al tablón desde cero; las demás quedan cobradas
+        quests: afterClaim(p, id).quests,
       },
     });
     sfx('victory');
@@ -995,7 +1032,7 @@ export const actions = {
     const expedition = { ...started.expedition, zone: dungeon.zone ?? 'mazmorra', subzone: dungeon.subzone, chestsOpened: {}, veinsMined: 0 };
     set({
       profile, expedition, dungeon, screen: 'dungeon', summary: null, combat: null, modal: null,
-      rival: enc.who ? initialRival(enc.who, enc.risk, enc.hostile) : noRival(), rivalLine: null, merc: mercForExpedition(p), chests: {}, mined: {}, bags: {},
+      rival: enc.who ? initialRival(enc.who, enc.who === 'kael' && !enc.hostile && (p.kael.grudge ?? 0) > 0 ? 'mid' : enc.risk, enc.hostile) : noRival(), rivalLine: null, merc: mercForExpedition(p), chests: {}, mined: {}, bags: {},
       hud: { room: '', prompt: null, channel: 0, playerTile: [0, 0] },
     });
     await saveNow();
@@ -1135,18 +1172,17 @@ export const actions = {
     const s = state;
     if (!s.profile || !s.expedition) return;
     if (s.tutorial) return actions.finishTutorial(reason);
-    // El errante aliado que extrae contigo se lleva su parte del oro encontrado desde que os aliasteis
-    // (oro físico: su parte son monedas de tu mochila, de las que has cogido desde que os aliasteis)
-    const carried = gridGold(s.expedition.backpack);
-    const share0 = reason === 'extracted' ? Math.min(carried, goldShare(s.rival, carried, GOLD_SHARE)) : 0;
-    const paidBp = share0 ? takeCoins(s.expedition.backpack, share0) : null;
-    const share = paidBp ? share0 : 0;
-    const expDone = paidBp ? { ...s.expedition, backpack: paidBp } : s.expedition;
-    let { profile, summary } = endExpedition(s.profile, expDone, reason, Date.now());
+    // Su parte del oro ya se la has pagado (o no) en el portal: ver requestExtract y payRival
+    let { profile, summary } = endExpedition(s.profile, s.expedition, reason, Date.now());
     if (reason === 'extracted' && s.rival.disposition === 'allied' && s.rival.hp > 0) {
       const w = getWanderer(s.rival.who);
-      summary = { ...summary, wandererNote: `${w.lines.farewell}${share ? ` ${w.name.split(' ')[0]} se lleva su parte: ${share} de oro.` : ''}` };
+      const share = s.rival.paid ?? 0;
+      summary = { ...summary, wandererNote: `${w.lines.farewell}${share ? ` Le pagaste su parte en el portal: ${share} de oro.` : ''}` };
+      // Kael recuerda que cumpliste: se le pasa el enfado
+      if (s.rival.who === 'kael' && (profile.kael.grudge ?? 0) > 0) profile = { ...profile, kael: { ...profile.kael, grudge: (profile.kael.grudge ?? 0) - 1 } };
     }
+    // Kael no olvida que le negaste su parte o le atacaste
+    if (s.rival.who === 'kael' && s.rival.betrayedBy === 'player') profile = { ...profile, kael: { ...profile.kael, grudge: (profile.kael.grudge ?? 0) + 1 } };
     const mo = settleMerc(profile, s.merc, reason === 'extracted');
     profile = mo.profile;
     if (mo.note) summary = { ...summary, mercNote: mo.note };
@@ -1219,9 +1255,14 @@ export const actions = {
       sfx('chest');
       if (gold) set({ expedition: { ...state.expedition!, goldFound: state.expedition!.goldFound + gold } });
     }
-    const count = grid.filter(Boolean).length;
+    const stacks = grid.filter((x): x is ItemStack => !!x && !isCover(x));
+    const count = stacks.length;
     const title = chestType(table).name;
-    set((st) => ({ chests: { ...st.chests, [chestId]: grid }, modal: { type: 'loot', session: { id: chestId, source: 'chest', title, initialCount: count, given: [], shareAsked: st.rival.disposition === 'allied' && count >= 2 && !st.chests[chestId] } } }));
+    // Reparto: cofres con 2 objetos o más, o con uno solo si es raro o mejor
+    const single = count === 1;
+    const worthy = count >= 2 || (single && rarityRank(stacks[0].rarity ?? getItem(stacks[0].itemId).rarity) >= rarityRank(SHARE_SINGLE_MIN_RARITY));
+    const fresh = !s.chests[chestId];
+    set((st) => ({ chests: { ...st.chests, [chestId]: grid }, modal: { type: 'loot', session: { id: chestId, source: 'chest', title, initialCount: count, given: [], shareAsked: st.rival.disposition === 'allied' && fresh && worthy, totalValue: lootValue(grid), givenValue: 0, givenGold: 0, single } } }));
   },
 
   /** Gasta la llave (primero de la mochila, si no del bolsillo seguro) y abre el cofre. */
@@ -1241,7 +1282,10 @@ export const actions = {
   openBag(bagId: string) {
     const b = state.bags[bagId];
     if (!b) return;
-    set({ modal: { type: 'loot', session: { id: bagId, source: 'bag', title: b.label, initialCount: 0, given: [], shareAsked: false } } });
+    // Saco de un combate en el que luchó el errante: también espera su parte (una sola vez)
+    const ask = !!b.allyShare && state.rival.disposition === 'allied';
+    if (b.allyShare) set({ bags: { ...state.bags, [bagId]: { ...b, allyShare: false } } });
+    set({ modal: { type: 'loot', session: { id: bagId, source: 'bag', title: b.label, initialCount: b.grid.filter((x) => x && !isCover(x)).length, given: [], shareAsked: ask, totalValue: lootValue(b.grid), givenValue: 0, givenGold: 0 } } });
   },
 
   /** Da un objeto del cofre a Kael como parte del reparto. */
@@ -1249,12 +1293,16 @@ export const actions = {
     const s = state;
     const m = s.modal;
     if (m?.type !== 'loot') return;
-    const grid = [...(s.chests[lootId] ?? [])];
-    const it = grid[index];
+    const bag = s.bags[lootId];
+    const grid = cloneGrid(s.chests[lootId] ?? bag?.grid ?? []);
+    const { stack: it } = removeAt(grid, index);
     if (!it) return;
-    grid[index] = null;
     sfx('pickup');
-    set({ chests: { ...s.chests, [lootId]: grid }, modal: { type: 'loot', session: { ...m.session, given: [...m.session.given, it.itemId] } } });
+    const coinsGiven = isCoins(it) ? it.qty : 0;
+    const ids = coinsGiven ? [] : Array.from({ length: it.qty }, () => it.itemId);
+    const session = { ...m.session, given: [...m.session.given, ...ids], givenValue: (m.session.givenValue ?? 0) + stackGoldValue(it), givenGold: (m.session.givenGold ?? 0) + coinsGiven + (it.gold ?? 0) };
+    if (bag) set({ bags: { ...s.bags, [lootId]: { ...bag, grid } }, modal: { type: 'loot', session } });
+    else set({ chests: { ...s.chests, [lootId]: grid }, modal: { type: 'loot', session } });
   },
 
   closeLoot() {
@@ -1263,9 +1311,10 @@ export const actions = {
     if (m?.type === 'loot') {
       // Recogida de oro implícita en bolsas: nada. Reparto con aliado:
       if (m.session.shareAsked) {
-        const r = shareLoot(s.rival, m.session.given, m.session.initialCount, makeRng(randomSeed()));
+        const ss = m.session;
+        const r = shareLoot(s.rival, { givenValue: ss.givenValue ?? 0, totalValue: ss.totalValue ?? 0, givenIds: ss.given, givenGold: ss.givenGold ?? 0, single: ss.single }, makeRng(randomSeed()));
         set({ rival: r.rival });
-        if (r.line) toast(r.line, m.session.given.length ? 'social' : 'danger');
+        if (r.line) toast(r.line, r.verdict === 'fair' ? 'social' : 'danger');
         bus.emit('rival-changed');
       }
       // Abrir un cofre con llave o de jefe es un momento de debilidad: un errante traidor puede aprovecharlo
@@ -1316,7 +1365,7 @@ export const actions = {
   },
 
   rivalPropose() {
-    const r = proposeAlliance(state.rival, makeRng(randomSeed()), Date.now(), gridGold(state.expedition?.backpack ?? []));
+    const r = proposeAlliance(state.rival, makeRng(randomSeed()), Date.now(), gridGold(state.expedition?.backpack ?? []) + gridGold(state.expedition?.pocket ?? []));
     if (dev.forceBetrayal) r.rival.traitor = true;
     set({ rival: r.rival, rivalLine: r.line });
     if (r.accepted) {
@@ -1348,6 +1397,50 @@ export const actions = {
 
   askBetray() {
     set({ modal: { type: 'confirmBetray' } });
+  },
+
+  /**
+   * Fin de la canalización del portal. Con un errante aliado, antes de cruzar te pide su parte del oro
+   * ganado desde que os aliasteis (menos si has repartido bien, más si has sido avaricioso).
+   */
+  requestExtract() {
+    const s = state;
+    if (!s.expedition || s.combat) return;
+    const r = s.rival;
+    if (!s.tutorial && r.disposition === 'allied' && r.hp > 0 && r.paid === undefined) {
+      const pct = sharePct(r);
+      const goldNow = gridGold(s.expedition.backpack) + gridGold(s.expedition.pocket);
+      const amount = goldShare(r, goldNow, pct);
+      if (amount > 0) {
+        sfx('click');
+        set({ modal: { type: 'rivalDemand', amount, pct, line: demandLine(r, amount) } });
+        return;
+      }
+    }
+    void actions.finishExpedition('extracted');
+  },
+
+  /** Pagas su parte (monedas de la mochila, luego del bolsillo y, si no llega, objetos) y cruzáis el portal. */
+  payRival() {
+    const s = state;
+    const m = s.modal;
+    if (m?.type !== 'rivalDemand' || !s.expedition) return;
+    const pay = planPayment(s.expedition.backpack, s.expedition.pocket, m.amount);
+    const r = { ...s.rival, paid: pay.gold + pay.itemsValue, gold: s.rival.gold + pay.gold, bagItemIds: [...s.rival.bagItemIds, ...pay.items.flatMap((x) => Array.from({ length: x.qty }, () => x.itemId))] };
+    set({ expedition: { ...s.expedition, backpack: pay.backpack, pocket: pay.pocket }, rival: r, modal: null });
+    sfx('coin');
+    void actions.finishExpedition('extracted');
+  },
+
+  /** Te niegas a pagarle: se vuelve contra ti, sin huida posible. */
+  refuseRival() {
+    const s = state;
+    if (s.modal?.type !== 'rivalDemand') return;
+    set({ rival: refuseShare(s.rival), modal: null, rivalLine: null });
+    sfx('betray');
+    toast(refusedLine(s.rival), 'danger');
+    bus.emit('rival-changed');
+    actions.startCombat('betrayal-by-rival', null);
   },
 
   confirmBetray() {
@@ -1434,11 +1527,12 @@ export const actions = {
       const name = getWanderer(s.rival.who).name;
       if (kind === 'betrayal-by-player') rc.statuses.push({ id: 'stun', turns: 1 });
       // Si te traiciona atacando, empiezas sangrando; si te robó y lo alcanzas, no
-      if (kind === 'betrayal-by-rival' && s.rival.disposition !== 'fleeing') player.statuses.push({ id: 'bleed', turns: 2 });
+      const refused = kind === 'betrayal-by-rival' && s.rival.betrayedBy === 'player';
+      if (kind === 'betrayal-by-rival' && s.rival.disposition !== 'fleeing' && !refused) player.statuses.push({ id: 'bleed', turns: 2 });
       list.push(rc);
       // Tu mercenario de Garra Roja siempre te defiende
       if (s.merc?.alive) list.splice(1, 0, mercCombatant(s.merc, 'A', combatLevel()));
-      title = kind === 'hostile' ? `Combate hostil: ${name}` : kind === 'betrayal-by-player' ? `Traición: atacas a ${name} por sorpresa` : s.rival.disposition === 'fleeing' ? `¡Alcanzas a ${name}!` : `¡${name} te traiciona!`;
+      title = kind === 'hostile' ? `Combate hostil: ${name}` : kind === 'betrayal-by-player' ? `Traición: atacas a ${name} por sorpresa` : s.rival.disposition === 'fleeing' ? `¡Alcanzas a ${name}!` : refused ? `¡${name} viene a por su parte!` : `¡${name} te traiciona!`;
       // Traiciones: no hay huida posible. Solo el combate hostil (atacar a un neutral o un errante hostil) permite escapar.
       canFlee = kind === 'hostile';
     }
@@ -1543,7 +1637,7 @@ export const actions = {
         if (dropped.length) {
           const [x, y] = s.hud.playerTile;
           const foe = next.combatants.find((c) => c.side === 'B' && c.ref && c.ref !== 'rival');
-          const bag: Bag = { id: makeUid('bag'), x, y, grid: addManyToGrid(emptyGrid(Math.max(12, dropped.length)), dropped).grid, label: foe ? `Saco de ${getEnemy(foe.ref!).name}` : 'Saco del combate' };
+          const bag: Bag = { id: makeUid('bag'), x, y, grid: addManyToGrid(emptyGrid(Math.max(12, dropped.length)), dropped).grid, label: foe ? `Saco de ${getEnemy(foe.ref!).name}` : 'Saco del combate', allyShare: state.rival.disposition === 'allied' && next.combatants.some((c) => c.id === 'rival' && c.side === 'A' && c.hp > 0) };
           bagId = bag.id;
           set((st) => ({ bags: { ...st.bags, [bag.id]: bag } }));
           bus.emit('bags-changed');

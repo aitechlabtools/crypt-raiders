@@ -8,7 +8,7 @@ import { CLASSES } from '../../core/data/classes';
 import { STATUSES } from '../../core/statuses';
 import { countItem } from '../../core/inventory';
 import { wornSkin } from '../../core/skins';
-import { allyBackUrl, heroBackUrl, monsterUrl, FLYER_SPECS } from '../../shared/art';
+import { allyBackUrl, heroBackUrl, monsterUrl, FLYER_SPECS, iconUrl } from '../../shared/art';
 import type { Appearance, ClassId, Equipment } from '../../core/types';
 import { zoneBackdrop, zoneFor } from './combatZones';
 import { areaDef } from '../../core/data/zones';
@@ -130,6 +130,8 @@ export function CombatScreen() {
     { label: 'Mochila', sub: usableItems.length ? `${bagEntries.length} usable${bagEntries.length > 1 ? 's' : ''}` : 'Nada', color: '#e8b33a', icon: 'bag', onUse: openBag, testId: 'act-bag', disabled: !usableItems.length },
     { label: 'Huir', sub: fleeTxt, color: '#8c8693', icon: 'flee', onUse: () => actions.combatAct({ type: 'flee' }), testId: 'act-flee', disabled: !cs.canFlee },
   ];
+  // Coste de la habilidad señalada (ratón, teclado o mantener pulsado): se marca en la barra de recurso
+  const spendPreview = !playerTurn || cs.outcome ? 0 : menu === 'special' ? (focused?.itemId ? 0 : (focused as { cd?: number } | undefined)?.cd ? 0 : focused?.cost ?? 0) : menu === 'main' && focus === 2 && classSlot && !classCd ? classSlot.cost : 0;
   const useEntry = (e: Slot | undefined) => { if (e && !e.disabled) e.onUse(); };
   const back = () => { setMenu('main'); setFocus(menu === 'special' ? 1 : 3); };
   const nextPage = () => { setPage((p) => (p + 1) % pages); setFocus(0); };
@@ -204,7 +206,7 @@ export function CombatScreen() {
         </div>
         <div className="absolute right-[3%] bottom-[6%] flex flex-col items-end gap-2 info-stack info-stack-br">
           {allies.map((c) => <InfoFrame key={c.id} c={c} small />)}
-          <InfoFrame c={player} nums level={profile.character.level} sub={CLASS_NAME[profile.character.classId]} />
+          <InfoFrame c={player} nums level={profile.character.level} sub={CLASS_NAME[profile.character.classId]} spend={spendPreview} />
         </div>
       </div>
 
@@ -284,7 +286,7 @@ function EntryInfo({ e, res }: { e: Slot; res: string }) {
   );
 }
 
-function InfoFrame({ c, nums, sub, small, level }: { c: Combatant; nums?: boolean; sub?: string; small?: boolean; level?: number }) {
+function InfoFrame({ c, nums, sub, small, level, spend = 0 }: { c: Combatant; nums?: boolean; sub?: string; small?: boolean; level?: number; spend?: number }) {
   const kind = c.boss ? 'boss' : c.side === 'A' && c.control !== 'player' ? 'ally' : '';
   return (
     <div className={`frame ${kind} ${small ? 'frame-sm' : ''}`} data-testid={`info-${c.id}`}>
@@ -296,15 +298,14 @@ function InfoFrame({ c, nums, sub, small, level }: { c: Combatant; nums?: boolea
         </div>
         {small && <span className="text-xs text-stone-400">{c.hp} / {c.stats.maxHp}</span>}
       </div>
-      <div className="hprow"><span className="text-[#ff7a6a]">PV</span><Bar value={c.hp} max={c.stats.maxHp} color="#c4283b" testId={`hp-${c.id}`} /></div>
-      {!small && c.stats.maxMp > 0 && <div className="hprow"><span className={c.resourceName === 'Ímpetu' ? 'text-[#ffc08a]' : 'text-[#9cc3ff]'}>{c.resourceName === 'Ímpetu' ? 'IM' : 'MA'}</span><Bar value={c.mp} max={c.stats.maxMp} color={c.resourceName === 'Ímpetu' ? '#e08a3d' : '#3d7be0'} /></div>}
+      <div className="hprow"><span className="text-[#ff7a6a]">PV</span><Bar value={c.hp} max={c.stats.maxHp} color="#c4283b" testId={`hp-${c.id}`} />{nums && <b className="hpnum" data-testid={`hpnum-${c.id}`}>{c.hp}<i> / {c.stats.maxHp}</i></b>}</div>
+      {!small && c.stats.maxMp > 0 && <div className="hprow"><span className={c.resourceName === 'Ímpetu' ? 'text-[#ffc08a]' : 'text-[#9cc3ff]'}>{c.resourceName === 'Ímpetu' ? 'IM' : 'MA'}</span><Bar value={c.mp} max={c.stats.maxMp} color={c.resourceName === 'Ímpetu' ? '#e08a3d' : '#3d7be0'} spend={spend} testId={`mp-${c.id}`} />{nums && <b className="hpnum" data-testid={`mpnum-${c.id}`}>{c.mp}<i> / {c.stats.maxMp}</i></b>}</div>}
       {!small && (
         <div className="flex justify-between items-center mt-1 min-h-[16px] gap-2">
           <span className="flex flex-wrap gap-1">
             {c.defending && <span className="chip" style={{ color: '#d9d3c1', borderColor: '#8c8693' }}>En guardia</span>}
             {c.statuses.map((st) => <span key={st.id} className="chip" style={{ color: STATUSES[st.id].color, borderColor: STATUSES[st.id].color }} title={STATUSES[st.id].description}>{STATUSES[st.id].name} {st.turns}</span>)}
           </span>
-          {nums && <span className="text-sm text-parchment whitespace-nowrap">{c.hp}<span className="text-stone-400"> / {c.stats.maxHp}</span></span>}
         </div>
       )}
     </div>
@@ -350,10 +351,11 @@ function Result() {
       <div className={`font-display text-3xl ${color}`}>{title}</div>
       {r && (
         <div className="mt-2 text-sm space-y-1">
-          <div><span className="text-arcane">+{r.xp} XP</span>{r.gold > 0 && <span className="text-gold"> · {r.gold} {r.gold === 1 ? 'moneda' : 'monedas'}</span>}</div>
-          {r.items.length > 0 && (
+          <div><span className="text-arcane">+{r.xp} XP</span></div>
+          {(r.items.length > 0 || r.gold > 0) && (
             <div className="flex flex-wrap gap-1 items-center">
               <span className="text-stone-300 mr-1">En el saco:</span>
+              {r.gold > 0 && <span className="flex items-center gap-1 bg-black/30 px-1 text-gold" data-testid="combat-bag-gold"><img src={iconUrl(r.gold <= 3 ? 'coins1' : r.gold <= 7 ? 'coins2' : 'coins3', 3)} width={20} height={20} alt="" className="pixelated" />{r.gold} {r.gold === 1 ? 'moneda' : 'monedas'}</span>}
               {r.items.map((it) => <span key={it.uid} className="flex items-center gap-1 bg-black/30 px-1"><ItemIcon itemId={it.itemId} size={20} />{getItem(it.itemId).name}{it.qty > 1 ? ` x${it.qty}` : ''}</span>)}
             </div>
           )}

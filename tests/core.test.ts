@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { skillCost, IMPETUS_ON_HIT } from '../src/config/progression';
 import { getSkill } from '../src/core/data/skills';
 import { createCombat, performAction, runAITurn, currentActor, turnOrder, rollDamage, getCombatant, DOOM_ROUND, type Combatant } from '../src/core/combat';
 import { enemyCombatant, playerCombatant, rivalCombatant } from '../src/core/combatants';
@@ -155,7 +156,22 @@ describe('Combate por turnos', () => {
     let s = duel(3);
     const before = getCombatant(s, 'player').mp;
     s = performAction(s, { type: 'skill', skillId: 'rending_slash', targetId: 'e1' });
-    expect(getCombatant(s, 'player').mp).toBe(Math.min(before - getSkill('rending_slash').cost + 2, getCombatant(s, 'player').stats.maxMp));
+    // El guerrero no recupera ímpetu al acabar el turno (solo peleando); el enemigo puede golpearle (+1)
+    const after = getCombatant(s, 'player').mp;
+    expect(after).toBeLessThanOrEqual(before - getSkill('rending_slash').cost + 1);
+    expect(after).toBeGreaterThanOrEqual(before - getSkill('rending_slash').cost);
+  });
+  it('el coste crece con el recurso máximo y el ímpetu se gana golpeando', () => {
+    expect(skillCost(3, 20)).toBe(3);
+    expect(skillCost(3, 50)).toBe(6);
+    expect(skillCost(3, 45, 'mana')).toBe(3);
+    expect(skillCost(3, 100, 'mana')).toBe(6);
+    let s = duel(3);
+    const p = s.combatants[0];
+    p.mp = 0;
+    s = performAction(s, { type: 'attack', targetId: 'e1' });
+    const hit = s.events.some((e) => e.type === 'damage' && e.targetId === 'e1');
+    if (hit) expect(getCombatant(s, 'player').mp).toBeGreaterThanOrEqual(IMPETUS_ON_HIT);
   });
   it('no permite usar una habilidad sin recurso', () => {
     let s = duel(3);
@@ -280,7 +296,8 @@ describe('Extracción y muerte', () => {
     expect(dead.stats.deaths).toBe(1);
   });
   it('las misiones avanzan', () => {
-    const p = warriorProfile();
+    const p0 = warriorProfile();
+    const p = { ...p0, quests: p0.quests.map((q) => ({ ...q, accepted: true })) };
     const { profile, expedition } = startExpedition(p, 0);
     expedition.kills = { skeleton: 2 };
     const r = endExpedition(profile, expedition, 'extracted', 10);

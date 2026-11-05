@@ -50,5 +50,7 @@ export const QUESTS: QuestDef[] = [
   { id: 'q_brand_obsidian', vendor: 'brand', name: 'Filo de obsidiana', description: 'Entrega 6 esquirlas de obsidiana.', type: 'deliver', target: 'obsidian_shard', count: 6, reward: { gold: 70, xp: 2000, rep: 160 }, minLevel: 60, repeatable: true },
 ];
 
-/** Cuántas misiones de cada vendedor se muestran a la vez. */
-export const QUESTS_PER_VENDOR = 3;
+/** Cuántas misiones puedes llevar aceptadas a la vez (entre todos los mercaderes). */
+export const MAX_ACTIVE_QUESTS = 5;
+/** Una misión pasa a «Encargos antiguos» cuando tu nivel supera en esto el de su zona (Mazmorra 1, Cripta 30, Infierno 60). */
+export const OLD_QUEST_GAP = 39;

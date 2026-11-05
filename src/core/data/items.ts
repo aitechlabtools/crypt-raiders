@@ -74,8 +74,8 @@ const list: ItemDef[] = [
 
   // ── Consumibles ───────────────────────────────────────
   { id: 'health_potion', name: 'Poción de vida', description: 'Restaura 45 puntos de vida (o el 18% de tu vida máxima, si es más).', icon: 'potion_red', category: 'potion', rarity: 'common', value: 20, stack: 5, use: { kind: 'heal', amount: 45 } },
-  { id: 'mana_potion', name: 'Poción de maná', description: 'Restaura 25 puntos de maná (o el 18% del máximo, si es más). Para magos.', icon: 'potion_blue', category: 'potion', rarity: 'common', value: 20, stack: 5, use: { kind: 'mana', amount: 25 }, resource: 'mana' },
-  { id: 'focus_tonic', name: 'Tónico de concentración', description: 'Restaura 25 puntos de ímpetu (o el 18% del máximo, si es más). Para guerreros.', icon: 'potion_orange', category: 'potion', rarity: 'common', value: 20, stack: 5, use: { kind: 'mana', amount: 25 }, resource: 'impetus' },
+  { id: 'mana_potion', name: 'Poción de maná', description: 'Restaura 25 puntos de maná (o el 35% del máximo, si es más). Para magos.', icon: 'potion_blue', category: 'potion', rarity: 'common', value: 20, stack: 5, use: { kind: 'mana', amount: 25 }, resource: 'mana' },
+  { id: 'focus_tonic', name: 'Tónico de concentración', description: 'Restaura 25 puntos de ímpetu (o el 35% del máximo, si es más). Para guerreros.', icon: 'potion_orange', category: 'potion', rarity: 'common', value: 20, stack: 5, use: { kind: 'mana', amount: 25 }, resource: 'impetus' },
   { id: 'antidote', name: 'Antídoto amargo', description: 'Elimina veneno, quemadura y sangrado.', icon: 'potion_green', category: 'potion', rarity: 'uncommon', value: 25, stack: 5, use: { kind: 'cleanse' } },
 
   // ── Tesoros y materiales ──────────────────────────────

@@ -42,7 +42,8 @@ function useOpenTip(id: string) {
   return { open, show, hide: () => setOpen(false) };
 }
 import type { Combatant } from '../../core/combat';
-import { canUseSkill, cooldownLeft } from '../../core/combat';
+import { canUseSkill, cooldownLeft, costOf } from '../../core/combat';
+import { resourceGain } from '../../config/progression';
 import { getSkill } from '../../core/data/skills';
 import { getItem } from '../../core/data/items';
 import { STATUSES } from '../../core/statuses';
@@ -87,14 +88,14 @@ export function ActionIcon({ fx, color, size = 30 }: { fx: string; color?: strin
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const kindName = (k: string) => (k === 'magical' ? 'mágico' : 'físico');
 
-function skillLines(sk: SkillDef, res: string): string[] {
+function skillLines(sk: SkillDef, res: string, maxMp = 0): string[] {
   const out: string[] = [];
   if (sk.target === 'enemy' && sk.power) out.push(`Daño ${kindName(sk.kind ?? 'physical')} ×${sk.power}`);
   if (sk.ignoresEvasion) out.push('No se puede esquivar');
   if (sk.armorPierce) out.push(`Ignora el ${pct(sk.armorPierce)} de la defensa`);
   if (sk.bonusVsUndead) out.push(`×${sk.bonusVsUndead} contra no-muertos`);
   if (sk.healPct) out.push(`Te cura un ${pct(sk.healPct)} de la vida`);
-  if (sk.manaGain) out.push(`Recuperas ${sk.manaGain} de ${res.toLowerCase()}`);
+  if (sk.manaGain) out.push(`Recuperas ${resourceGain(sk.manaGain, maxMp)} de ${res.toLowerCase()}`);
   if (sk.cooldown) out.push(`Recarga: ${sk.cooldown} turno${sk.cooldown > 1 ? 's' : ''}`);
   for (const a of sk.applies ?? []) {
     const st = STATUSES[a.status];
@@ -113,9 +114,9 @@ export function skillSlot(id: string, key: string, source: Source, sourceLabel: 
   const sk = getSkill(id);
   const ok = canUseSkill(player, id);
   return {
-    id, key, name: sk.name, fx: sk.fx ?? 'slash', source, sourceLabel, cost: sk.cost, disabled: !ok,
-    reason: ok ? undefined : cooldownLeft(player, id) > 0 ? `En recarga: faltan ${cooldownLeft(player, id)} turno${cooldownLeft(player, id) > 1 ? 's' : ''}.` : `Te falta ${player.resourceName.toLowerCase()}: necesitas ${sk.cost} y tienes ${player.mp}.`,
-    desc: sk.description, lines: [...skillLines(sk, player.resourceName), ...modLine(player.skillMods?.[id])], onUse, testId: `skill-${id}`,
+    id, key, name: sk.name, fx: sk.fx ?? 'slash', source, sourceLabel, cost: costOf(player, id), disabled: !ok,
+    reason: ok ? undefined : cooldownLeft(player, id) > 0 ? `En recarga: faltan ${cooldownLeft(player, id)} turno${cooldownLeft(player, id) > 1 ? 's' : ''}.` : `Te falta ${player.resourceName.toLowerCase()}: necesitas ${costOf(player, id)} y tienes ${player.mp}.`,
+    desc: sk.description, lines: [...skillLines(sk, player.resourceName, player.stats.maxMp), ...modLine(player.skillMods?.[id])], onUse, testId: `skill-${id}`,
   };
 }
 function modLine(m?: { cooldown: number; power: number }): string[] {

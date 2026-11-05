@@ -16,6 +16,12 @@ export interface WandererLines {
   refuse?: string;
   fair: string;
   greedy: string;
+  /** Le das algo, pero poco. */
+  stingy?: string;
+  /** En el portal, al pedir su parte («{n}» es la cantidad). */
+  demand?: string;
+  /** Si te niegas a pagarle. */
+  refused?: string;
   /** Aviso antes de traicionar (siempre hay uno). */
   warn: string;
   betray: string;
@@ -69,6 +75,9 @@ export const WANDERERS: Record<string, WandererDef> = {
       join: 'Kael: «Vamos juntos. Repartimos a partes iguales. Y si no, también: lo que no quieras, me lo quedo.»',
       fair: 'Kael: «Justo y honrado. Así da gusto.»',
       greedy: 'Kael: «Ya veo cómo funciona esto…» Kael te mira en silencio.',
+      stingy: 'Kael: «¿Esto es mi mitad? Tienes un concepto curioso de «a partes iguales».»',
+      demand: 'Kael: «Antes de cruzar, lo mío. {n} monedas, como acordamos.»',
+      refused: 'Kael: «Llevo demasiados años en esto para que un crío me tome el pelo.»',
       warn: 'Kael: «He tenido una mala racha, chico…» Su mano descansa sobre la daga.',
       betray: 'Kael: «Nada personal. Es que tu mochila pesa demasiado para ti.»',
       leave: 'Kael: «Así que aquí se separan nuestros caminos. Que la cripta te sea leve.»',

@@ -49,7 +49,7 @@ describe('Minería', () => {
     expect(usesLeft(g[2]!)).toBe(ITEMS.steel_pick.uses);
   });
   it('la misión de Brand cuenta vetas picadas', () => {
-    const q = updateQuests(initialQuests(), { extracted: true, kills: {}, extractedValue: 0, zone: 'mazmorra', veinsMined: 3 });
+    const q = updateQuests(initialQuests().map((q) => ({ ...q, accepted: true })), { extracted: true, kills: {}, extractedValue: 0, zone: 'mazmorra', veinsMined: 3 });
     expect(q.find((x) => x.id === 'q_brand_mine')!.progress).toBe(3);
   });
 });

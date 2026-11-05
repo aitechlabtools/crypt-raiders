@@ -27,12 +27,21 @@ export const HOSTILE_CHANCE = 0.2;
 export const KAEL_CHANCE = 0.33;
 export const KAEL_GUARANTEE_AFTER = 4;
 
-/** Coste de aliarse: su parte de los cofres (se pide en cada cofre con 2 objetos o más) y este porcentaje del oro. */
+/** Coste de aliarse: su parte de cofres y sacos de combate, y al llegar al portal este porcentaje del oro ganado. */
 export const GOLD_SHARE = 0.2;
+/** En el portal pide menos si has repartido bien durante la bajada y más si has sido avaricioso. */
+export const GOLD_SHARE_FAIR = 0.1;
+export const GOLD_SHARE_GREEDY = 0.3;
 
-/** El reparto cambia la probabilidad de traición: justo la baja, quedártelo todo la sube. Se vuelve a tirar el dado. */
+/**
+ * El reparto se mide por VALOR: darle al menos este porcentaje del botín es justo (baja el riesgo de traición);
+ * darle algo pero menos es tacaño (no cambia); no darle nada es avaricioso (lo sube). Se vuelve a tirar el dado.
+ */
+export const SHARE_FAIR_RATIO = 0.25;
 export const SHARE_FAIR_DELTA = -0.05;
 export const SHARE_GREEDY_DELTA = 0.1;
+/** Un cofre con un solo objeto solo pide reparto si el objeto es de esta rareza o mejor (y quedárselo es solo tacaño). */
+export const SHARE_SINGLE_MIN_RARITY: 'rare' | 'epic' | 'legendary' = 'rare';
 
 /** Cuándo puede actuar un traidor: nunca antes de este tiempo de alianza, y solo en un momento de debilidad. */
 export const BETRAY_MIN_ALLIED_MS = 60_000;

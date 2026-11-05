@@ -7,7 +7,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { actions, useGame } from '../../state/store';
 import { VENDORS, VENDOR_ORDER, type VendorId } from '../../../core/data/vendors';
 import { REP_RANKS, rankOf } from '../../../config/reputation';
-import { offeredQuests, questDef, questProgress } from '../../../core/quests';
+import { readyQuestCount } from '../../../core/quests';
 import { getItem } from '../../../core/data/items';
 import { owned } from '../../../core/forge';
 import type { Loc } from '../../../core/inventory';
@@ -52,17 +52,17 @@ function VendorCards({ onTalk }: { onTalk: (v: VendorId) => void }) {
         {VENDOR_ORDER.map((id) => {
           const v = VENDORS[id];
           const rep = profile.reputation[id] ?? 0;
-          const ready = offeredQuests(profile, id).filter((q) => questProgress(q, profile) >= questDef(q.id).count).length;
+          const ready = readyQuestCount(profile, id);
           const special = SPECIAL[id];
           return (
-            <Card key={id} title={v.name} badge={ready} on={id === 'brand'} testId={`vendor-card-${id}`}
+            <Card key={id} title={v.name} badge={ready} testId={`vendor-card-${id}`}
               art={<div className="pb-2 pt-4"><MonsterSprite sprite={v.sprite} scale={scale} /></div>}>
               <div className="text-center text-[12px]" style={{ color: v.color }}>{v.role}</div>
               <RepBar rep={rep} />
               <div className="flex flex-wrap justify-center gap-1">
                 {servicesOf(id).map((s) => <span key={s} className={`ui-tag ${s === special ? 'on' : ''}`}>{VIEW_LABEL[s]}</span>)}
               </div>
-              <button className={`btn ${id === 'brand' ? 'btn-gold' : ''} w-full font-display tracking-[0.12em] uppercase`} style={{ minHeight: 'var(--btn-h)' }}
+              <button className="btn w-full mt-auto font-display tracking-[0.12em] uppercase" style={{ minHeight: 'var(--btn-h)' }}
                 onClick={() => onTalk(id)} data-testid={`vendor-${id}`}>Hablar</button>
             </Card>
           );

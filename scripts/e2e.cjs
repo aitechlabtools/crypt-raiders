@@ -200,6 +200,9 @@ fs.mkdirSync(OUT, { recursive: true });
     await page.keyboard.press('e');
     await page.waitForTimeout(1500);
     await shot('15-channel');
+    // Con Kael aliado, en el portal pide su parte del oro: se la pagamos
+    const demand = await page.waitForSelector('[data-testid=rival-demand], [data-testid=summary]', { timeout: 30000 });
+    if ((await demand.getAttribute('data-testid')) === 'rival-demand') { await shot('15b-rival-demand'); await page.click('[data-testid=rival-pay]'); }
     await page.waitForSelector('[data-testid=summary]', { timeout: 30000 });
     await page.waitForTimeout(400);
     await shot('16-summary');
@@ -211,7 +214,7 @@ fs.mkdirSync(OUT, { recursive: true });
     await page.click('[data-testid=tab-stash]');
     const lobbyItems = (await st()).backpack;
     console.log('\n   lobby:', lobbyItems.join(', '));
-    for (const it of carried) if (!lobbyItems.includes(it)) throw new Error('falta ' + it);
+    for (const it of carried) if (!it.startsWith('gold_coins') && !lobbyItems.includes(it)) throw new Error('falta ' + it);
     await shot('17-lobby-after');
   });
   await step('Persistencia tras recargar', async () => {
@@ -220,7 +223,7 @@ fs.mkdirSync(OUT, { recursive: true });
     await page.click('[data-testid=btn-play]');
     await page.click('[data-testid=tab-stash]');
     const again = (await st()).backpack;
-    for (const it of carried) if (!again.includes(it)) throw new Error('tras recargar falta ' + it);
+    for (const it of carried) if (!it.startsWith('gold_coins') && !again.includes(it)) throw new Error('tras recargar falta ' + it);
   });
   let firstSeed;
   await step('Segunda expedición: mapa procedural y extracción', async () => {

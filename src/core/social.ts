@@ -5,7 +5,7 @@ import { GOLD_SCALE } from '../config/gold';
 // solo actúa en un momento de debilidad, nunca en el primer minuto, y siempre avisa antes. El reparto de cofres
 // cambia el riesgo y vuelve a tirar el dado. Valores en config/wanderers.ts.
 // ════════════════════════════════════════════════════════════════════
-import { BETRAY_MIN_ALLIED_MS, ENCOUNTER_CHANCE, HOSTILE_CHANCE, HOSTILE_FROM_SUBZONE, KAEL_CHANCE, KAEL_GUARANTEE_AFTER, RISK, ROB_CHANCE, SHARE_FAIR_DELTA, SHARE_GREEDY_DELTA, ZONE_RISK, type RiskLevel } from '../config/wanderers';
+import { BETRAY_MIN_ALLIED_MS, ENCOUNTER_CHANCE, HOSTILE_CHANCE, HOSTILE_FROM_SUBZONE, KAEL_CHANCE, KAEL_GUARANTEE_AFTER, RISK, ROB_CHANCE, GOLD_SHARE, GOLD_SHARE_FAIR, GOLD_SHARE_GREEDY, SHARE_FAIR_DELTA, SHARE_FAIR_RATIO, SHARE_GREEDY_DELTA, ZONE_RISK, type RiskLevel } from '../config/wanderers';
 import { getWanderer, wanderersOf } from './data/wanderers';
 import type { SubzoneDef } from './data/subzones';
 import type { Rng } from './rng';
@@ -36,6 +36,10 @@ export interface RivalState {
   goldAtJoin: number;
   /** Ya se ha presentado (primera frase). */
   greeted: boolean;
+  /** Cómo has repartido en esta bajada: +1 por reparto justo, −1 por avaricioso. Decide cuánto pide en el portal. */
+  shareScore?: number;
+  /** Oro que le pagaste en el portal (para el resumen). */
+  paid?: number;
 }
 
 export function noRival(): RivalState {
@@ -102,15 +106,34 @@ export function leaveAlliance(r: RivalState): { rival: RivalState; line: string 
   return { rival: { ...r, disposition: 'departed' }, line: getWanderer(r.who).lines.leave };
 }
 
-/** Reparto del botín de un cofre abierto estando aliados: cambia el riesgo y se vuelve a tirar el dado. */
-export function shareLoot(r: RivalState, given: string[], chestItemCount: number, rng: Rng): { rival: RivalState; line: string | null } {
-  if (r.disposition !== 'allied' || chestItemCount < 2) return { rival: r, line: null };
+export type ShareVerdict = 'fair' | 'stingy' | 'greedy';
+
+/** Cómo ve el errante lo que le has dado (por valor). `single`: cofre de un solo objeto (quedártelo solo es tacaño). */
+export function shareVerdict(givenValue: number, totalValue: number, single = false): ShareVerdict {
+  if (givenValue <= 0) return single ? 'stingy' : 'greedy';
+  return totalValue <= 0 || givenValue / totalValue >= SHARE_FAIR_RATIO ? 'fair' : 'stingy';
+}
+
+export interface ShareInput { givenValue: number; totalValue: number; givenIds: string[]; givenGold: number; single?: boolean }
+
+/** Reparto del botín (cofre o saco de combate) estando aliados: cambia el riesgo y se vuelve a tirar el dado. */
+export function shareLoot(r: RivalState, x: ShareInput, rng: Rng): { rival: RivalState; line: string | null; verdict: ShareVerdict | null } {
+  if (r.disposition !== 'allied') return { rival: r, line: null, verdict: null };
   const w = getWanderer(r.who).lines;
-  const fair = given.length > 0;
-  const chance = Math.max(0, Math.min(1, r.chance + (fair ? SHARE_FAIR_DELTA : SHARE_GREEDY_DELTA)));
+  const verdict = shareVerdict(x.givenValue, x.totalValue, x.single);
+  const delta = verdict === 'fair' ? SHARE_FAIR_DELTA : verdict === 'greedy' ? SHARE_GREEDY_DELTA : 0;
+  const chance = Math.max(0, Math.min(1, r.chance + delta));
   // Si ya avisó, el dado ya no cambia: la decisión está tomada
   const traitor = r.warned ? r.traitor : rng.chance(chance);
-  return { rival: { ...r, chance, traitor, bagItemIds: fair ? [...r.bagItemIds, ...given] : r.bagItemIds }, line: fair ? w.fair : w.greedy };
+  const shareScore = (r.shareScore ?? 0) + (verdict === 'fair' ? 1 : verdict === 'greedy' ? -1 : 0);
+  const line = verdict === 'fair' ? w.fair : verdict === 'greedy' ? w.greedy : (w.stingy ?? 'Hmm. Poca cosa, para lo que hemos sudado.');
+  return { rival: { ...r, chance, traitor, shareScore, bagItemIds: [...r.bagItemIds, ...x.givenIds], gold: r.gold + x.givenGold }, line, verdict };
+}
+
+/** Qué parte del oro pide en el portal, según cómo hayas repartido. */
+export function sharePct(r: RivalState): number {
+  const sc = r.shareScore ?? 0;
+  return sc > 0 ? GOLD_SHARE_FAIR : sc < 0 ? GOLD_SHARE_GREEDY : GOLD_SHARE;
 }
 
 export interface BetrayalContext {
@@ -151,8 +174,27 @@ export function playerAttacksNeutral(r: RivalState): RivalState {
   return { ...r, disposition: 'hostile' };
 }
 
-/** Parte del oro que se lleva un errante al extraer juntos. */
-export function goldShare(r: RivalState, goldFound: number, share: number): number {
+/** Parte del oro que pide un errante al llegar juntos al portal (del oro ganado desde que os aliasteis). */
+export function goldShare(r: RivalState, goldNow: number, share = sharePct(r)): number {
   if (r.disposition !== 'allied' || r.hp <= 0) return 0;
-  return Math.max(0, Math.round((goldFound - r.goldAtJoin) * share));
+  return Math.max(0, Math.round((goldNow - r.goldAtJoin) * share));
+}
+
+/** Lo que dice al pedir su parte en el portal. */
+export function demandLine(r: RivalState, n: number): string {
+  const w = getWanderer(r.who);
+  const first = w.name.split(' ')[0];
+  const base = w.lines.demand ?? `${first}: «Antes de cruzar, mi parte. {n} monedas.»`;
+  return base.replace('{n}', String(n));
+}
+
+/** Lo que dice si te niegas a pagarle. */
+export function refusedLine(r: RivalState): string {
+  const w = getWanderer(r.who);
+  return w.lines.refused ?? `${w.name.split(' ')[0]}: «¿Así que esas tenemos? Muy bien.»`;
+}
+
+/** Te niegas a pagarle en el portal: se vuelve hostil (y cuenta como traición tuya). */
+export function refuseShare(r: RivalState): RivalState {
+  return { ...r, disposition: 'hostile', betrayed: true, betrayedBy: 'player' };
 }

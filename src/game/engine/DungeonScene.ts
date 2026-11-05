@@ -922,7 +922,7 @@ export class DungeonScene extends Phaser.Scene {
     if (this.channel >= 1) {
       this.channel = -1;
       this.cameras.main.flash(400, 180, 110, 255);
-      void actions.finishExpedition('extracted');
+      actions.requestExtract();
     }
   }
 

@@ -14,6 +14,7 @@ import type { Loc } from '../../../core/inventory';
 import { MonsterSprite, GoldAmount, Modal } from '../common';
 import { GridView, ItemIcon, isUpgrade } from '../inventory';
 import { useDrag } from '../pointerDrag';
+import { useIsTouch } from '../../../shared/device';
 import { buysThis, vendorSellPrice } from '../../../core/economy';
 import { isCover } from '../../../core/inventory';
 import { isCoins } from '../../../core/gold';
@@ -128,7 +129,7 @@ function VendorInterior({ vendor, initial, onBack }: { vendor: VendorId; initial
       </div>
     </Panel>
   );
-  const main = <Panel title={title} className="min-h-0" bodyClassName="overflow-y-auto scroll-thin" testId={`vendor-main-${view}`}>{center}</Panel>;
+  const main = <Panel title={title} className="min-h-0" bodyClassName={`overflow-y-auto scroll-thin ${view === 'sell' ? 'flex flex-col' : ''}`} testId={`vendor-main-${view}`}>{center}</Panel>;
   const pad = { padding: '0 max(var(--pad), env(safe-area-inset-right)) var(--pad) max(var(--pad), env(safe-area-inset-left))', gap: 'var(--gap)' } as const;
 
   if (phone) {
@@ -167,14 +168,19 @@ function SellGrids({ sel, setSel, marks, setMarks, vendor }: { sel: Loc | null; 
     const h = (e: Event) => { const l = (e as CustomEvent<Loc>).detail; const k = markKey(l); if (k) setMarks((m) => (m.includes(k) ? m : [...m, k])); setSel(l); };
     window.addEventListener('cr-drop-sell', h); return () => window.removeEventListener('cr-drop-sell', h);
   }, [setMarks, setSel]);
+  const touchy = useIsTouch();
   const isMarked = (l: Loc) => { const k = markKey(l); return !!k && marks.includes(k); };
+  const bagUsed = profile.backpack.some((x) => !!x && !isCover(x));
   return (
-    <div className="flex flex-wrap" style={{ gap: 'calc(var(--gap) * 2)' }} data-testid="sell-grids">
-      <div><SubHead>Mochila</SubHead><GridView grid={profile.backpack} container="backpack" cols={6} equipment={profile.equipment} mode="merchant" selected={sel} onSelect={toggle} onQuick={quick} onAlt={quick} marked={isMarked} /></div>
-      <div className="flex flex-col" style={{ height: 'min(62vh, 560px)', minHeight: 300 }}>
+    <div className="my-auto flex flex-wrap justify-center items-start" style={{ gap: 'calc(var(--gap) * 2)' }} data-testid="sell-grids">
+      <div className="flex flex-col">
+        <SubHead right={<button className="btn text-xs" style={{ minHeight: touchy ? 44 : 34 }} onClick={() => { sfx('click'); actions.emptyBackpack(); }} disabled={!bagUsed} data-testid="sell-empty-backpack" title="Pasa todo lo de la mochila al almacén">Vaciar mochila</button>}>Mochila</SubHead>
+        <GridView grid={profile.backpack} container="backpack" cols={6} equipment={profile.equipment} mode="merchant" selected={sel} onSelect={toggle} onQuick={quick} onAlt={quick} marked={isMarked} />
+        <p className="font-body text-[13px] text-stone-400 mt-3 max-w-[340px] leading-snug">Toca los objetos para marcarlos, o arrástralos a «A vender». Doble clic: vender al momento.</p>
+      </div>
+      <div className="flex flex-col" style={{ height: 'min(70vh, 640px)', minHeight: 280 }}>
         <StashPanel cols={8} mode="merchant" sel={sel} onSelect={toggle} onQuick={quick} onAlt={quick} testId="sell-stash" marked={isMarked} />
       </div>
-      <p className="font-body text-sm text-stone-400 italic w-full">Toca los objetos para marcarlos (o arrástralos a «A vender») y véndelos todos de una vez. Doble clic: vender al momento.</p>
     </div>
   );
 }

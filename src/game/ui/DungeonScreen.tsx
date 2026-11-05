@@ -74,6 +74,7 @@ export function DungeonScreen() {
       }
       if (k === 'escape') {
         e.preventDefault();
+        if (s.modal?.type === 'rival' && s.tutorial && s.rival.disposition !== 'allied') return; // tutorial: hay que aliarse
         if (s.modal) actions.closeModal();
         else actions.openModal({ type: 'pause' });
       } else if (k === 'i') {
@@ -442,11 +443,13 @@ function RivalModal() {
   const rival = useGame((s) => s.rival);
   const line = useGame((s) => s.rivalLine);
   const allied = rival.disposition === 'allied';
+  // En el tutorial, con Osric solo cabe aliarse
+  const onlyAlly = useGame((s) => !!s.tutorial) && !allied;
   const w = getWanderer(rival.who);
   const r = RISK[rival.risk];
   const first = w.name.split(' ')[0];
   return (
-    <Modal onClose={() => actions.closeModal()} testId="rival-modal">
+    <Modal onClose={() => { if (!onlyAlly) actions.closeModal(); }} testId="rival-modal">
       <div className="flex gap-4">
         <div className="shrink-0 w-28 h-36 bg-black/40 border-2 border-stone-700 flex flex-col items-center justify-end relative">
           <span className="absolute top-1.5"><RiskBadge risk={rival.risk} size={26} /></span>
@@ -463,19 +466,19 @@ function RivalModal() {
           </p>
         </div>
       </div>
-      <div className="grid sm:grid-cols-2 gap-2 mt-4">
-        <button className="btn" onClick={() => actions.rivalTalk()} data-testid="rival-talk">Hablar</button>
+      <div className={`grid gap-2 mt-4 ${onlyAlly ? '' : 'sm:grid-cols-2'}`}>
+        {!onlyAlly && <button className="btn" onClick={() => actions.rivalTalk()} data-testid="rival-talk">Hablar</button>}
         {!allied && <button className="btn btn-gold" onClick={() => actions.rivalPropose()} data-testid="rival-ally">Aliarse</button>}
-        {!allied && <button className="btn" onClick={() => actions.rivalIgnore()} data-testid="rival-ignore">Seguir tu camino</button>}
+        {!allied && !onlyAlly && <button className="btn" onClick={() => actions.rivalIgnore()} data-testid="rival-ignore">Seguir tu camino</button>}
         {allied && <button className="btn" onClick={() => actions.rivalLeave()} data-testid="rival-leave">Separar vuestros caminos</button>}
-        {!allied && <button className="btn btn-danger" onClick={() => actions.rivalAttack()} data-testid="rival-attack">Atacar</button>}
+        {!allied && !onlyAlly && <button className="btn btn-danger" onClick={() => actions.rivalAttack()} data-testid="rival-attack">Atacar</button>}
         {allied && <button className="btn btn-danger" onClick={() => actions.askBetray()} data-testid="rival-betray">Traicionar…</button>}
       </div>
       <p className="text-stone-400 mt-3 font-body text-sm" data-testid="rival-terms">
         {allied ? `Lucha a tu lado. Quiere su parte de cada cofre y de cada saco de combate, y al llegar al portal te pedirá el ${Math.round(GOLD_SHARE * 100)} % del oro (menos si repartes bien, más si no).` : `Si os aliáis, lucha a tu lado a cambio de su parte del botín y, en el portal, del ${Math.round(GOLD_SHARE * 100)} % del oro. El triángulo indica cuánto puedes fiarte.`}
         {' '}Una traición es a muerte y sin huida.
       </p>
-      <button className="btn mt-3 text-sm" onClick={() => actions.closeModal()}>Cerrar</button>
+      {!onlyAlly && <button className="btn mt-3 text-sm" onClick={() => actions.closeModal()}>Cerrar</button>}
     </Modal>
   );
 }
@@ -625,7 +628,10 @@ function TutorialGuide() {
   const t = useGame((s) => s.tutorial)!;
   const combat = useGame((s) => s.combat);
   const touch = useIsTouch();
-  const step = TUTORIAL_STEPS[t.step];
+  const channel = useGame((s) => s.hud.channel);
+  const raw = TUTORIAL_STEPS[t.step];
+  // Paso de la poción: no se muestra nada hasta que los pinchos te hieren
+  const step = raw?.id === 'potion' && t.potionsAt === undefined ? undefined : raw;
   const target = step?.target && 'ui' in step.target ? (touch && step.target.ui === 'btn-potion' ? 'touch-potion' : step.target.ui) : null;
   useEffect(() => {
     if (!target) return;
@@ -638,7 +644,8 @@ function TutorialGuide() {
     const iv = setInterval(find, 300);
     return () => { clearInterval(iv); el?.classList.remove('tut-pulse'); };
   }, [target]);
-  if (!step || combat) return null;
+  // Al canalizar el portal se aparta, para que se vea la barra de extracción
+  if (!step || combat || channel > 0) return null;
   return (
     <div className="tut-guide panel panel-gold" role="status" aria-live="polite" data-testid="tutorial-guide" data-step={step.id}>
       <div className="font-display text-gold text-[11px] tracking-[0.2em] uppercase">Tutorial · {t.step + 1}/{TUTORIAL_STEPS.length}</div>

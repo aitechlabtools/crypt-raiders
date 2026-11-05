@@ -35,7 +35,7 @@ export interface DragState {
   back?: { x: number; y: number };
 }
 
-const HOLD_MS = 220;      // dedo: tiempo quieto antes de poder arrastrar
+const HOLD_MS = 170;      // dedo: tiempo quieto antes de poder arrastrar
 const TOUCH_SLOP = 8;     // dedo: si se mueve más antes de HOLD_MS, es desplazamiento
 const MOUSE_SLOP = 5;     // ratón: píxeles para empezar a arrastrar
 const PAGE_HOVER_MS = 450;
@@ -43,6 +43,10 @@ const PAGE_HOVER_MS = 450;
 export const TOUCH_LIFT = 46;
 
 let state: DragState | null = null;
+/** Posición en vivo del icono: se mueve directamente en el DOM (cada cuadro) sin volver a pintar React. */
+const live = { x: 0, y: 0 };
+let ghostEl: HTMLDivElement | null = null;
+const placeGhost = () => { if (ghostEl && state && !state.back) ghostEl.style.transform = `translate3d(${live.x}px, ${live.y}px, 0) translate(-50%, -50%) rotate(-6deg)`; };
 const listeners = new Set<() => void>();
 const emit = () => listeners.forEach((l) => l());
 const set = (s: DragState | null) => { state = s; emit(); };
@@ -88,17 +92,14 @@ export function startPointerDrag(e: React.PointerEvent, from: Loc, itemId: strin
   let lastPage: string | null = null;
   const hold = touch ? window.setTimeout(() => { armed = true; navigator.vibrate?.(8); }, HOLD_MS) : undefined;
 
-  const move = (x: number, y: number, ev?: Event) => {
-    const dist = Math.hypot(x - x0, y - y0);
-    if (!dragging) {
-      if (!armed) { if (dist > TOUCH_SLOP) end(null); return; }   // dedo que se movió pronto: es desplazamiento
-      if (dist < (touch ? 4 : MOUSE_SLOP)) return;
-      dragging = true;
-    }
-    if (ev?.cancelable) ev.preventDefault();
-    const ty = touch ? y - TOUCH_LIFT : y;
-    // Se busca el destino donde está la punta del icono en táctil, y bajo el ratón en el ordenador
-    const t = targetAt(x, touch ? ty : y);
+  let raf = 0;
+  let px = x0, py = y0;
+  // Cada cuadro como mucho: se coloca el icono y se busca el destino. Solo se avisa a React si cambia el destino.
+  const frame = () => {
+    raf = 0;
+    const ty = touch ? py - TOUCH_LIFT : py;
+    live.x = px; live.y = ty;
+    const t = targetAt(px, ty);
     const over = t?.raw ?? null;
     // Pestaña del almacén: si se queda encima un momento, se abre esa página
     if (over !== lastPage) {
@@ -106,9 +107,21 @@ export function startPointerDrag(e: React.PointerEvent, from: Loc, itemId: strin
       const pt = over ? (JSON.parse(over) as DropTarget) : null;
       if (pt?.type === 'page' && pt.owned) pageTimer = window.setTimeout(() => actions.setStashPage(pt.page), PAGE_HOVER_MS);
     }
-    set({ from, lootId, itemId, x, y: ty, touch, over });
+    if (!state || state.over !== over) set({ from, lootId, itemId, x: px, y: ty, touch, over });
+    placeGhost();
   };
-  const onPointerMove = (ev: PointerEvent) => move(ev.clientX, ev.clientY, ev);
+  const move = (x: number, y: number, ev?: Event) => {
+    const dist = Math.hypot(x - x0, y - y0);
+    if (!dragging) {
+      if (!armed) { if (dist > TOUCH_SLOP) end(null); return; }   // dedo que se movió pronto: es desplazamiento
+      if (dist < (touch ? 3 : MOUSE_SLOP)) return;
+      dragging = true;
+    }
+    if (ev?.cancelable) ev.preventDefault();
+    px = x; py = y;
+    if (!raf) raf = requestAnimationFrame(frame);
+  };
+  const onPointerMove = (ev: PointerEvent) => { if (!touch) move(ev.clientX, ev.clientY, ev); };
   const onTouchMove = (ev: TouchEvent) => {
     const t = ev.touches[0]; if (!t) return;
     // Solo se bloquea el desplazamiento cuando ya se mantuvo pulsado: así el panel sigue desplazándose con un gesto normal
@@ -125,6 +138,7 @@ export function startPointerDrag(e: React.PointerEvent, from: Loc, itemId: strin
   const onContext = (ev: Event) => { if (touch) ev.preventDefault(); };
 
   function end(raw: string | null, released = false) {
+    if (raf) { cancelAnimationFrame(raf); raf = 0; }
     window.clearTimeout(hold); window.clearTimeout(pageTimer);
     window.removeEventListener('pointermove', onPointerMove);
     window.removeEventListener('pointerup', onUp);
@@ -163,9 +177,10 @@ export function DragLayer() {
     document.documentElement.classList.toggle('is-dragging', !!d && !d.back);
   }, [d]);
   if (!d) return null;
-  const pos = d.back ?? { x: d.x, y: d.y };
+  const pos = d.back ?? live;
   return createPortal(
-    <div ref={ghost} className={`drag-ghost ${d.back ? 'is-back' : ''}`} style={{ left: pos.x, top: pos.y }} aria-hidden data-testid="drag-ghost">
+    <div ref={(el) => { ghost.current = el; ghostEl = el; }} className={`drag-ghost ${d.back ? 'is-back' : ''}`}
+      style={{ left: 0, top: 0, transform: `translate3d(${pos.x}px, ${pos.y}px, 0) translate(-50%, -50%) rotate(-6deg)` }} aria-hidden data-testid="drag-ghost">
       <ItemIcon itemId={d.itemId} size={d.touch ? 56 : 48} />
     </div>,
     document.body,

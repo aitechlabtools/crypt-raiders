@@ -418,3 +418,6 @@ html.is-touch .tut-guide { top: auto; bottom: max(8px, env(safe-area-inset-botto
 .slot.is-marked { position: relative; z-index: 1; box-shadow: 0 0 0 2px #07060a, 0 0 0 5px #f2c75a; }
 .mark-coin { position: absolute; right: -6px; top: -6px; width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffe08a, #c48f22 70%); border: 2px solid #07060a; pointer-events: none; }
 .sell-drop.drag-over { border-color: var(--color-gold); background: #2a2116; }
+
+/* Margen para que el contorno de la casilla elegida no se corte en los bordes del panel */
+.slot-grid { padding: 6px; width: max-content; }

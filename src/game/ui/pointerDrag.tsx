@@ -135,7 +135,7 @@ export function startPointerDrag(e: React.PointerEvent, from: Loc, itemId: strin
     if (!dragging) { if (released || !state) set(null); return; }
     suppressClickUntil = performance.now() + 350;
     const d = state;
-    if (d && released && drop(d, raw)) { set(null); return; }
+    if (d && released && drop(d, raw)) { set(null); window.dispatchEvent(new Event('cr-dropped')); return; }
     // No vale: el icono vuelve a su casilla y desaparece
     const r = src.getBoundingClientRect();
     if (d) {
@@ -170,4 +170,13 @@ export function DragLayer() {
     </div>,
     document.body,
   );
+}
+
+/** Al soltar un objeto arrastrado se deja de marcar la casilla elegida. */
+export function useClearOnDrop(clear: () => void) {
+  useEffect(() => {
+    const f = () => clear();
+    window.addEventListener('cr-dropped', f);
+    return () => window.removeEventListener('cr-dropped', f);
+  }, [clear]);
 }

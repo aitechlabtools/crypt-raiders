@@ -237,7 +237,7 @@ export function GridView(props: {
   marked?: (loc: Loc) => boolean;
 }) {
   return (
-    <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${props.cols}, var(--slot))` }} data-testid={`grid-${props.container}`}>
+    <div className="grid gap-1 slot-grid" style={{ gridTemplateColumns: `repeat(${props.cols}, var(--slot))` }} data-testid={`grid-${props.container}`}>
       {props.grid.map((s, k) => {
         const i = k + (props.offset ?? 0);
         // Las casillas tapadas por un objeto grande no se pintan: el objeto ocupa su hueco (2×2)

@@ -1,3 +1,4 @@
+import { useClearOnDrop } from './pointerDrag';
 import { gridGold } from '../../core/gold';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
@@ -322,6 +323,7 @@ function ShareMeter({ given, total, single, name }: { given: number; total: numb
 function LootModal() {
   const s = useGame((x) => x);
   const [sel, setSel] = useState<Loc | null>(null);
+  useClearOnDrop(useCallback(() => setSel(null), []));
   if (s.modal?.type !== 'loot' || !s.expedition) return null;
   const session = s.modal.session;
   const grid = s.chests[session.id] ?? s.bags[session.id]?.grid ?? [];
@@ -527,6 +529,7 @@ function ConfirmBetray() {
 function DungeonInventory() {
   const s = useGame((x) => x);
   const [sel, setSel] = useState<Loc | null>(null);
+  useClearOnDrop(useCallback(() => setSel(null), []));
   const clear = useCallback(() => setSel(null), []);
   if (!s.expedition || !s.profile) return null;
   const ch = s.profile.character;

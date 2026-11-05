@@ -3,7 +3,7 @@
 // ficha del objeto que vas a vender. La forja (Maese Brand) y los contratos (Garra Roja) viven dentro de su mercader.
 // En móvil, la tercera zona va en un cajón por la derecha.
 import { StashPanel } from '../StashPanel';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode, useCallback } from 'react';
 import { actions, useGame } from '../../state/store';
 import { VENDORS, VENDOR_ORDER, type VendorId } from '../../../core/data/vendors';
 import { REP_RANKS, rankOf } from '../../../config/reputation';
@@ -13,7 +13,7 @@ import { owned } from '../../../core/forge';
 import type { Loc } from '../../../core/inventory';
 import { MonsterSprite, GoldAmount, Modal } from '../common';
 import { GridView, ItemIcon, isUpgrade } from '../inventory';
-import { useDrag } from '../pointerDrag';
+import { useDrag, useClearOnDrop } from '../pointerDrag';
 import { useIsTouch } from '../../../shared/device';
 import { buysThis, vendorSellPrice } from '../../../core/economy';
 import { isCover } from '../../../core/inventory';
@@ -88,6 +88,7 @@ function VendorInterior({ vendor, initial, onBack }: { vendor: VendorId; initial
   const scale = usePixelScale('vendor');
   const [view, setView] = useState<VendorView>(initial);
   const [sel, setSel] = useState<Loc | null>(null);
+  useClearOnDrop(useCallback(() => setSel(null), []));
   const [marks, setMarks] = useState<string[]>([]);
   const v = VENDORS[vendor];
   const rep = profile.reputation[vendor] ?? 0;

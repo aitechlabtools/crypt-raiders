@@ -1,7 +1,7 @@
 // Alijo (opción D): Aventurero · Equipo (equipamiento, mochila y bolsillo seguro) · Almacén.
 // Mover objetos: arrastrar (ordenador), o tocar un objeto (se abre su ficha) y después tocar una casilla libre.
 // En móvil no caben las tres columnas: segmentos «Equipo» y «Almacén».
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { actions, useGame } from '../../state/store';
 import { CLASSES } from '../../../core/data/classes';
 import { computeStats, baseStats } from '../../../core/stats';
@@ -13,7 +13,7 @@ import { StashPanel } from '../StashPanel';
 import { gridGold } from '../../../core/gold';
 import { BAG_SIZES } from '../../../config/gold';
 import { ItemIcon } from '../inventory';
-import { dragJustEnded, useDrag } from '../pointerDrag';
+import { dragJustEnded, useDrag, useClearOnDrop } from '../pointerDrag';
 
 const BAG_DROP = JSON.stringify({ type: 'bag' });
 import { Modal } from '../common';
@@ -34,6 +34,7 @@ export function Alijo({ onDetails, onShop }: { onDetails: () => void; onShop?: (
   const layout = useLayout();
   const phone = layout === 'phone';
   const [sel, setSel] = useState<Loc | null>(null);
+  useClearOnDrop(useCallback(() => setSel(null), []));
   const [view, setView] = useState<'gear' | 'storage'>('gear');
   const [picker, setPicker] = useState(false);
   const clear = () => setSel(null);

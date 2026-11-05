@@ -130,7 +130,12 @@ export function AlliesBlock() {
             Ahí abajo hay otros saqueadores buscando el mismo oro que tú, cada uno con su nombre, su historia y sus motivos.
             Puedes aliarte con ellos: unos te cubrirán la espalda; otros esperan el momento de clavarte el puñal y quedarse tu botín.
           </p>
-          <p className="font-body text-lg text-stone-400 mt-3">Cuanto más hondo bajas, más fácil es que te traicionen. Repartir con justicia ayuda; quedártelo todo, no.</p>
+          <p className="font-body text-lg text-stone-400 mt-3">Cuanto más hondo bajas, más fácil es que te traicionen. Así se reparte:</p>
+          <ul className="share-how" aria-label="Cómo se reparte con un aliado">
+            <li><b>Cada cofre y cada saco de combate</b> se reparte: le das lo que quieras y él lo mira por su valor, no por el número de cosas.</li>
+            <li><b>Una parte justa</b> le calma y baja el riesgo de traición. Una baratija le hace fruncir el ceño. Nada, le hace pensar.</li>
+            <li><b>En el portal te pide su parte del oro</b>: menos si has sido justo, más si no. Puedes pagar, negarte… o atacarle tú primero.</li>
+          </ul>
         </div>
         <ul className="trust" aria-label="El triángulo sobre su cabeza: cuánto fiarte">
           {TRUST.map((t) => (
@@ -141,7 +146,7 @@ export function AlliesBlock() {
           ))}
         </ul>
       </div>
-      <ul className="ally-row mt-14" aria-label="Algunos de los que te encontrarás">
+      <ul className="ally-row" aria-label="Algunos de los que te encontrarás">
         {ALLIES.map((a) => {
           const b = BADGE[a.risk];
           return (

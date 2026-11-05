@@ -56,7 +56,7 @@ describe('Inventario', () => {
   });
   it('mover a ranura de equipo valida clase y ranura', () => {
     const p = warriorProfile();
-    const c: Containers = { backpack: addToGrid(p.backpack, { uid: 's', itemId: 'ember_staff', qty: 1 }).grid, stash: p.stash, loot: emptyGrid(0), pocket: emptyGrid(3), equipment: p.equipment };
+    const c: Containers = { backpack: addToGrid(p.backpack, { uid: 's', itemId: 'ember_staff', qty: 1 }).grid, stash: p.stash, shared: [], loot: emptyGrid(0), pocket: emptyGrid(3), equipment: p.equipment };
     const idx = c.backpack.findIndex((s) => s?.itemId === 'ember_staff');
     const r = transfer(c, { kind: 'grid', container: 'backpack', index: idx }, { kind: 'equip', slot: 'mainHand' }, { classId: 'warrior', level: 1 });
     expect(r.ok).toBe(false);
@@ -66,7 +66,7 @@ describe('Inventario', () => {
   it('intercambia arma equipada sin perder objetos', () => {
     const p = warriorProfile();
     const bp = addToGrid(p.backpack, { uid: 'n', itemId: 'iron_sword', qty: 1 }).grid;
-    const c: Containers = { backpack: bp, stash: p.stash, loot: emptyGrid(0), pocket: emptyGrid(3), equipment: p.equipment };
+    const c: Containers = { backpack: bp, stash: p.stash, shared: [], loot: emptyGrid(0), pocket: emptyGrid(3), equipment: p.equipment };
     const idx = bp.findIndex((s) => s?.itemId === 'iron_sword');
     const r = transfer(c, { kind: 'grid', container: 'backpack', index: idx }, { kind: 'equip', slot: 'mainHand' }, { classId: 'warrior', level: 7 });
     expect(r.ok).toBe(true);
@@ -76,7 +76,7 @@ describe('Inventario', () => {
   });
   it('mover al almacén y ordenar conserva todo', () => {
     const p = warriorProfile();
-    const c: Containers = { backpack: p.backpack, stash: p.stash, loot: emptyGrid(0), pocket: emptyGrid(3), equipment: p.equipment };
+    const c: Containers = { backpack: p.backpack, stash: p.stash, shared: [], loot: emptyGrid(0), pocket: emptyGrid(3), equipment: p.equipment };
     const r = quickMove(c, { kind: 'grid', container: 'backpack', index: 0 }, 'stash');
     expect(r.ok).toBe(true);
     if (!r.ok) return;
@@ -104,7 +104,7 @@ describe('Economía', () => {
     const r = buy(p, 'health_potion');
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.profile.gold).toBe(p.gold - ITEMS.health_potion.value);
+    expect(r.profile.gold).toBe(p.gold - Math.round(ITEMS.health_potion.value / 10)); // economía ÷10
     expect(countItem(r.profile.backpack, 'health_potion')).toBe(3);
   });
   it('no permite comprar sin oro', () => {
@@ -244,10 +244,12 @@ describe('Extracción y muerte', () => {
     const p = warriorProfile();
     const { profile, expedition } = startExpedition(p, 0);
     expedition.backpack = addToGrid(expedition.backpack, { uid: 'loot', itemId: 'golden_chalice', qty: 1 }).grid;
-    expedition.goldFound = 50;
+    expedition.backpack = addToGrid(expedition.backpack, { uid: 'oro', itemId: 'gold_coins', qty: 10 }).grid; // oro físico: monedas cogidas
     const r = endExpedition(profile, expedition, 'extracted', 1000);
     expect(countItem(r.profile.backpack, 'golden_chalice')).toBe(1);
-    expect(r.profile.gold).toBe(p.gold + 50);
+    expect(countItem(r.profile.backpack, 'gold_coins')).toBe(10); // el oro extraído vuelve en la mochila
+    expect(r.summary.goldGained).toBe(10);
+    expect(r.profile.gold).toBe(p.gold); // (el oro del almacén no cambia hasta que lo guardes)
     expect(r.profile.equipment.mainHand?.itemId).toBe('rusty_sword');
     expect(r.profile.activeExpedition).toBeNull();
   });

@@ -1,3 +1,4 @@
+import { withGold } from './helpers';
 import { describe, expect, it } from 'vitest';
 import { MERCENARIES, MERC_ORDER, captivesOf } from '../src/core/data/mercenaries';
 import { SKILLS } from '../src/core/data/skills';
@@ -9,7 +10,7 @@ import { createCombat, runAITurn, currentActor } from '../src/core/combat';
 import { enemyCombatant, playerCombatant } from '../src/core/combatants';
 import { emptyEquipment } from '../src/core/inventory';
 
-const base = () => ({ ...createProfile('Garriano', 'warrior', { cloak: 0, skin: 0 }), gold: 10_000 });
+const base = () => withGold(createProfile('Garriano', 'warrior', { cloak: 0, skin: 0 }), 10_000);
 
 describe('Mercenarios', () => {
   it('tres por zona, uno de ellos prisionero; habilidades y sprites existen', () => {
@@ -27,11 +28,12 @@ describe('Mercenarios', () => {
 
   it('precio: 1/3/5 expediciones al 100/85/70 % y con descuento de reputación', () => {
     const p = base();
-    expect(contractPrice(p, 'bram', 1)).toBe(60);
-    expect(contractPrice(p, 'bram', 3)).toBe(Math.round(60 * 3 * 0.85));
-    expect(contractPrice(p, 'bram', 5)).toBe(Math.round(60 * 5 * 0.7));
+    // Bram: 60 de antes = 6 monedas (economía ÷10)
+    expect(contractPrice(p, 'bram', 1)).toBe(6);
+    expect(contractPrice(p, 'bram', 3)).toBe(Math.round(6 * 3 * 0.85));
+    expect(contractPrice(p, 'bram', 5)).toBe(Math.round(6 * 5 * 0.7));
     const rep = { ...p, reputation: { garra: 300 } }; // De confianza: 10 %
-    expect(contractPrice(rep, 'bram', 1)).toBe(54);
+    expect(contractPrice(rep, 'bram', 1)).toBe(Math.round(6 * 0.9));
   });
 
   it('el rango de Garra limita a quién puedes contratar; los prisioneros, solo si los rescataste', () => {
@@ -72,7 +74,7 @@ describe('Mercenarios', () => {
     const ok = settleMerc(p, ms, true).profile;
     expect(ok.mercsRescued).toContain('tobias');
     expect(hireBlock(ok, MERCENARIES.tobias)).toBeNull();
-    expect(contractPrice(ok, 'tobias', 1)).toBe(35);
+    expect(contractPrice(ok, 'tobias', 1)).toBe(Math.round(3.5)); // 7 monedas con el 50 % de rescate
     const h = hire(ok, 'tobias', 1, 'aggressive');
     if (!h.ok) throw new Error(h.error);
     expect(h.profile.mercDiscounts).not.toContain('tobias');

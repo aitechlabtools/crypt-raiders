@@ -3,7 +3,7 @@
 // sus misiones (data/quests.ts → vendor) y su propia reputación. Todo es editable.
 // ════════════════════════════════════════════════════════════════════
 
-export type VendorId = 'orvel' | 'vesper' | 'garra' | 'brand';
+export type VendorId = 'orvel' | 'vesper' | 'garra' | 'brand' | 'coleccionista';
 
 export interface VendorDef {
   id: VendorId;
@@ -69,5 +69,12 @@ export const VENDORS: Record<VendorId, VendorDef> = {
       { itemId: 'hellsteel_helm', rank: 4 },
     ],
   },
+  coleccionista: {
+    id: 'coleccionista', name: 'El Coleccionista', role: 'Duende prestamista', sprite: 'vendor_collector', color: '#7fd65a', buysItems: true,
+    blurb: '¿Brilla? Entonces lo quiero. ¿No brilla? Entonces véndeme algo que brille. Y llévate un saco: el oro pesa.',
+    stock: [
+      { itemId: 'gold_pouch', rank: 0 }, { itemId: 'gold_sack', rank: 0 }, { itemId: 'backpack_30', rank: 0 }, { itemId: 'backpack_36', rank: 0 },
+    ],
+  },
 };
-export const VENDOR_ORDER: VendorId[] = ['orvel', 'vesper', 'garra', 'brand'];
+export const VENDOR_ORDER: VendorId[] = ['orvel', 'vesper', 'garra', 'brand', 'coleccionista'];

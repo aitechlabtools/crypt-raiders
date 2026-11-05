@@ -4,9 +4,10 @@ import { EQUIP_SLOTS } from './types';
 import { isTwoHanded } from './data/weapons';
 import { getItem, maxStack, RARITY_INFO } from './data/items';
 import { makeUid } from './rng';
+import { COIN_ID, CONTAINER_CAPACITY, GOLD_SCALE } from '../config/gold';
 
 export const BACKPACK_SIZE = 24; // 6 x 4
-export const STASH_SIZE = 40; // 8 x 5
+export const STASH_SIZE = 120; // una página del almacén (8 × 15); ver config/stash.ts
 
 export function emptyGrid(size: number): Grid {
   return Array.from({ length: size }, () => null);
@@ -20,8 +21,90 @@ export function cloneGrid(g: Grid): Grid {
   return g.map((s) => (s ? { ...s } : null));
 }
 
-/** Añade una pila al inventario: primero rellena pilas compatibles, luego casillas libres. */
-export function addToGrid(grid: Grid, stack: ItemStack): { grid: Grid; leftover: ItemStack | null } {
+// ── Objetos de varias casillas (el saco de oro, 2×2) ──
+// El objeto vive en su casilla de arriba a la izquierda (el «ancla»); las demás casillas que tapa guardan una marca
+// `cover` (uid «cover:<uid del ancla>»). Así, todo lo que busca casillas libres las ve ocupadas sin saber nada más.
+// Solo los contenedores con forma fija (columnas iguales en todos los formatos) admiten objetos grandes.
+export interface GridLayout { cols: number; /** Filas por página (el almacén): un objeto no puede quedar entre dos páginas. */ blockRows?: number }
+export const LAYOUTS: Partial<Record<ContainerId, GridLayout>> & Record<"backpack" | "stash" | "shared" | "pocket", GridLayout> = { backpack: { cols: 6 }, stash: { cols: 8, blockRows: 15 }, shared: { cols: 8, blockRows: 15 }, pocket: { cols: 3 } };
+export const COVER_ID = 'cover';
+const COVER_PREFIX = 'cover:';
+export const isCover = (s: ItemStack | null | undefined): boolean => !!s && s.itemId === COVER_ID;
+export function footprint(itemId: string): { w: number; h: number } { return getItem(itemId).size ?? { w: 1, h: 1 }; }
+export function isMulti(s: ItemStack | null | undefined): boolean {
+  if (!s || isCover(s)) return false;
+  const f = footprint(s.itemId);
+  return f.w * f.h > 1;
+}
+/** Casilla del objeto que ocupa la casilla `i` (ella misma, o el ancla si está tapada). -1 si la marca no tiene dueño. */
+export function anchorIndex(grid: Grid, i: number): number {
+  const s = grid[i];
+  if (!isCover(s)) return i;
+  const uid = s!.uid.slice(COVER_PREFIX.length);
+  return grid.findIndex((x) => !!x && !isCover(x) && x.uid === uid);
+}
+/** Casillas que ocuparía un objeto de w×h con el ancla en `i`, o null si se sale (de la rejilla, de la fila o de la página). */
+function cellsAt(len: number, L: GridLayout, i: number, w: number, h: number): number[] | null {
+  const col = i % L.cols, row = Math.floor(i / L.cols);
+  if (col + w > L.cols || (row + h) * L.cols > len) return null;
+  if (L.blockRows && Math.floor(row / L.blockRows) !== Math.floor((row + h - 1) / L.blockRows)) return null;
+  const out: number[] = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) out.push(i + y * L.cols + x);
+  return out;
+}
+/** ¿Cabe un objeto de w×h con el ancla en `i`? Las casillas del propio objeto (`selfUid`) cuentan como libres. */
+export function canPlace(grid: Grid, L: GridLayout, i: number, w: number, h: number, selfUid?: string): boolean {
+  const cells = cellsAt(grid.length, L, i, w, h);
+  return !!cells && cells.every((k) => { const x = grid[k]; return !x || (!!selfUid && (x.uid === selfUid || x.uid === COVER_PREFIX + selfUid)); });
+}
+/** Coloca (sin comprobar) un objeto con su ancla en `i` y marca las casillas que tapa. Modifica `g`. */
+function placeAt(g: Grid, L: GridLayout | undefined, i: number, s: ItemStack) {
+  g[i] = s;
+  if (!L || !isMulti(s)) return;
+  const f = footprint(s.itemId);
+  for (const k of cellsAt(g.length, L, i, f.w, f.h) ?? []) if (k !== i) g[k] = { uid: COVER_PREFIX + s.uid, itemId: COVER_ID, qty: 1 };
+}
+/** Quita el objeto que ocupa la casilla `i` (con sus casillas tapadas). Modifica `g`. Devuelve dónde estaba y qué era. */
+export function removeAt(g: Grid, i: number): { index: number; stack: ItemStack | null } {
+  const a = anchorIndex(g, i);
+  if (a < 0) { g[i] = null; return { index: i, stack: null }; }
+  const s = g[a];
+  if (!s) return { index: a, stack: null };
+  if (isMulti(s)) { for (let k = 0; k < g.length; k++) if (g[k] && (g[k]!.uid === s.uid || g[k]!.uid === COVER_PREFIX + s.uid)) g[k] = null; }
+  else g[a] = null;
+  return { index: a, stack: s };
+}
+/** Primera casilla donde cabe un objeto grande, o -1. */
+export function findPlace(grid: Grid, L: GridLayout, w: number, h: number): number {
+  for (let i = 0; i < grid.length; i++) if (canPlace(grid, L, i, w, h)) return i;
+  return -1;
+}
+/** Repara una rejilla cargada: quita marcas sin dueño y vuelve a marcar (o recoloca) los objetos grandes. */
+export function repairGrid(grid: Grid, L?: GridLayout): Grid {
+  const g: Grid = grid.map((x) => (x && !isCover(x) && !isMulti(x) ? x : null));
+  const big = grid.map((x, i) => [x, i] as const).filter(([x]) => isMulti(x));
+  for (const [x, i] of big) {
+    const f = footprint(x!.itemId);
+    if (L && canPlace(g, L, i, f.w, f.h)) placeAt(g, L, i, x!);
+    else if (L) { const k = findPlace(g, L, f.w, f.h); if (k >= 0) placeAt(g, L, k, x!); else if (!g[i]) g[i] = x; else { const free = g.indexOf(null); if (free >= 0) g[free] = x; } }
+    else if (!g[i]) g[i] = x;
+  }
+  return g;
+}
+
+/**
+ * Añade una pila al inventario: primero rellena pilas compatibles, luego casillas libres.
+ * Con `layout`, los objetos grandes buscan un hueco de su tamaño; sin él (botín del suelo), ocupan una sola casilla.
+ */
+export function addToGrid(grid: Grid, stack: ItemStack, layout?: GridLayout): { grid: Grid; leftover: ItemStack | null } {
+  if (isMulti(stack) && layout) {
+    const f = footprint(stack.itemId);
+    const k = findPlace(grid, layout, f.w, f.h);
+    if (k < 0) return { grid, leftover: stack };
+    const g = cloneGrid(grid);
+    placeAt(g, layout, k, { ...stack });
+    return { grid: g, leftover: null };
+  }
   const g = cloneGrid(grid);
   let qty = stack.qty;
   const max = maxStack(stack.itemId);
@@ -45,11 +128,11 @@ export function addToGrid(grid: Grid, stack: ItemStack): { grid: Grid; leftover:
   return { grid: g, leftover: qty > 0 ? { ...stack, qty } : null };
 }
 
-export function addManyToGrid(grid: Grid, stacks: ItemStack[]): { grid: Grid; leftovers: ItemStack[] } {
+export function addManyToGrid(grid: Grid, stacks: ItemStack[], layout?: GridLayout): { grid: Grid; leftovers: ItemStack[] } {
   let g = grid;
   const leftovers: ItemStack[] = [];
   for (const s of stacks) {
-    const r = addToGrid(g, s);
+    const r = addToGrid(g, s, layout);
     g = r.grid;
     if (r.leftover) leftovers.push(r.leftover);
   }
@@ -78,19 +161,19 @@ export function removeItem(grid: Grid, itemId: string, qty = 1): Grid | null {
 }
 
 export function gridValue(grid: Grid): number {
-  return grid.reduce((n, s) => n + (s ? getItem(s.itemId).value * s.qty : 0), 0);
+  return Math.round(grid.reduce((n, s) => n + stackGoldValue(s), 0));
 }
 
 export function freeSlots(grid: Grid): number {
   return grid.filter((s) => !s).length;
 }
 
-const CATEGORY_ORDER = ['weapon', 'shield', 'helmet', 'armor', 'gloves', 'boots', 'ring', 'amulet', 'jewel', 'relic', 'potion', 'tool', 'key', 'coin', 'material', 'quest'];
+const CATEGORY_ORDER = ['container', 'gold', 'weapon', 'shield', 'helmet', 'armor', 'gloves', 'boots', 'ring', 'amulet', 'jewel', 'relic', 'potion', 'tool', 'key', 'coin', 'material', 'quest'];
 
 /** Ordena: fusiona pilas y ordena por categoría, rareza y nombre. */
-export function sortGrid(grid: Grid): Grid {
+export function sortGrid(grid: Grid, layout?: GridLayout): Grid {
   let merged: Grid = emptyGrid(grid.length);
-  for (const s of grid) if (s) merged = addToGrid(merged, s).grid;
+  for (const s of grid) if (s && !isCover(s)) merged = addToGrid(merged, s).grid;
   const items = merged.filter((s): s is ItemStack => !!s);
   items.sort((a, b) => {
     const da = getItem(a.itemId);
@@ -104,27 +187,40 @@ export function sortGrid(grid: Grid): Grid {
     return da.name.localeCompare(db.name);
   });
   const out = emptyGrid(grid.length);
-  items.forEach((s, i) => (out[i] = s));
+  // Los objetos grandes, primero (arriba a la izquierda); luego los demás por orden en los huecos que quedan
+  const small: ItemStack[] = [];
+  for (const it of items) {
+    if (layout && isMulti(it)) { const f = footprint(it.itemId); const k = findPlace(out, layout, f.w, f.h); if (k >= 0) { placeAt(out, layout, k, it); continue; } }
+    small.push(it);
+  }
+  let k = 0;
+  for (const it of small) { while (k < out.length && out[k]) k++; if (k < out.length) out[k++] = it; }
   return out;
 }
 
 // ── Transferencias entre contenedores (mochila, almacén, equipo) ──
 
-export type ContainerId = 'backpack' | 'stash' | 'loot' | 'pocket';
+export type ContainerId = 'backpack' | 'stash' | 'shared' | 'loot' | 'pocket';
 export type Loc = { kind: 'grid'; container: ContainerId; index: number } | { kind: 'equip'; slot: EquipSlot };
 
 export interface Containers {
   backpack: Grid;
   stash: Grid;
+  /** Página «Compartido» del almacén (vacía si no se tiene o en la mazmorra). */
+  shared: Grid;
   loot: Grid;
   /** Bolsillo seguro: no se pierde al morir. Solo objetos pequeños. */
   pocket: Grid;
   equipment: Equipment;
 }
 
-export const POCKET_ERROR = 'En el bolsillo seguro solo caben objetos pequeños: llaves, joyas, monedas, pociones y materiales.';
+export const POCKET_ERROR = 'En el bolsillo seguro solo caben objetos pequeños: llaves, joyas, monedas, saquitos de oro, pociones y materiales.';
 export function canPocket(itemId: string): boolean {
-  return POCKETABLE.includes(getItem(itemId).category);
+  const d = getItem(itemId);
+  // Oro: monedas sueltas y saquitos (1 casilla) sí; el saco grande no
+  if (d.category === 'gold') return true;
+  if (d.category === 'container') return !d.size || d.size.w * d.size.h === 1;
+  return POCKETABLE.includes(d.category);
 }
 
 export interface EquipContext {
@@ -150,7 +246,7 @@ function setAt(c: Containers, loc: Loc, s: ItemStack | null) {
 }
 
 function cloneContainers(c: Containers): Containers {
-  return { backpack: cloneGrid(c.backpack), stash: cloneGrid(c.stash), loot: cloneGrid(c.loot), pocket: cloneGrid(c.pocket), equipment: { ...c.equipment } };
+  return { backpack: cloneGrid(c.backpack), stash: cloneGrid(c.stash), shared: cloneGrid(c.shared), loot: cloneGrid(c.loot), pocket: cloneGrid(c.pocket), equipment: { ...c.equipment } };
 }
 
 export type TransferResult = { ok: true; containers: Containers } | { ok: false; error: string };
@@ -159,11 +255,54 @@ export type TransferResult = { ok: true; containers: Containers } | { ok: false;
  * Mueve un objeto de una ubicación a otra. Si el destino tiene el mismo objeto apilable, fusiona;
  * si tiene otro objeto, intercambia (validando que el intercambio sea legal en ambas direcciones).
  */
-export function transfer(c: Containers, from: Loc, to: Loc, ctx: EquipContext): TransferResult {
+/** Casilla tapada → la del objeto que la tapa (para coger o soltar sobre un objeto grande por cualquier parte). */
+function toAnchor(c: Containers, loc: Loc): Loc {
+  if (loc.kind !== 'grid') return loc;
+  const a = anchorIndex(c[loc.container], loc.index);
+  return a >= 0 ? { ...loc, index: a } : loc;
+}
+
+export const MULTI_NO_ROOM = 'No cabe ahí: el saco necesita 2×2 casillas libres.';
+export const MULTI_BLOCKED = 'Ahí está el saco: suelta el objeto en otra casilla.';
+
+export function transfer(c: Containers, from0: Loc, to0: Loc, ctx: EquipContext): TransferResult {
+  const from = toAnchor(c, from0);
+  // Soltar sobre una casilla tapada por el propio objeto es moverlo (desplazarlo), no soltarlo sobre sí mismo
+  const to1 = toAnchor(c, to0);
+  const self = to1.kind === 'grid' && from.kind === 'grid' && to1.container === from.container && to1.index === from.index && JSON.stringify(to0) !== JSON.stringify(to1);
+  const to = self ? to0 : to1;
   if (JSON.stringify(from) === JSON.stringify(to)) return { ok: true, containers: c };
   const src = getAt(c, from);
-  if (!src) return { ok: false, error: 'No hay nada que mover.' };
+  if (!src || isCover(src)) return { ok: false, error: 'No hay nada que mover.' };
   const dst = getAt(c, to);
+  // Monedas sobre un saquito o un saco: entran las que quepan; el resto se queda donde estaba
+  if (src.itemId === COIN_ID && dst && CONTAINER_CAPACITY[dst.itemId] && to.kind === 'grid' && from.kind === 'grid') {
+    const room = CONTAINER_CAPACITY[dst.itemId] - (dst.gold ?? 0);
+    if (room <= 0) return { ok: false, error: 'Ese saco ya está lleno.' };
+    const n = cloneContainers(c);
+    const moved = Math.min(room, src.qty);
+    n[to.container][to.index] = { ...dst, gold: (dst.gold ?? 0) + moved };
+    n[from.container][from.index] = src.qty - moved > 0 ? { ...src, qty: src.qty - moved } : null;
+    return { ok: true, containers: n };
+  }
+  // Objetos grandes: se mueven a un hueco de su tamaño (sin intercambios); sobre un objeto grande no se suelta nada
+  if (isMulti(src) || (isMulti(dst) && dst!.uid !== src.uid)) {
+    if (to.kind === 'equip' || from.kind === 'equip') return { ok: false, error: 'Este objeto no se puede equipar.' };
+    if (isMulti(dst) && dst!.uid !== src.uid) return { ok: false, error: MULTI_BLOCKED };
+    if (to.container === 'pocket') return { ok: false, error: POCKET_ERROR };
+    const n = cloneContainers(c);
+    removeAt(n[from.container], from.index);
+    const L = LAYOUTS[to.container];
+    if (L) {
+      const f = footprint(src.itemId);
+      if (!canPlace(n[to.container], L, to.index, f.w, f.h)) return { ok: false, error: MULTI_NO_ROOM };
+      placeAt(n[to.container], L, to.index, { ...src });
+    } else {
+      if (n[to.container][to.index]) return { ok: false, error: MULTI_NO_ROOM };
+      n[to.container][to.index] = { ...src };
+    }
+    return { ok: true, containers: n };
+  }
 
   if (to.kind === 'grid' && to.container === 'pocket' && !canPocket(src.itemId)) return { ok: false, error: POCKET_ERROR };
   if (from.kind === 'grid' && from.container === 'pocket' && dst && !canPocket(dst.itemId)) return { ok: false, error: POCKET_ERROR };
@@ -222,10 +361,19 @@ export function quickEquip(c: Containers, from: Loc, ctx: EquipContext): Transfe
 }
 
 /** Mueve a la primera casilla libre (o pila compatible) de otro contenedor. */
-export function quickMove(c: Containers, from: Loc, target: ContainerId): TransferResult {
+export function quickMove(c: Containers, from0: Loc, target: ContainerId): TransferResult {
+  const from = toAnchor(c, from0);
   const src = getAt(c, from);
-  if (!src) return { ok: false, error: 'No hay nada que mover.' };
+  if (!src || isCover(src)) return { ok: false, error: 'No hay nada que mover.' };
   if (target === 'pocket' && !canPocket(src.itemId)) return { ok: false, error: POCKET_ERROR };
+  if (isMulti(src)) {
+    const n = cloneContainers(c);
+    if (from.kind === 'grid') removeAt(n[from.container], from.index); else setAt(n, from, null);
+    const r = addToGrid(n[target], src, LAYOUTS[target]);
+    if (r.leftover) return { ok: false, error: 'No hay espacio: el saco necesita 2×2 casillas libres.' };
+    n[target] = r.grid;
+    return { ok: true, containers: n };
+  }
   const r = addToGrid(c[target], src);
   if (r.leftover && r.leftover.qty === src.qty) return { ok: false, error: 'No hay espacio.' };
   const n = cloneContainers(c);
@@ -235,15 +383,24 @@ export function quickMove(c: Containers, from: Loc, target: ContainerId): Transf
 }
 
 export function stackAt(c: Containers, loc: Loc): ItemStack | null {
-  return getAt(c, loc);
+  const s = getAt(c, toAnchor(c, loc));
+  return isCover(s) ? null : s;
 }
 
 export function clearAt(c: Containers, loc: Loc): Containers {
   const n = cloneContainers(c);
-  setAt(n, loc, null);
+  if (loc.kind === 'grid') removeAt(n[loc.container], loc.index);
+  else setAt(n, loc, null);
   return n;
 }
 
 export function equippedValue(eq: Equipment): number {
-  return Object.values(eq).reduce((n, s) => n + (s ? getItem(s.itemId).value * s.qty : 0), 0);
+  return Math.round(Object.values(eq).reduce((n, s) => n + stackGoldValue(s), 0));
+}
+
+/** Valor en monedas de una casilla (botín extraído, oro en riesgo). Igual que en wallet.ts, aquí para no crear un ciclo. */
+function stackGoldValue(s: ItemStack | null): number {
+  if (!s || s.itemId === 'cover') return 0;
+  if (s.itemId === COIN_ID) return s.qty;
+  return (s.gold ?? 0) + getItem(s.itemId).value * GOLD_SCALE * s.qty;
 }

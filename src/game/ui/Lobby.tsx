@@ -5,7 +5,7 @@ import { actions, useGame } from '../state/store';
 import { CLASSES } from '../../core/data/classes';
 import { QUESTS } from '../../core/data/quests';
 import { xpForNextLevel } from '../../core/stats';
-import { PlayerSprite, GoldAmount, Modal } from './common';
+import { PlayerSprite, HeroSprite, GoldAmount, Modal } from './common';
 import { SettingsModal } from './TitleScreen';
 import { sfx } from '../audio';
 import { FullscreenButton } from './FullscreenButton';
@@ -25,6 +25,7 @@ export function Lobby() {
   const profile = useGame((s) => s.profile)!;
   const [tab, setTab] = useState<LobbyTab>('play');
   const [settings, setSettings] = useState(false);
+  const [switcher, setSwitcher] = useState(false);
   /** Acceso directo a un mercader concreto (p. ej., «Contrato» en Jugar abre los contratos de Garra Roja). */
   const [vendorTarget, setVendorTarget] = useState<VendorTarget | null>(null);
   const layout = useLayout();
@@ -43,15 +44,16 @@ export function Lobby() {
       {/* Barra superior: quién eres, pestañas en píldora, oro, pantalla completa y ajustes */}
       <header className="ui-nav" data-testid="lobby-nav">
         <div className="flex items-center min-w-0">
-        {/* Retrato, nombre y experiencia. En el móvil, más compacto: las pestañas se van a la derecha para dejarle sitio */}
-        <div className={`flex items-center shrink-0 ${layout === 'phone' ? 'gap-1.5' : 'gap-2'}`} data-testid="nav-chip">
-          <div className={`${layout === 'phone' ? 'w-8 h-8' : 'w-10 h-10'} flex items-end justify-center overflow-hidden bg-[#0d0c11] border-2 border-stone-700`}><PlayerSprite scale={layout === 'phone' ? 1 : 2} animate={false} /></div>
-          <div className={`min-w-0 ${layout === 'phone' ? 'w-[70px]' : 'w-28'} leading-tight`}>
-            <div className={`font-display truncate ${layout === 'phone' ? 'text-xs' : 'text-sm'}`} data-testid="hero-name">{ch.name}</div>
+        {/* Retrato, nombre y experiencia. Tocarlo abre el cambio de personaje. En el móvil, más compacto */}
+        <button className={`flex items-center shrink-0 text-left ${layout === 'phone' ? 'gap-1.5' : 'gap-2'}`} style={{ minHeight: 44 }} data-testid="nav-chip"
+          onClick={() => { sfx('click'); setSwitcher(!switcher); }} aria-label="Cambiar de personaje" aria-expanded={switcher}>
+          <div className={`${layout === 'phone' ? 'w-8 h-8' : 'w-10 h-10'} flex items-end justify-center overflow-hidden bg-[#0d0c11] border-2 ${switcher ? 'border-gold' : 'border-stone-700'}`}><PlayerSprite scale={layout === 'phone' ? 1 : 2} animate={false} /></div>
+          <div className={`min-w-0 ${layout === 'phone' ? 'w-[74px]' : 'w-28'} leading-tight`}>
+            <div className={`font-display truncate ${layout === 'phone' ? 'text-xs' : 'text-sm'}`}><span data-testid="hero-name">{ch.name}</span> <span className="text-gold">▾</span></div>
             <div className="text-[11px] text-stone-300 truncate">{layout === 'phone' ? 'Nv' : `${cls.name} · Nv`} <span data-testid="hero-level">{ch.level}</span></div>
             <div className="h-1 bg-stone-800 mt-1"><div className="h-full bg-arcane" style={{ width: `${xpPct}%` }} /></div>
           </div>
-        </div>
+        </button>
         </div>
         <PillBar tabs={tabs} active={tab} onChange={go} />
         <div className={`flex items-center justify-end min-w-0 ${layout === 'phone' ? 'gap-1.5' : 'gap-2.5'}`}>
@@ -72,6 +74,7 @@ export function Lobby() {
           {tab === 'bestiary' && <Legacy><div className="max-w-5xl mx-auto"><BestiaryTab /></div></Legacy>}
         </div>
       </main>
+      {switcher && <CharacterSwitcher onClose={() => setSwitcher(false)} />}
       {settings && <SettingsModal onClose={() => setSettings(false)} onExit={() => actions.goto('title')} />}
       {!profile.tutorialSeen.lobby ? <LobbyTutorial /> : <ClassUnlockNotice />}
     </div>
@@ -81,6 +84,32 @@ export function Lobby() {
 /** Contenedor con desplazamiento para las pantallas que aún no tienen su diseño propio. */
 function Legacy({ children }: { children: ReactNode }) {
   return <div className="h-full overflow-y-auto scroll-thin" style={{ padding: '0 max(var(--pad), env(safe-area-inset-right)) var(--pad) max(var(--pad), env(safe-area-inset-left))' }}>{children}</div>;
+}
+
+/** Desplegable de la barra superior: cambiar de personaje sin volver al menú principal. */
+function CharacterSwitcher({ onClose }: { onClose: () => void }) {
+  const roster = useGame((s) => s.roster);
+  const activeId = useGame((s) => s.activeId);
+  return (
+    <>
+      <div className="absolute inset-0 z-30" onClick={onClose} />
+      <div className="absolute z-40 panel panel-gold p-2 flex flex-col gap-1 fade-in" data-testid="char-switcher"
+        style={{ left: 'max(var(--pad), env(safe-area-inset-left))', top: 'calc(var(--nav-h) - 4px)', width: 280, maxHeight: 'calc(100% - var(--nav-h))', overflowY: 'auto' }}>
+        <div className="text-[11px] font-display uppercase tracking-wider text-stone-400 px-1">Cambiar de personaje</div>
+        {roster.map((r) => (
+          <button key={r.id} className={`flex items-center gap-2 px-2 text-left ${r.id === activeId ? 'bg-[#2a2216]' : 'hover:bg-[#1c1920]'}`} style={{ minHeight: 48 }}
+            onClick={() => { onClose(); if (r.id !== activeId) { sfx('click'); void actions.selectCharacter(r.id); } }} data-testid={`switch-char-${r.slot}`}>
+            <div className="w-9 h-9 flex items-end justify-center overflow-hidden bg-[#0d0c11] border border-stone-700"><HeroSprite classId={r.classId} appearance={r.appearance} equipment={r.equipment} skin={r.skin} scale={1} animate={false} /></div>
+            <div className="flex-1 min-w-0 leading-tight"><div className="font-display text-sm truncate">{r.name}</div><div className="text-[11px] text-stone-300">{CLASSES[r.classId].name} · Nv {r.level}</div></div>
+            {r.id === activeId ? <span className="text-[11px] text-gold">ahora</span> : <span className="text-stone-400">›</span>}
+          </button>
+        ))}
+        <button className="btn text-sm mt-1" style={{ minHeight: 44 }} onClick={() => { onClose(); void actions.openSelect(); }} data-testid="btn-all-chars">
+          {roster.length < 4 ? 'Ver todos · Nuevo personaje' : 'Ver todos los personajes'}
+        </button>
+      </div>
+    </>
+  );
 }
 
 function GearIcon() {

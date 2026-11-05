@@ -44,19 +44,19 @@ export interface SkinDef {
 export const SKINS: Record<string, SkinDef> = Object.fromEntries(
   ([
     {
-      id: 'skin_penitent', order: 1, rarity: 'rare', price: { currency: 'gold', amount: 1500 },
+      id: 'skin_penitent', order: 1, rarity: 'rare', price: { currency: 'gold', amount: 150 },
       name: 'Sudario del Penitente',
       description: 'Hábito de los monjes que velan las criptas de VarkHollow. Vendas y cadenas para no olvidar a quién se debe la vida.',
       body: { torso: '#5b5650', trim: '#2b2724', legs: '#3a3632', boots: '#2a2622', head: 'hood', headColor: '#4a4540', torsoStyle: 'robe', hands: '#d8ccb4', cape: '#3d3934', amulet: '#8c8693' },
     },
     {
-      id: 'skin_hollow_warden', order: 2, rarity: 'epic', price: { currency: 'gold', amount: 4000 },
+      id: 'skin_hollow_warden', order: 2, rarity: 'epic', price: { currency: 'gold', amount: 400 },
       name: 'Guardián Hueco',
       description: 'La armadura negra de la Guardia de VarkHollow. Nadie sabe qué hay dentro desde que cayó la orden.',
       body: { torso: '#26242c', trim: '#7a1c24', legs: '#1c1b22', boots: '#121117', head: 'helmet', headColor: '#2e2c35', torsoStyle: 'mail', hands: '#3a3741', cape: '#5a1018', eye: '#ff5a4a' },
     },
     {
-      id: 'skin_ash_lord', order: 3, rarity: 'legendary', price: { currency: 'gold', amount: 9000 },
+      id: 'skin_ash_lord', order: 3, rarity: 'legendary', price: { currency: 'gold', amount: 900 },
       name: 'Señor de la Ceniza',
       description: 'Ropajes del último señor de VarkHollow, que juró no morir mientras ardiera su casa. La corona aún quema.',
       body: { torso: '#3a1414', trim: '#e8913a', legs: '#24100e', boots: '#1a0c0a', head: 'helmet', headColor: '#c8902a', torsoStyle: 'robe', hands: '#1a0c0a', cape: '#c4402a', amulet: '#ff8a3a' },

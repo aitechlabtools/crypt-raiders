@@ -1,3 +1,4 @@
+import { gridGold } from './gold';
 import type { Equipment, Grid, ItemStack, Profile } from './types';
 import { cloneGrid, gridValue, equippedValue } from './inventory';
 import { computeStats, applyXp } from './stats';
@@ -107,10 +108,9 @@ export function endExpedition(p: Profile, e: ExpeditionState, reason: EndReason,
   const extractedValue = extracted ? gridValue(e.backpack) + equippedValue(e.equipment) : 0;
   const quests = updateQuests(p.quests, { extracted, kills: e.kills, extractedValue: extracted ? gridValue(e.backpack) : 0, zone: e.zone, chestsOpened: e.chestsOpened, veinsMined: e.veinsMined ?? 0 });
 
-  const profile: Profile = {
+  const profile0: Profile = {
     ...p,
     character: { ...p.character, level: xp.level, xp: xp.xp },
-    gold: p.gold + (extracted ? e.goldFound : 0),
     backpack: extracted ? cloneGrid(e.backpack) : emptyGrid(p.backpack.length),
     equipment: extracted ? { ...e.equipment } : emptyEquipment(),
     // El bolsillo seguro se conserva siempre, también al morir
@@ -123,14 +123,16 @@ export function endExpedition(p: Profile, e: ExpeditionState, reason: EndReason,
       deaths: p.stats.deaths + (extracted ? 0 : 1),
       kills: p.stats.kills + totalKills,
     },
-  };
+  };  // Oro físico: lo que traes son las monedas de tu mochila (y del bolsillo); al morir, las de la mochila se pierden
+  const profile = profile0;
+
   return {
     profile,
     summary: {
       reason,
       durationMs: Math.min(e.durationMs, now - e.startedAt),
-      goldGained: extracted ? e.goldFound : 0,
-      goldLost: extracted ? 0 : e.goldFound,
+      goldGained: extracted ? gridGold(e.backpack) + gridGold(e.pocket ?? []) : gridGold(e.pocket ?? []),
+      goldLost: extracted ? 0 : gridGold(e.backpack),
       xpGained,
       levelsGained: xp.levelsGained,
       kills: { ...e.kills },

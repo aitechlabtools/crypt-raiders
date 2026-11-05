@@ -70,6 +70,8 @@ require('fs').mkdirSync(OUT, { recursive: true });
   for (let i = 0; i < 20; i++) { const o = await p.evaluate(() => { const s = window.__CRYPTRAIDERS__.getState(); return !s.combat || !!s.combat.state.outcome; }); if (o) break; const a = await p.$('[data-testid=act-attack]:not([disabled])'); if (a) await a.tap(); await p.waitForTimeout(400); }
   const cont = await p.$('[data-testid=btn-combat-continue]'); if (cont) await cont.tap();
   await p.waitForTimeout(300);
+  // Oro físico: tras ganar se abre el saco del botín; se cierra para seguir
+  if (await p.$('[data-testid=btn-close-loot]')) { await p.tap('[data-testid=btn-close-loot]'); await p.waitForTimeout(200); }
   await p.tap('[data-testid=btn-inventory]');
   await p.waitForTimeout(300);
   await shot('10-inventario');

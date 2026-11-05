@@ -17,7 +17,9 @@ Cómo se hace en este proyecto:
 - Pantallas bajas (max-height 560px): CSS en game.css y `useShortScreen()` en CombatScreen.tsx.
 - Mazmorra: joystick analógico + botón de acción (TouchControls.tsx → touchStick en engine/touchInput.ts); tocar el mapa mueve al personaje.
 - Prueba obligatoria tras cada cambio: `node scripts/touch-check.cjs <url>/play/` (toques reales, 5 dispositivos), `node scripts/mobile-check.cjs <url>/play/ <carpeta>` (móvil) y con
-  `"iPad (gen 7) landscape"` como tercer argumento (tableta), además de scripts/e2e.cjs.
+  `"iPad (gen 7) landscape"` como tercer argumento (tableta), además de scripts/e2e.cjs y, si tocas personajes o guardado, `node scripts/personajes-check.cjs <url>/play/ <carpeta>`
+  y, si tocas el almacén, `node scripts/almacen-check.cjs <url>/play/ <carpeta>`;
+  si tocas el guardado o las copias, `node scripts/copia-check.cjs <url>/play/ <carpeta>`.
 - Mantener al día la hoja de ruta de la landing (src/landing/roadmap.ts: «Ya en el juego», «Próximamente», «Multijugador») y los textos
   de la landing (src/landing/App.tsx y sections.tsx) cuando cambie el juego. Textos sin cifras exactas (como mucho «más de X»).
   Capturas de la landing: `node scripts/landing-shots.cjs <url>/play/ public/screenshots/landing` y `python scripts/landing-webp.py`.

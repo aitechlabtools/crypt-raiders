@@ -30,6 +30,8 @@ const VIEWS = [
   { name: 'mercader-orvel', tab: 'merchants', steps: ['vendor-orvel'] },
   { name: 'mercader-vender', tab: 'merchants', steps: ['vendor-orvel', 'vendor-view-sell'] },
   { name: 'mercader-forja', tab: 'merchants', steps: ['vendor-brand', 'vendor-view-forge'] },
+  { name: 'mercader-coleccionista', tab: 'merchants', steps: ['vendor-coleccionista'] },
+  { name: 'coleccionista-vender', tab: 'merchants', steps: ['vendor-coleccionista', 'vendor-view-sell'] },
   { name: 'mercader-contratos', tab: 'merchants', steps: ['vendor-garra', 'vendor-view-contracts'] },
   { name: 'misiones', tab: 'quests' },
   { name: 'bestiario', tab: 'bestiary' },

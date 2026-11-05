@@ -1,3 +1,4 @@
+import { forgeCost } from '../../core/forge';
 // La forja de Maese Brand: recetas, materiales que tienes y tirada de calidad.
 import { useState } from 'react';
 import { actions, useGame } from '../state/store';
@@ -45,7 +46,7 @@ export function ForgePanel() {
                       const have = owned(profile, m.itemId);
                       return <li key={m.itemId} className="flex items-center gap-1.5"><ItemIcon itemId={m.itemId} size={16} /><span className="flex-1">{getItem(m.itemId).name}</span><span className={have >= m.qty ? 'text-heal' : 'text-blood'}>{have}/{m.qty}</span></li>;
                     })}
-                    <li className="flex justify-between"><span className="text-stone-400">Trabajo de Brand</span><span className={profile.gold >= r.gold ? 'text-gold' : 'text-blood'}>{r.gold} oro</span></li>
+                    <li className="flex justify-between"><span className="text-stone-400">Trabajo de Brand</span><span className={profile.gold >= forgeCost(r) ? 'text-gold' : 'text-blood'}>{forgeCost(r)} oro</span></li>
                   </ul>
                   <button className="btn btn-gold py-2 mt-auto" disabled={!!block} title={block ?? undefined} onClick={() => actions.forge(r.id, ensure)} data-testid={`forge-${r.id}`}>Forjar</button>
                 </>

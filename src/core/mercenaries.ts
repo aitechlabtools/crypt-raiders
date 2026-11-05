@@ -1,3 +1,5 @@
+import { GOLD_SCALE } from '../config/gold';
+import { spendGold } from './wallet';
 // ════════════════════════════════════════════════════════════════════
 // Mercenarios: contratos con Garra Roja, rescate de prisioneros y el
 // combatiente que lucha a tu lado. Lógica pura, sin interfaz.
@@ -53,7 +55,7 @@ export function contractPrice(p: Profile, mercId: string, expeditions: number): 
   const opt = CONTRACT_OPTIONS.find((o) => o.expeditions === expeditions) ?? CONTRACT_OPTIONS[0];
   const rep = REP_RANKS[rankOf(p.reputation.garra ?? 0)].discount;
   const rescue = p.mercDiscounts.includes(mercId) ? RESCUE_DISCOUNT : 0;
-  return Math.max(1, Math.round(m.price * opt.expeditions * opt.mult * (1 - rep) * (1 - rescue)));
+  return Math.max(1, Math.round(m.price * GOLD_SCALE * opt.expeditions * opt.mult * (1 - rep) * (1 - rescue)));
 }
 
 export function hire(p: Profile, mercId: string, expeditions: number, stance: MercStance): MercResult {
@@ -64,10 +66,11 @@ export function hire(p: Profile, mercId: string, expeditions: number, stance: Me
   const block = hireBlock(p, m);
   if (block) return { ok: false, error: block };
   const price = contractPrice(p, mercId, expeditions);
-  if (p.gold < price) return { ok: false, error: 'No tienes oro suficiente.' };
+  const paid = spendGold(p, price);
+  if (!paid.ok) return paid;
   return {
     ok: true,
-    profile: { ...p, gold: p.gold - price, contract: { mercId, left: expeditions, stance }, mercDiscounts: p.mercDiscounts.filter((id) => id !== mercId) },
+    profile: { ...paid.profile, contract: { mercId, left: expeditions, stance }, mercDiscounts: p.mercDiscounts.filter((id) => id !== mercId) },
   };
 }
 

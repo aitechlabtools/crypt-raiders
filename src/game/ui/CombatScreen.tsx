@@ -350,14 +350,14 @@ function Result() {
       <div className={`font-display text-3xl ${color}`}>{title}</div>
       {r && (
         <div className="mt-2 text-sm space-y-1">
-          <div><span className="text-arcane">+{r.xp} XP</span>{r.gold > 0 && <span className="text-gold"> · +{r.gold} oro</span>}</div>
+          <div><span className="text-arcane">+{r.xp} XP</span>{r.gold > 0 && <span className="text-gold"> · {r.gold} {r.gold === 1 ? 'moneda' : 'monedas'}</span>}</div>
           {r.items.length > 0 && (
             <div className="flex flex-wrap gap-1 items-center">
-              <span className="text-stone-300 mr-1">Botín:</span>
+              <span className="text-stone-300 mr-1">En el saco:</span>
               {r.items.map((it) => <span key={it.uid} className="flex items-center gap-1 bg-black/30 px-1"><ItemIcon itemId={it.itemId} size={20} />{getItem(it.itemId).name}{it.qty > 1 ? ` x${it.qty}` : ''}</span>)}
             </div>
           )}
-          {r.overflow && <div className="text-ember">Tu mochila está llena: parte del botín quedó en el suelo.</div>}
+          {r.bagId && <div className="text-stone-300" data-testid="combat-bag-note">Ha caído un saco a tus pies: al continuar, coge lo que quieras.</div>}
         </div>
       )}
       {o === 'defeat' && <p className="font-body text-lg text-stone-300 mt-2">La cripta reclama tu cuerpo y todo lo que llevabas encima.</p>}

@@ -16,6 +16,7 @@ export const MECH_GROUPS: { title: string; items: Mech[] }[] = [
       { icon: 'chalice', title: 'De común a legendario', text: 'Botín con atributos como «del vampiro» y piezas legendarias únicas, como la Cadena de Belzar.' },
       { icon: 'key', title: 'Cofres con su llave', text: 'Los baúles se abren sin más. Los cofres de hierro, las arcas y los relicarios piden su llave… y guardan lo mejor.' },
       { icon: 'gem_red', title: 'Todo o nada', text: 'Lo que llevas encima se pierde si caes. El alijo del Bastión y el bolsillo seguro, nunca.' },
+      { icon: 'sack', title: 'El oro pesa', text: 'Si lo llevas encima, lo arriesgas. Ocupa sitio en la mochila: guárdalo en saquitos, mételo en el bolsillo seguro o súbelo vivo al Bastión.', newIcon: 'Saco de oro (provisional)' },
       { icon: 'pick', title: 'Vetas en cada mapa', text: 'Pica el mineral de cada zona. Arriba, Maese Brand lo convierte en armas.' },
     ],
   },
@@ -24,6 +25,7 @@ export const MECH_GROUPS: { title: string; items: Mech[] }[] = [
     items: [
       { icon: 'hammer_fire', title: 'La forja de Maese Brand', text: 'Recetas con los materiales que subes de cada zona. Cada pieza sale del yunque con su propia calidad.' },
       { icon: 'coin', title: 'Encargos y reputación', text: 'Orvel, Vesper, Garra Roja y Brand te piden trabajos. Cúmplelos y te abren mejor mercancía y descuentos.' },
+      { icon: 'bag3', title: 'El Coleccionista', text: 'Un goblin que compra joyas, tesoros y gemas mejor que nadie, y vende mochilas más grandes y sacos para tu oro.', newIcon: 'Mochila (provisional)' },
       { icon: 'robe_gold', title: 'Atuendos sin ventajas', text: 'Se compran con el oro del juego y solo cambian cómo te ves.' },
     ],
   },

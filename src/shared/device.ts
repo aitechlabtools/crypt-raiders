@@ -67,3 +67,17 @@ export async function shareGameLink(): Promise<string> {
     return url;
   }
 }
+
+/** iPhone o iPad con Safari (o cualquier navegador de iOS, que usan el mismo motor): pueden borrar los datos tras 7 días sin visitar la web. */
+export function isIosSafari(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent;
+  const iOS = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  return iOS;
+}
+
+/** El juego se abrió desde la pantalla de inicio (instalado como app). */
+export function isStandalone(): boolean {
+  if (typeof window === 'undefined') return false;
+  return (navigator as Navigator & { standalone?: boolean }).standalone === true || window.matchMedia?.('(display-mode: standalone)').matches === true;
+}

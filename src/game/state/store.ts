@@ -6,10 +6,18 @@ import { useSyncExternalStore } from 'react';
 import type { Appearance, ClassId, Grid, ItemStack, Profile, Rarity } from '../../core/types';
 import { AFFIXES, RARITY_RULES, rollStacks } from '../../core/data/rarity';
 import { createProfile, grantRecruitKit, needsRecruitKit } from '../../core/profile';
-import { loadProfile, saveProfile, deleteProfile } from '../persistence/db';
+import { clearUndo, loadSave, loadUndo, saveSave, saveUndo } from '../persistence/db';
+import { backupFileName, backupStatus, backupToCode, backupToJson, buildBackup, totalExpeditions, type BackupStatus } from '../../core/backup';
+import { STASH_PAGE_SIZE } from '../../config/stash';
+import { addCharacter, applyProfile, composeProfile, currentCharacterId, emptySave, MAX_CHARACTERS, removeCharacter, type SaveData } from '../../core/save';
 import { startExpedition, endExpedition, timeLeft, abandonInterruptedExpedition, type ExpeditionState, type ExpeditionSummary, type EndReason } from '../../core/expedition';
-import { addManyToGrid, addToGrid, countItem, emptyGrid, removeItem, sortGrid, transfer, quickEquip, quickMove, type Containers, type ContainerId, type Loc, stackAt, clearAt } from '../../core/inventory';
-import { buy, sell, upgradeStash } from '../../core/economy';
+import { addManyToGrid, addToGrid, anchorIndex, countItem, emptyGrid, isMulti, LAYOUTS, removeItem, sortGrid, transfer, quickEquip, quickMove, type Containers, type ContainerId, type Loc, stackAt, clearAt } from '../../core/inventory';
+import { buy, sell } from '../../core/economy';
+import { addToPage, buySharedPage, buyStashPage, joinPages, pageCount, pageSlice as pageSliceOf, sortPage, splitPages, type StashPage } from '../../core/stashPages';
+import { equipBag } from '../../core/bag';
+import { coins as coinsStack, gridGold, groupGold, splitCoins, withdrawCoins } from '../../core/gold';
+import { earnGoldSafe, NO_ROOM_FOR_GOLD, putCoinsPartial, setGoldExactly, syncGold, takeCoins } from '../../core/wallet';
+import { COIN_ID } from '../../config/gold';
 import { computeStats } from '../../core/stats';
 import { createCombat, performAction, runAITurn, currentActor, getCombatant, type CombatAction, type CombatState } from '../../core/combat';
 import { chestType } from '../../core/data/chests';
@@ -48,7 +56,13 @@ import { CRYPTS_OF_UMBRAVEL, type DungeonDef } from '../../core/dungeon';
 import { generateDungeon } from '../../core/dungeonGen';
 import { sfx, setVolume } from '../audio';
 
-export type Screen = 'boot' | 'title' | 'create' | 'lobby' | 'dungeon' | 'summary';
+export type Screen = 'boot' | 'title' | 'select' | 'backup' | 'create' | 'lobby' | 'dungeon' | 'summary';
+
+/** Un personaje en la pantalla de selección (lo justo para dibujarlo y describirlo). */
+export interface RosterEntry {
+  id: string; slot: number; name: string; classId: ClassId; level: number; gold: number; lastPlayedAt: number;
+  appearance: Appearance; equipment: Profile['equipment']; skin: string | null;
+}
 
 export interface Toast { id: number; text: string; kind: 'loot' | 'info' | 'danger' | 'social' | 'good'; icon?: string }
 
@@ -59,7 +73,7 @@ export interface CombatSession {
   kind: CombatKind;
   entityId: string | null;
   title: string;
-  rewards: { xp: number; gold: number; items: ItemStack[]; overflow: boolean } | null;
+  rewards: { xp: number; gold: number; items: ItemStack[]; overflow: boolean; /** Saco del suelo con el botín. */ bagId?: string | null } | null;
 }
 
 export interface LootSession {
@@ -130,6 +144,27 @@ export interface GameState {
   suspended: boolean;
   /** Mensaje de error de inventario (p.ej. «Tu clase no puede usar este objeto»). */
   invError: string | null;
+  /** Personajes de la partida (hasta 4) y cuál está activo. */
+  roster: RosterEntry[];
+  activeId: string | null;
+  /** El tutorial ya se jugó con algún personaje (los siguientes pueden saltarlo). */
+  accountTutorialDone: boolean;
+  /** Hueco elegido en la selección para el personaje que se está creando. */
+  createSlot: number | null;
+  /** Página del almacén que se está viendo (0 = la primera, 'shared' = «Compartido»). */
+  stashPage: StashPage;
+  /** Título del aviso de la pantalla de título (por defecto, «Expedición interrumpida»). */
+  noticeTitle: string | null;
+  /** Estado de las copias de seguridad (última copia, recordatorio). */
+  backup: BackupStatus | null;
+  /** Mercader con el que se está hablando (decide qué compra y a qué precio al vender). */
+  activeVendor: VendorId | null;
+  /** Bloque que se destaca al abrir la copia de seguridad («Tengo una copia» → cargar). */
+  backupFocus: 'load' | null;
+  /** Hay una partida guardada de antes de la última importación (para deshacerla): cuándo se importó. */
+  undoAt: number | null;
+  /** El navegador conserva los datos de forma persistente (true), no lo garantiza (false) o no se sabe (null). */
+  persisted: boolean | null;
 }
 
 const initial: GameState = {
@@ -153,6 +188,17 @@ const initial: GameState = {
   notice: null,
   now: Date.now(),
   invError: null,
+  roster: [],
+  activeId: null,
+  accountTutorialDone: false,
+  createSlot: null,
+  stashPage: 0,
+  noticeTitle: null,
+  backup: null,
+  activeVendor: null,
+  backupFocus: null,
+  undoAt: null,
+  persisted: null,
 };
 
 let state: GameState = initial;
@@ -166,6 +212,7 @@ function set(patch: Partial<GameState> | ((s: GameState) => Partial<GameState>))
   const p = typeof patch === 'function' ? patch(state) : patch;
   const prevProfile = state.profile;
   state = { ...state, ...p };
+  if (state.profile && state.profile !== prevProfile) state = { ...state, profile: syncGold(state.profile) };
   if (state.profile && state.profile !== prevProfile) scheduleSave();
   listeners.forEach((l) => l());
 }
@@ -180,16 +227,56 @@ export function useGame<T>(sel: (s: GameState) => T): T {
 }
 
 // ── Guardado ──
+// La partida (cuenta + hasta 4 personajes) vive aquí; el juego trabaja con `state.profile`, que es el personaje
+// activo montado con los datos de la cuenta. Al guardar, el perfil se reparte de nuevo en la partida.
+let save: SaveData | null = null;
+let activeId: string | null = null;
+export function getSave(): SaveData | null { return save; }
+export function getActiveCharacterId(): string | null { return activeId; }
+
+function syncSave() {
+  if (save && activeId && state.profile) save = applyProfile(save, state.profile, activeId);
+}
+function rosterOf(sv: SaveData | null): RosterEntry[] {
+  if (!sv) return [];
+  return sv.characters.map((c) => ({
+    id: c.id, slot: c.slot, name: c.character.name, classId: c.character.classId, level: c.character.level, gold: c.gold,
+    lastPlayedAt: c.lastPlayedAt, appearance: c.character.appearance, equipment: c.equipment,
+    skin: c.skinEquipped && sv.account.skinsOwned.includes(c.skinEquipped) ? c.skinEquipped : null,
+  }));
+}
+/** Pone al día la lista de personajes que ve la interfaz. */
+function refreshRoster() {
+  set({ roster: rosterOf(save), activeId, accountTutorialDone: !!save?.account.tutorialDone, backup: save && save.characters.length ? backupStatus(save) : null });
+}
+
+/** Lo que se conserva al cambiar de personaje o de partida (no depende del personaje). */
+function kept(): Partial<GameState> {
+  return { undoAt: state.undoAt, persisted: state.persisted, toasts: state.toasts };
+}
+
+/** Pide al navegador que no borre los datos del juego por su cuenta (si lo permite). */
+async function requestPersist() {
+  try {
+    const st = typeof navigator !== 'undefined' ? navigator.storage : undefined;
+    if (!st?.persist) return;
+    const already = st.persisted ? await st.persisted() : false;
+    set({ persisted: already || (await st.persist()) });
+  } catch { /* sin soporte: no pasa nada */ }
+}
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 function scheduleSave() {
   if (saveTimer) clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    if (state.profile) void saveProfile(state.profile);
+    syncSave();
+    if (save) void saveSave(save);
+    refreshRoster();
   }, 150);
 }
 async function saveNow() {
   if (saveTimer) clearTimeout(saveTimer);
-  if (state.profile) await saveProfile(state.profile);
+  syncSave();
+  if (save) await saveSave(save);
 }
 
 // ── Notificaciones ──
@@ -209,6 +296,7 @@ export function containersFor(s: GameState, lootId?: string): Containers | null 
     backpack: inDungeon ? s.expedition!.backpack : s.profile.backpack,
     equipment: inDungeon ? s.expedition!.equipment : s.profile.equipment,
     stash: inDungeon ? emptyGrid(0) : s.profile.stash,
+    shared: inDungeon ? emptyGrid(0) : (s.profile.shared ?? emptyGrid(0)),
     pocket: inDungeon ? s.expedition!.pocket : s.profile.pocket,
     loot: lootGrid,
   };
@@ -222,7 +310,7 @@ function applyContainers(c: Containers, lootId?: string) {
       const stats = computeStats(s.profile.character.classId, s.profile.character.level, c.equipment);
       patch.expedition = { ...s.expedition, backpack: c.backpack, pocket: c.pocket, equipment: c.equipment, hp: Math.min(s.expedition.hp, stats.maxHp), mp: Math.min(s.expedition.mp, stats.maxMp) };
     } else {
-      patch.profile = { ...s.profile, backpack: c.backpack, equipment: c.equipment, stash: c.stash, pocket: c.pocket };
+      patch.profile = { ...s.profile, backpack: c.backpack, equipment: c.equipment, stash: c.stash, shared: s.profile.shared ? c.shared : null, pocket: c.pocket };
     }
     if (lootId) {
       if (s.chests[lootId]) patch.chests = { ...s.chests, [lootId]: c.loot };
@@ -269,17 +357,30 @@ function combatLevel(): number {
 
 export const actions = {
   async boot() {
-    const p = await loadProfile();
+    save = await loadSave();
+    void requestPersist();
+    void loadUndo().then((u) => set({ undoAt: u?.at ?? null }));
+    activeId = save ? currentCharacterId(save) : null;
+    const p = save && activeId ? composeProfile(save, activeId) : null;
+    if (save) setVolume(save.account.settings.volume);
+    // Avisos de una sola vez (p. ej., el oro devuelto al pasar el almacén a páginas)
+    const notes = save?.account.notes ?? [];
+    if (save && notes.length) {
+      save = { ...save, account: { ...save.account, notes: [] } };
+      await saveSave(save);
+      set({ notice: notes.join(' '), noticeTitle: 'El almacén tiene páginas' });
+    }
     if (p) {
-      setVolume(p.settings.volume);
       if (p.activeExpedition) {
         const fixed = abandonInterruptedExpedition(p);
+        refreshRoster();
         set({ profile: fixed, screen: 'title', notice: 'Tu última expedición se interrumpió (la página se cerró o recargó). Se ha anulado sin pérdidas: conservas el equipo con el que entraste, pero no el botín que encontraste.' });
         await saveNow();
         return;
       }
     }
     set({ profile: p && needsRecruitKit(p) ? grantRecruitKit(p) : p, screen: 'title' });
+    refreshRoster();
   },
 
   goto(screen: Screen) {
@@ -287,19 +388,123 @@ export const actions = {
   },
 
   dismissNotice() {
-    set({ notice: null });
+    set({ notice: null, noticeTitle: null });
   },
 
-  async createCharacter(name: string, classId: ClassId, appearance: Appearance, skipTutorial = false) {
+  // ── Copia de seguridad ──
+  /** Pantalla «Copia de seguridad». Con 'load' (desde «Tengo una copia»), destaca el bloque de cargar. */
+  async openBackup(focus: 'load' | null = null) {
+    await saveNow();
+    refreshRoster();
+    set({ screen: 'backup', modal: null, backupFocus: focus });
+  },
+
+  /** Prepara la copia (archivo y código) y apunta la fecha como última copia. */
+  async exportBackup(): Promise<{ json: string; code: string; fileName: string } | null> {
+    await saveNow();
+    if (!save || !save.characters.length) { toast('Aún no hay ninguna partida que guardar.', 'danger'); return null; }
+    const now = Date.now();
+    const b = buildBackup(save, now);
+    save = { ...save, account: { ...save.account, backup: { ...save.account.backup, lastAt: now, expeditionsAt: totalExpeditions(save) } } };
+    await saveSave(save);
+    refreshRoster();
+    return { json: backupToJson(b), code: backupToCode(b), fileName: backupFileName(now) };
+  },
+
+  /** Sustituye la partida entera por la de una copia. Antes guarda la actual para poder deshacerlo. */
+  async importSave(next: SaveData) {
+    await saveNow();
+    if (save && save.characters.length) { await saveUndo(save); set({ undoAt: Date.now() }); }
+    save = next;
+    activeId = currentCharacterId(save);
+    let p = activeId ? composeProfile(save, activeId) : null;
+    if (p?.activeExpedition) p = abandonInterruptedExpedition(p);
+    await saveSave(save);
+    set({ ...initial, ...kept(), profile: p, screen: 'backup', undoAt: state.undoAt, persisted: state.persisted, toasts: state.toasts });
+    refreshRoster();
+    if (p) setVolume(p.settings.volume);
+    toast('Partida cargada.', 'good');
+  },
+
+  /** Vuelve a la partida que había antes de la última importación. */
+  async undoImport() {
+    const u = await loadUndo();
+    if (!u) return;
+    save = u.save;
+    activeId = currentCharacterId(save);
+    const p = activeId ? composeProfile(save, activeId) : null;
+    await saveSave(save);
+    await clearUndo();
+    set({ ...initial, ...kept(), profile: p, screen: 'backup', undoAt: null, persisted: state.persisted, toasts: state.toasts });
+    refreshRoster();
+    toast('Se ha recuperado la partida de antes de cargar la copia.', 'good');
+  },
+
+  /** Crea un personaje en el hueco indicado (o en el primero libre) y entra con él al refugio. */
+  async createCharacter(name: string, classId: ClassId, appearance: Appearance, skipTutorial = false, slot?: number) {
+    await saveNow();
+    const base = save ?? emptySave();
     const p0 = createProfile(name, classId, appearance);
-    const p = skipTutorial ? { ...p0, tutorialDone: true } : p0;
-    set({ profile: p, screen: 'lobby' });
+    // Los atuendos comprados y los ajustes son de la cuenta: el personaje nuevo también los tiene
+    const p1 = { ...p0, skins: { owned: [...base.account.skinsOwned], equipped: null }, settings: { ...base.account.settings }, shared: base.account.shared.owned ? [...base.account.shared.grid] : null };
+    // Saltar el tutorial (otro personaje ya lo jugó): también se saltan los avisos de bienvenida
+    const p = skipTutorial ? { ...p1, tutorialDone: true, tutorialSeen: { lobby: true, dungeon: true } } : p1;
+    const r = addCharacter(base, p, slot ?? state.createSlot ?? undefined);
+    if (!r) { toast('Ya tienes 4 personajes: borra uno para crear otro.', 'danger'); return; }
+    save = r.save; activeId = r.id;
+    set({ ...initial, ...kept(), profile: p, screen: 'lobby', createSlot: null });
+    refreshRoster();
     await saveNow();
   },
 
+  /** Abre la creación de personaje para un hueco concreto de la selección. */
+  newCharacter(slot?: number) {
+    if (save && save.characters.length >= MAX_CHARACTERS) { toast('Ya tienes 4 personajes: borra uno para crear otro.', 'danger'); return; }
+    set({ screen: 'create', createSlot: slot ?? null });
+  },
+
+  /** Pantalla «Elige quién baja». */
+  async openSelect() {
+    await saveNow();
+    refreshRoster();
+    set({ screen: 'select', modal: null });
+  },
+
+  /** Entra al refugio con otro personaje (guarda antes el actual). */
+  async selectCharacter(id: string) {
+    if (!save || !save.characters.some((c) => c.id === id)) return;
+    await saveNow();
+    let p = composeProfile(save, id);
+    if (!p) return;
+    if (p.activeExpedition) p = abandonInterruptedExpedition(p);
+    if (needsRecruitKit(p)) p = grantRecruitKit(p);
+    activeId = id;
+    save = applyProfile(save, p, id); // pasa a ser el último usado
+    set({ ...initial, ...kept(), profile: p, screen: 'lobby', roster: state.roster, toasts: state.toasts });
+    refreshRoster();
+    if (p.settings) setVolume(p.settings.volume);
+    await saveNow();
+  },
+
+  /** Borra un personaje y todo lo suyo. Los demás, los atuendos y la página «Compartido» se quedan. */
+  async deleteCharacterById(id: string) {
+    if (!save) return;
+    await saveNow();
+    save = removeCharacter(save, id);
+    const wasActive = activeId === id;
+    if (wasActive) activeId = currentCharacterId(save);
+    await saveSave(save);
+    if (wasActive) {
+      const p = activeId ? composeProfile(save, activeId) : null;
+      set({ ...initial, ...kept(), profile: p, screen: state.screen === 'select' ? 'select' : 'title', toasts: state.toasts });
+    }
+    refreshRoster();
+  },
+
+  /** Borra el personaje activo (se mantiene por compatibilidad con las pruebas). */
   async deleteCharacter() {
-    await deleteProfile();
-    set({ ...initial, screen: 'title' });
+    if (activeId) await actions.deleteCharacterById(activeId);
+    set({ screen: 'title' });
   },
 
   setSettings(patch: Partial<Profile['settings']>) {
@@ -346,9 +551,33 @@ export const actions = {
   },
 
   quickMove(from: Loc, target: ContainerId, lootId?: string) {
+    // «Al almacén» va a la página que se está viendo (o a «Compartido» si es la abierta); si no cabe, a cualquier otra propia
+    if (target === 'stash' && !lootId && state.screen === 'lobby') {
+      const pg = state.stashPage;
+      const c0 = containersFor(state);
+      const src0 = c0 && stackAt(c0, from);
+      if (c0 && src0) {
+        if (pg === 'shared' && state.profile?.shared) return actions.moveToPage(from, 'shared');
+        if (typeof pg === 'number') {
+          const r0 = addToPage(c0.stash, pg, src0);
+          if (!r0.leftover) return actions.moveToPage(from, pg);
+        }
+      }
+    }
     const c = containersFor(state, lootId);
     if (!c) return;
     const moving = stackAt(c, from);
+    // Monedas a la mochila: primero a los saquitos y sacos con hueco
+    if (moving?.itemId === COIN_ID && target === 'backpack' && from.kind === 'grid') {
+      const pc = putCoinsPartial(c.backpack, moving.qty);
+      if (pc.left === moving.qty) return invError('Tu mochila está llena: las monedas se quedan aquí.');
+      const n = { ...c, backpack: pc.grid, [from.container]: [...c[from.container]] };
+      n[from.container][from.index] = pc.left ? { ...moving, qty: pc.left } : null;
+      sfx('coin');
+      applyContainers(n, lootId);
+      if (pc.left) invError(`Tu mochila está llena: ${pc.left} monedas se quedan aquí.`);
+      return;
+    }
     const r = quickMove(c, from, target);
     if (!r.ok) return invError(r.error);
     sfx('pickup');
@@ -356,11 +585,30 @@ export const actions = {
     if (moving && from.kind === 'grid' && from.container === 'loot' && target !== 'loot') recordFound([moving]);
   },
 
+  /** «Coger el oro»: solo las monedas del saco o cofre (primero a tus saquitos y sacos). */
+  takeGold(lootId: string) {
+    const c = containersFor(state, lootId);
+    if (!c) return;
+    const n = c.loot.filter((x) => x?.itemId === COIN_ID).reduce((a, x) => a + x!.qty, 0);
+    if (!n) return;
+    const pc = putCoinsPartial(c.backpack, n);
+    if (pc.left === n) return invError('Tu mochila está llena: las monedas se quedan aquí.');
+    const loot = c.loot.map((x) => (x?.itemId === COIN_ID ? null : x));
+    if (pc.left) { const i = loot.indexOf(null); if (i >= 0) loot[i] = coinsStack(pc.left); }
+    sfx('coin');
+    applyContainers({ ...c, backpack: pc.grid, loot }, lootId);
+    if (pc.left) invError(`Tu mochila está llena: ${pc.left} monedas se quedan aquí.`);
+  },
+
   takeAll(lootId: string) {
     const c = containersFor(state, lootId);
     if (!c) return;
     const stacks = c.loot.filter((s): s is ItemStack => !!s);
-    const r = addManyToGrid(c.backpack, stacks);
+    // Las monedas, primero a los saquitos y sacos con hueco de la mochila; luego sueltas
+    const coinsIn = stacks.filter((x) => x.itemId === COIN_ID).reduce((n, x) => n + x.qty, 0);
+    const pc = putCoinsPartial(c.backpack, coinsIn);
+    const r = addManyToGrid(pc.grid, stacks.filter((x) => x.itemId !== COIN_ID), LAYOUTS.backpack);
+    if (pc.left) r.leftovers.push(coinsStack(pc.left));
     const remaining = emptyGrid(c.loot.length);
     r.leftovers.forEach((s, i) => (remaining[i] = s));
     if (stacks.length) sfx('pickup');
@@ -369,11 +617,107 @@ export const actions = {
     recordFound(stacks.filter((x) => !r.leftovers.some((l) => l.uid === x.uid)));
   },
 
+  /** Ordena la mochila, o la página del almacén que se está viendo (solo esa). */
   sortContainer(which: 'backpack' | 'stash') {
     const c = containersFor(state);
     if (!c) return;
     sfx('click');
-    applyContainers({ ...c, [which]: sortGrid(c[which]) });
+    if (which === 'backpack') return applyContainers({ ...c, backpack: sortGrid(c.backpack, LAYOUTS.backpack) });
+    const pg = state.stashPage;
+    if (pg === 'shared') applyContainers({ ...c, shared: sortGrid(c.shared, LAYOUTS.shared) });
+    else applyContainers({ ...c, stash: sortPage(c.stash, pg) });
+  },
+
+  // ── Oro físico ──
+  /** Saca `n` monedas de un saquito o saco a su misma rejilla (de 10 en 10). */
+  withdrawGold(loc: Loc, n: number) {
+    const c = containersFor(state);
+    if (!c || loc.kind !== 'grid') return;
+    const r = withdrawCoins(c[loc.container], loc.index, n, LAYOUTS[loc.container]);
+    if (!r.ok) return invError(r.error);
+    sfx('coin');
+    applyContainers({ ...c, [loc.container]: r.grid });
+    if (r.moved < n) toast(`Solo había sitio para ${r.moved} monedas.`, 'info');
+  },
+  /** Separa `n` monedas de un montón a una casilla libre cercana. */
+  splitGold(loc: Loc, n: number) {
+    const c = containersFor(state);
+    if (!c || loc.kind !== 'grid') return;
+    const r = splitCoins(c[loc.container], loc.index, n);
+    if (!r.ok) return invError(r.error);
+    sfx('coin');
+    applyContainers({ ...c, [loc.container]: r.grid });
+  },
+  /** «Agrupar oro»: monedas sueltas a los sacos con hueco y el resto en montones de 10. En el almacén, la página vista. */
+  groupGold(which: 'backpack' | 'stash') {
+    const c = containersFor(state);
+    if (!c) return;
+    if (which === 'backpack') {
+      const r = groupGold(c.backpack);
+      sfx('coin'); applyContainers({ ...c, backpack: r.grid });
+      return;
+    }
+    const pg = state.stashPage;
+    if (pg === 'shared') { const r = groupGold(c.shared); sfx('coin'); return applyContainers({ ...c, shared: r.grid }); }
+    const page = pageSliceOf(c.stash, pg);
+    const r = groupGold(page);
+    const stash = [...c.stash];
+    r.grid.forEach((x, i) => (stash[pg * STASH_PAGE_SIZE + i] = x));
+    sfx('coin');
+    applyContainers({ ...c, stash });
+  },
+
+  setActiveVendor(v: VendorId | null) { set({ activeVendor: v }); },
+
+  /** Se pone otra mochila (solo en el refugio). La que llevabas ocupa su sitio. */
+  equipBag(loc: Loc) {
+    const p = state.profile;
+    if (!p || state.screen !== 'lobby' || loc.kind !== 'grid' || !['backpack', 'stash', 'shared'].includes(loc.container)) return;
+    const r = equipBag(p, loc.container as 'backpack' | 'stash' | 'shared', loc.index);
+    if (!r.ok) return invError(r.error);
+    sfx('equip');
+    set({ profile: r.profile });
+    toast(`Te pones la ${getItem(r.profile.bag.itemId).name.toLowerCase()}: ${r.profile.backpack.length} casillas.`, 'good');
+  },
+
+  /** Cambia la página del almacén que se ve. */
+  setStashPage(page: StashPage) {
+    const p = state.profile;
+    if (!p) return;
+    if (page === 'shared' ? !p.shared : page < 0 || page >= pageCount(p.stash)) return;
+    set({ stashPage: page });
+  },
+
+  /**
+   * Lleva un objeto a una página del almacén (arrastrándolo a su pestaña, o tocándolo y luego la pestaña).
+   * Se apila primero; si no cabe entero, lo que sobra se queda donde estaba.
+   */
+  moveToPage(from: Loc, page: StashPage) {
+    const c = containersFor(state);
+    if (!c) return;
+    const src = stackAt(c, from);
+    if (!src) return;
+    if (page === 'shared') {
+      if (!state.profile?.shared) return invError('Aún no tienes la página «Compartido».');
+      const r = quickMove(c, from, 'shared');
+      if (!r.ok) return invError('No hay espacio en la página «Compartido».');
+      sfx('pickup');
+      return applyContainers(r.containers);
+    }
+    // Si ya está en esa página, no hay nada que hacer
+    const from1 = from.kind === 'grid' ? { ...from, index: anchorIndex(c[from.container], from.index) } : from;
+    if (from1.kind === 'grid' && from1.container === 'stash' && Math.floor(from1.index / STASH_PAGE_SIZE) === page) return;
+    // Se saca de donde está y se mete en la página; lo que no quepa vuelve a su sitio
+    const n = clearAt(c, from1);
+    const r = addToPage(n.stash, page, src);
+    if (r.leftover && r.leftover.qty === src.qty) return invError(isMulti(src) ? `No hay hueco de 2×2 en la página ${page + 1}.` : `No hay espacio en la página ${page + 1}.`);
+    n.stash = r.stash;
+    if (r.leftover) {
+      if (from1.kind === 'equip') n.equipment[from1.slot] = r.leftover;
+      else n[from1.container][from1.index] = r.leftover;
+    }
+    sfx('pickup');
+    applyContainers(n);
   },
 
   useItem(loc: Loc) {
@@ -455,14 +799,28 @@ export const actions = {
     toast(`Maese Brand forja: ${res.name} · calidad ${QUALITIES[r.quality].name.toLowerCase()}`, r.quality === 2 ? 'loot' : 'good', res.icon);
   },
 
-  upgradeStash() {
+  /** Compra la siguiente página propia del almacén (la confirmación la pide el Alijo). */
+  buyStashPage() {
     const p = state.profile;
     if (!p) return;
-    const r = upgradeStash(p);
+    const r = buyStashPage(p);
     if (!r.ok) return invError(r.error);
     sfx('coin');
-    set({ profile: r.profile });
-    toast(`Almacén ampliado: ahora tiene ${r.profile.stash.length} casillas.`, 'good');
+    const page = pageCount(r.profile.stash) - 1;
+    set({ profile: r.profile, stashPage: page });
+    toast(`Página ${page + 1} del almacén comprada.`, 'good');
+  },
+
+  /** Compra la página «Compartido» (una vez, para todos los personajes). */
+  buySharedPage() {
+    const p = state.profile;
+    if (!p) return;
+    const r = buySharedPage(p);
+    if (!r.ok) return invError(r.error);
+    sfx('coin');
+    set({ profile: r.profile, stashPage: 'shared' });
+    void saveNow();
+    toast('Página «Compartido» comprada: todos tus personajes pueden usarla.', 'good');
   },
 
   // ── Atuendos (Tienda) ──
@@ -558,7 +916,14 @@ export const actions = {
     const p = state.profile;
     if (!p) return;
     const item = p[container][index];
-    const r = sell(p, container, index, all);
+    const vendor = state.activeVendor ?? 'orvel';
+    let r = sell(p, container, index, all, vendor);
+    // Sin sitio para el oro: se prueba a agrupar las monedas sueltas de cada página en sus sacos y se vuelve a intentar
+    if (!r.ok && r.error === NO_ROOM_FOR_GOLD) {
+      const grouped = joinPages(splitPages(p.stash).map((pg) => groupGold(pg).grid));
+      const r2 = sell({ ...p, stash: grouped }, container, index, all, vendor);
+      if (r2.ok) { r = r2; toast('Se han agrupado tus monedas sueltas para hacer sitio.', 'info'); }
+    }
     if (!r.ok) return invError(r.error);
     sfx('coin');
     set({ profile: r.profile });
@@ -592,8 +957,7 @@ export const actions = {
     const after = before + def.reward.rep;
     set({
       profile: {
-        ...p, backpack, stash,
-        gold: p.gold + def.reward.gold,
+        ...earnGoldSafe({ ...p, backpack, stash }, def.reward.gold),
         character: { ...p.character, level: xp.level, xp: xp.xp },
         reputation: { ...p.reputation, [def.vendor]: after },
         // Las repetibles vuelven a empezar; las demás quedan cobradas
@@ -678,8 +1042,8 @@ export const actions = {
     // Recompensa: oro y objetos para empezar (config en data/tutorial.ts)
     let stash = profile.backpack;
     for (const it of TUTORIAL_REWARD.items) stash = addToGrid(stash, { uid: makeUid(), itemId: it.itemId, qty: it.qty }).grid;
-    profile = { ...profile, backpack: stash, gold: profile.gold + TUTORIAL_REWARD.gold, tutorialDone: true, tutorialSeen: { lobby: true, dungeon: true } };
-    summary = { ...summary, tutorialNote: `Has sobrevivido a tu primera bajada. El intendente te da ${TUTORIAL_REWARD.gold} de oro, 3 pociones y unos guantes de cuero.` };
+    profile = { ...earnGoldSafe({ ...profile, backpack: stash }, TUTORIAL_REWARD.gold), tutorialDone: true, tutorialSeen: { lobby: true, dungeon: true } };
+    summary = { ...summary, tutorialNote: `Has sobrevivido a tu primera bajada. El intendente te da ${TUTORIAL_REWARD.gold} monedas de oro (están en tu almacén), 3 pociones y unos guantes de cuero.` };
     markTutorialDoneOnDevice();
     set({ profile, summary, tutorial: null, expedition: null, screen: 'summary', combat: null, modal: null, merc: null });
     await saveNow();
@@ -706,6 +1070,8 @@ export const actions = {
     switch (step.id) {
       case 'move': done = room >= 1; break;
       case 'fight': done = (e.kills.ossuary_rat ?? 0) >= 1 && !s.combat; break;
+      case 'gold': done = gridGold(e.backpack) > 0 && !s.modal; break;
+      case 'pocket': done = e.pocket.some((x) => x?.itemId === 'gold_pouch' && (x.gold ?? 0) > 0) && !s.modal; break;
       case 'box': done = !!s.chests.t_box && !s.modal && (countItem(e.backpack, 'iron_key') > 0 || !!s.chests.t_rich); break;
       case 'rich': done = !!s.chests.t_rich && !s.modal; break;
       case 'equip': done = e.equipment.helmet?.itemId === 'leather_hood' && !s.modal; break;
@@ -770,8 +1136,12 @@ export const actions = {
     if (!s.profile || !s.expedition) return;
     if (s.tutorial) return actions.finishTutorial(reason);
     // El errante aliado que extrae contigo se lleva su parte del oro encontrado desde que os aliasteis
-    const share = reason === 'extracted' ? goldShare(s.rival, s.expedition.goldFound, GOLD_SHARE) : 0;
-    const expDone = share ? { ...s.expedition, goldFound: s.expedition.goldFound - share } : s.expedition;
+    // (oro físico: su parte son monedas de tu mochila, de las que has cogido desde que os aliasteis)
+    const carried = gridGold(s.expedition.backpack);
+    const share0 = reason === 'extracted' ? Math.min(carried, goldShare(s.rival, carried, GOLD_SHARE)) : 0;
+    const paidBp = share0 ? takeCoins(s.expedition.backpack, share0) : null;
+    const share = paidBp ? share0 : 0;
+    const expDone = paidBp ? { ...s.expedition, backpack: paidBp } : s.expedition;
     let { profile, summary } = endExpedition(s.profile, expDone, reason, Date.now());
     if (reason === 'extracted' && s.rival.disposition === 'allied' && s.rival.hp > 0) {
       const w = getWanderer(s.rival.who);
@@ -841,15 +1211,13 @@ export const actions = {
       const loot = rollLoot(sub ? subzoneChestTable(base, sub.levels, subzonesOf(sub.zone).indexOf(sub), sub.id) : base, rng);
       const ct = chestType(table);
       const found = rollStacks(adaptDrops(loot.items, s.profile!.character.classId), getItem, { depth: subzoneDepth(), bonus: ct.look === 'boss' ? 2 : ct.key ? 1 : 0 }, () => rng.next());
-      grid = addManyToGrid(emptyGrid(12), found).grid;
       gold = loot.gold;
+      // El oro del cofre son monedas dentro del cofre: hay que cogerlas
+      grid = addManyToGrid(emptyGrid(12), [...found, ...(gold > 0 ? [coinsStack(gold)] : [])]).grid;
       const opened = { ...(s.expedition.chestsOpened ?? {}), [table]: (s.expedition.chestsOpened?.[table] ?? 0) + 1 };
       set({ expedition: { ...state.expedition!, chestsOpened: opened } });
       sfx('chest');
-      if (gold) {
-        set({ expedition: { ...state.expedition!, goldFound: state.expedition!.goldFound + gold } });
-        toast(`+${gold} de oro`, 'loot', 'coin');
-      }
+      if (gold) set({ expedition: { ...state.expedition!, goldFound: state.expedition!.goldFound + gold } });
     }
     const count = grid.filter(Boolean).length;
     const title = chestType(table).name;
@@ -948,7 +1316,7 @@ export const actions = {
   },
 
   rivalPropose() {
-    const r = proposeAlliance(state.rival, makeRng(randomSeed()), Date.now(), state.expedition?.goldFound ?? 0);
+    const r = proposeAlliance(state.rival, makeRng(randomSeed()), Date.now(), gridGold(state.expedition?.backpack ?? []));
     if (dev.forceBetrayal) r.rival.traitor = true;
     set({ rival: r.rival, rivalLine: r.line });
     if (r.accepted) {
@@ -1149,10 +1517,10 @@ export const actions = {
         if (rc && rc.side === 'B') {
           {
             xp += 60;
-            gold += rival.gold;
+            const rivalCoins = rival.gold;
             rival = { ...rival, disposition: 'dead' };
             // El cuerpo del errante deja una bolsa con sus pertenencias (y lo que te robó o le diste)
-            const bagGrid = addManyToGrid(emptyGrid(12), rival.bagItemIds.map((id) => ({ uid: makeUid(), itemId: id, qty: 1 }))).grid;
+            const bagGrid = addManyToGrid(emptyGrid(12), [...rival.bagItemIds.map((id) => ({ uid: makeUid(), itemId: id, qty: 1 })), ...(rivalCoins > 0 ? [coinsStack(rivalCoins)] : [])]).grid;
             const [x, y] = s.hud.playerTile;
             const bag: Bag = { id: makeUid('bag'), x, y, grid: bagGrid, label: `Pertenencias de ${getWanderer(rival.who).name.split(' ')[0]}` };
             set((st) => ({ bags: { ...st.bags, [bag.id]: bag } }));
@@ -1164,19 +1532,23 @@ export const actions = {
           const pen = overlevelPenalty(getSubzone(s.dungeon.subzone).levels[1], s.profile.character.level);
           if (pen) { xp = Math.round(xp * pen.xp); gold = Math.round(gold * pen.gold); }
         }
-        const r = addManyToGrid(exp.backpack, items);
-        exp.backpack = r.grid;
-        exp.found = [...exp.found, ...items];
+        // En el tutorial, la rata siempre suelta algo de oro (para practicar con el saco del botín)
+        if (s.tutorial && gold < 4) gold = 4;
+        // Oro físico: el botín (objetos y monedas) cae en un saco en el suelo; tú decides qué te llevas
+        const dropped = [...items, ...(gold > 0 ? [coinsStack(gold)] : [])];
         exp.goldFound += gold;
         exp.xpGained += xp;
         exp.kills = kills;
-        if (r.leftovers.length) {
+        let bagId: string | null = null;
+        if (dropped.length) {
           const [x, y] = s.hud.playerTile;
-          const bag: Bag = { id: makeUid('bag'), x, y, grid: addManyToGrid(emptyGrid(12), r.leftovers).grid, label: 'Botín que no cabía' };
+          const foe = next.combatants.find((c) => c.side === 'B' && c.ref && c.ref !== 'rival');
+          const bag: Bag = { id: makeUid('bag'), x, y, grid: addManyToGrid(emptyGrid(Math.max(12, dropped.length)), dropped).grid, label: foe ? `Saco de ${getEnemy(foe.ref!).name}` : 'Saco del combate' };
+          bagId = bag.id;
           set((st) => ({ bags: { ...st.bags, [bag.id]: bag } }));
           bus.emit('bags-changed');
         }
-        rewards = { xp, gold, items, overflow: r.leftovers.length > 0 };
+        rewards = { xp, gold, items, overflow: false, bagId };
         // Tu mercenario se venda las heridas tras cada victoria
         if (merc?.alive && mc && mc.hp > 0) { const max = mercBaseStats(getMerc(merc.id)).maxHp; merc = { ...merc, hp: Math.min(max, merc.hp + Math.round(max * 0.15)) }; }
         sfx('victory');
@@ -1206,8 +1578,11 @@ export const actions = {
       void actions.finishExpedition('died');
       return;
     }
+    const lootBag = outcome === 'victory' ? s.combat.rewards?.bagId : null;
     set({ combat: null });
     bus.emit('combat-ended', { entityId, outcome, kind });
+    // El saco del botín se abre solo: coges lo que quieras y el resto se queda en el suelo
+    if (lootBag && state.bags[lootBag]) actions.openBag(lootBag);
     bus.emit('rival-changed');
     bus.emit('merc-changed');
     // Tras ganar un combate con poca vida, un errante traidor puede aprovechar el momento
@@ -1281,6 +1656,12 @@ function markTutorialDoneOnDevice() {
 
 export function exposeDebug(extra: Record<string, unknown> = {}) {
   if (typeof window !== 'undefined' && /[?&]debug/.test(window.location.search)) {
-    (window as unknown as Record<string, unknown>).__CRYPTRAIDERS__ = { getState, actions, dev, setState: (patch: Partial<GameState>) => set(patch), ...extra };
+    // En las pruebas, poner `profile.gold` a mano deja ese oro en monedas de verdad en el almacén (el oro es físico)
+    const debugSet = (patch: Partial<GameState>) => {
+      const pr = patch.profile;
+      if (pr && pr.gold !== gridGold(pr.stash)) patch = { ...patch, profile: setGoldExactly(pr, pr.gold) };
+      set(patch);
+    };
+    (window as unknown as Record<string, unknown>).__CRYPTRAIDERS__ = { getState, getSave, actions, dev, setState: debugSet, ...extra };
   }
 }

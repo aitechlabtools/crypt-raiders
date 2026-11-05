@@ -365,3 +365,12 @@ html.is-touch .tut-guide { top: auto; bottom: max(8px, env(safe-area-inset-botto
 .pj-wide .text-\[15px\] { font-size: 17px; }
 .ui-seg.ui-seg-full { display: flex; width: 100%; }
 .ui-seg.ui-seg-full button { flex: 1 1 0; padding: 0 8px; }
+
+/* Menú principal en pantallas bajas (móvil en horizontal): logo más pequeño y botones más juntos */
+@media (max-height:520px){
+  .title-menu{gap:6px;margin-top:12px}
+  .title-menu .btn{min-height:44px;padding-top:0;padding-bottom:0;font-size:14px}
+  .title-foot{margin-top:10px}
+  .title-wrap h1{font-size:52px}
+  .title-wrap .title-tag{font-size:15px;margin-top:4px}
+}

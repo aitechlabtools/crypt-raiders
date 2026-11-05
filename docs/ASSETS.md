@@ -14,3 +14,15 @@ Todo el arte y el audio de la v0.1 se **genera por código**: es original, no ti
 | Tipografías | `@fontsource` (Cinzel, Crimson Pro, Pixelify Sans: licencia OFL, empaquetadas en el proyecto) | Se pueden mantener |
 
 Para sustituir un sprite basta con cargar la imagen en `src/game/engine/textures.ts` con la **misma clave** de textura (p. ej. `hero0`…`hero3`, `wall0`, `chest_common_open`).
+
+## Oro físico y mochilas (provisionales, para diseñar)
+
+Se dibujan hoy en `src/shared/art.ts` (tabla `ICONS` y sprites de mercader). Sustituir por iconos de 32×32 con la **misma clave**:
+
+| Clave | Qué es | Notas |
+|---|---|---|
+| `coins1`, `coins2`, `coins3` | Monedas sueltas (montón pequeño, mediano y grande según cuántas hay, hasta 10) | 1 casilla |
+| `pouch` | Saquito de oro (hasta 50 monedas) | 1 casilla; cabe en el bolsillo seguro |
+| `sack` | Saco grande de oro (hasta 250 monedas) | Ocupa 2×2: icono de 64×64 |
+| `bag1`, `bag2`, `bag3` | Mochilas de 24, 30 y 36 casillas | Se ven en su hueco bajo «Pies» y en la tienda |
+| `vendor_collector` | El Coleccionista (goblin mercader) | Mismo tamaño y estilo que el resto de mercaderes |

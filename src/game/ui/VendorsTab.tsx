@@ -51,7 +51,7 @@ export function ShopStock({ vid, cols = 'grid sm:grid-cols-2 xl:grid-cols-3 gap-
                   {locked ? (
                     <span className="text-[11px] text-stone-400 text-right leading-tight w-20" data-testid={`locked-${itemId}`}>🔒 {REP_RANKS[need].name}</span>
                   ) : (
-                    <button className="btn btn-gold text-sm whitespace-nowrap" disabled={profile.gold < price} onClick={() => actions.buy(itemId, vid)} data-testid={`buy-${itemId}`}>{price} oro</button>
+                    <button className="btn btn-gold text-sm whitespace-nowrap" disabled={profile.gold < price} onClick={() => actions.buy(itemId, vid)} data-testid={`buy-${itemId}`}>{profile.gold < price ? `Oro insuficiente · ${price}` : `${price} oro`}</button>
                   )}
                 </div>
               );

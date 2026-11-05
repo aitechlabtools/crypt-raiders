@@ -107,7 +107,7 @@ export function Tienda() {
                   ) : (
                     <>
                       <button className="btn btn-gold w-full" style={{ minHeight: 'var(--btn-h)' }} disabled={!!block} onClick={() => setConfirm(s)} data-testid={`shop-buy-${id}`}>
-                        Comprar · {fmt(s.price.amount)} oro
+                        {profile.gold < s.price.amount ? `Oro insuficiente · ${fmt(s.price.amount)}` : `Comprar · ${fmt(s.price.amount)} oro`}
                       </button>
                       {block && <div className="text-[12px] text-blood text-center" data-testid={`shop-block-${id}`}>{block}</div>}
                     </>

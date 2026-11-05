@@ -41,7 +41,7 @@ fs.mkdirSync(OUT, { recursive: true });
     await page.click('[data-testid=vendor-orvel]');
     await page.click('[data-testid=buy-health_potion]');
     const s = await st();
-    if (s.gold !== goldBefore - 20) throw new Error('el oro no bajó: ' + s.gold);
+    if (s.gold !== goldBefore - 2) throw new Error('el oro no bajó: ' + s.gold); // 2 monedas (economía ÷10)
     await shot('03-merchant');
   });
   await step('El aspecto cambia al equiparse un yelmo', async () => {
@@ -117,6 +117,18 @@ fs.mkdirSync(OUT, { recursive: true });
     await shot('09-combat-result');
     if (s.outcome !== 'victory') throw new Error('resultado: ' + s.outcome);
     await page.click('[data-testid=btn-combat-continue]');
+  });
+  await step('Oro físico: el botín cae en un saco en el suelo y se abre solo', async () => {
+    await page.waitForSelector('[data-testid=loot-modal]', { timeout: 4000 });
+    await shot('09b-saco-botin');
+    const before = await page.evaluate(() => { const s = window.__CRYPTRAIDERS__.getState(); return { bp: s.expedition.backpack.filter(Boolean).length, gold: s.expedition.backpack.reduce((n, x) => n + (x?.itemId === 'gold_coins' ? x.qty : x?.gold ?? 0), 0) }; });
+    if (await page.$('[data-testid=btn-take-gold]')) {
+      await page.click('[data-testid=btn-take-gold]');
+      const g = await page.evaluate(() => window.__CRYPTRAIDERS__.getState().expedition.backpack.reduce((n, x) => n + (x?.itemId === 'gold_coins' ? x.qty : x?.gold ?? 0), 0));
+      if (g <= before.gold) throw new Error('«Coger el oro» no metió monedas en la mochila');
+    }
+    await page.click('[data-testid=btn-take-all]');
+    await page.click('[data-testid=btn-close-loot]');
   });
   await step('Abrir un cofre y coger el botín', async () => {
     await clearNear(18, 17);

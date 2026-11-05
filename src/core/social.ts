@@ -1,3 +1,4 @@
+import { GOLD_SCALE } from '../config/gold';
 // ════════════════════════════════════════════════════════════════════
 // Mercenarios errantes (y Kael, el más especial de ellos).
 // Al aliarte se tira un dado UNA vez con su riesgo de traición (triángulo de color). Si sale, es un traidor «dormido»:
@@ -46,7 +47,7 @@ export function initialRival(who = 'kael', risk: RiskLevel = 'kael', hostile = f
   const w = getWanderer(who);
   return {
     ...noRival(), who, risk: hostile ? 'hostile' : risk, chance: RISK[hostile ? 'hostile' : risk].chance,
-    disposition: hostile ? 'hostile' : 'neutral', hp: w.stats.maxHp, potions: 1, gold: 30 + Math.round(w.stats.maxHp / 3),
+    disposition: hostile ? 'hostile' : 'neutral', hp: w.stats.maxHp, potions: 1, gold: Math.max(1, Math.round((30 + w.stats.maxHp / 3) * GOLD_SCALE)),
     bagItemIds: [...(w.gear ?? ['health_potion', 'old_coin'])],
   };
 }

@@ -1,3 +1,5 @@
+import { BAG_SIZES, STARTING_BAG, STARTING_COINS } from '../config/gold';
+import { coins } from './gold';
 import { adaptDrops } from './loot';
 import { initialClassSkills, sanitizeClassSkills } from './classSkills';
 import { isSubzoneId } from './data/subzones';
@@ -5,7 +7,7 @@ import { MERCENARIES } from './data/mercenaries';
 import { SKINS } from './data/skins';
 import type { Appearance, ClassId, Profile } from './types';
 import { CLASSES } from './data/classes';
-import { addToGrid, BACKPACK_SIZE, emptyEquipment, emptyGrid, STASH_SIZE } from './inventory';
+import { addToGrid, BACKPACK_SIZE, emptyEquipment, emptyGrid, LAYOUTS, repairGrid, STASH_SIZE } from './inventory';
 import { getItem } from './data/items';
 import { initialQuests } from './quests';
 import { makeUid } from './rng';
@@ -13,7 +15,7 @@ import { POCKET_SIZE } from './data/chests';
 import { legacyLevelToNew } from '../config/progression';
 import { xpForNextLevel } from './stats';
 
-export const STARTING_GOLD = 60;
+export const STARTING_GOLD = STARTING_COINS;
 
 export function createProfile(name: string, classId: ClassId, appearance: Appearance): Profile {
   const cls = CLASSES[classId];
@@ -32,7 +34,11 @@ export function createProfile(name: string, classId: ClassId, appearance: Appear
     character: { name: name.trim().slice(0, 18) || 'Sin nombre', classId, appearance, level: 1, xp: 0 },
     gold: STARTING_GOLD,
     backpack,
-    stash: emptyGrid(STASH_SIZE),
+    // El oro inicial son monedas de verdad en el almacén
+    stash: [coins(STARTING_COINS), ...emptyGrid(STASH_SIZE - 1)],
+    shared: null,
+    goldPhysical: true,
+    bag: { uid: makeUid(), itemId: STARTING_BAG, qty: 1 },
     equipment,
     quests: initialQuests(),
     stats: { expeditions: 0, extractions: 0, deaths: 0, kills: 0 },
@@ -80,6 +86,7 @@ export function sanitizeProfile(raw: unknown): Profile | null {
   };
   p.backpack = p.backpack.map(known) as Profile['backpack'];
   p.stash = p.stash.map(known) as Profile['stash'];
+  p.shared = Array.isArray(p.shared) ? (p.shared.map(known) as Profile['stash']) : null;
   const eq = { ...emptyEquipment(), ...(p.equipment ?? {}) };
   for (const k of Object.keys(eq) as (keyof typeof eq)[]) eq[k] = known(eq[k]) as typeof eq[typeof k];
   p.equipment = eq;
@@ -110,10 +117,17 @@ export function sanitizeProfile(raw: unknown): Profile | null {
   if (!p.bestiary || typeof p.bestiary !== 'object') p.bestiary = {};
   if (!Array.isArray(p.pocket)) p.pocket = emptyGrid(POCKET_SIZE);
   p.pocket = p.pocket.map(known) as Profile['pocket'];
+  // Mochila puesta: la que corresponde a su tamaño (partidas de antes: la de cuero)
+  if (!p.bag || !BAG_SIZES[p.bag.itemId]) p.bag = { uid: makeUid(), itemId: Object.keys(BAG_SIZES).find((k) => BAG_SIZES[k] === p.backpack.length) ?? STARTING_BAG, qty: 1 };
   p.stats = Object.assign({ expeditions: 0, extractions: 0, deaths: 0, kills: 0 }, p.stats ?? {});
   // Combate nuevo (C1): el Guerrero usa Ímpetu y el Mago Maná. Las pociones de recurso guardadas pasan a la que te sirve.
   const fix = (g: Profile['backpack']) => g.map((x) => (x ? adaptDrops([x], p.character.classId)[0] : x));
   p.backpack = fix(p.backpack); p.stash = fix(p.stash); p.pocket = fix(p.pocket);
+  if (p.shared) p.shared = fix(p.shared);
+  // Objetos de varias casillas (saco de oro): marcas de casillas tapadas al día
+  p.backpack = repairGrid(p.backpack, LAYOUTS.backpack); p.stash = repairGrid(p.stash, LAYOUTS.stash);
+  if (p.shared) p.shared = repairGrid(p.shared, LAYOUTS.shared);
+  p.pocket = repairGrid(p.pocket);
   return p;
 }
 

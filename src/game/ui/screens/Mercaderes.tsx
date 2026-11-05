@@ -2,6 +2,7 @@
 // servicios. Al hablar: tres zonas: el mercader y sus servicios · el servicio elegido · tu mochila, tus materiales o la
 // ficha del objeto que vas a vender. La forja (Maese Brand) y los contratos (Garra Roja) viven dentro de su mercader.
 // En móvil, la tercera zona va en un cajón por la derecha.
+import { StashPanel } from '../StashPanel';
 import { useEffect, useState, type ReactNode } from 'react';
 import { actions, useGame } from '../../state/store';
 import { VENDORS, VENDOR_ORDER, type VendorId } from '../../../core/data/vendors';
@@ -23,14 +24,14 @@ import { sfx } from '../../audio';
 const VIEW_LABEL: Record<VendorView, string> = { shop: 'Tienda', quests: 'Misiones', sell: 'Vender', forge: 'Forja', contracts: 'Contratos' };
 
 function servicesOf(id: VendorId): VendorView[] {
-  const v: VendorView[] = ['shop', 'quests'];
+  const v: VendorView[] = id === 'coleccionista' ? ['shop'] : ['shop', 'quests'];
   if (VENDORS[id].buysItems) v.push('sell');
   if (id === 'garra') v.push('contracts');
   if (id === 'brand') v.push('forge');
   return v;
 }
 /** El servicio propio de cada mercader (se resalta en su tarjeta). */
-const SPECIAL: Partial<Record<VendorId, VendorView>> = { garra: 'contracts', brand: 'forge', orvel: 'sell' };
+const SPECIAL: Partial<Record<VendorId, VendorView>> = { garra: 'contracts', brand: 'forge', orvel: 'sell', coleccionista: 'shop' };
 
 export function Mercaderes({ target, onConsumed }: { target: VendorTarget | null; onConsumed: () => void }) {
   const [open, setOpen] = useState<VendorTarget | null>(target);
@@ -43,12 +44,11 @@ export function Mercaderes({ target, onConsumed }: { target: VendorTarget | null
 function VendorCards({ onTalk }: { onTalk: (v: VendorId) => void }) {
   const profile = useGame((s) => s.profile)!;
   const scale = usePixelScale('vendor');
-  const layout = useLayout();
   return (
     <div className="h-full overflow-y-auto scroll-thin" style={{ padding: '0 max(var(--pad), env(safe-area-inset-right)) var(--pad) max(var(--pad), env(safe-area-inset-left))' }} data-testid="screen-merchants">
       <div className="min-h-full flex flex-col items-center justify-center">
       <h2 className="ui-ptitle border-0 !text-[clamp(14px,1.8vw,26px)] !tracking-[0.18em]">Mercaderes del campamento</h2>
-      <div className="grid w-full max-w-[1200px]" style={{ gridTemplateColumns: `repeat(${layout === 'phone' ? 4 : 4}, minmax(0,1fr))`, gap: 'var(--gap)' }} data-testid="vendor-list">
+      <div className="grid w-full max-w-[1200px]" style={{ gridTemplateColumns: `repeat(${VENDOR_ORDER.length}, minmax(0,1fr))`, gap: 'var(--gap)' }} data-testid="vendor-list">
         {VENDOR_ORDER.map((id) => {
           const v = VENDORS[id];
           const rep = profile.reputation[id] ?? 0;
@@ -85,6 +85,8 @@ function VendorInterior({ vendor, initial, onBack }: { vendor: VendorId; initial
   const rank = rankOf(rep);
   const discount = REP_RANKS[rank].discount;
   const go = (x: VendorView) => { setView(x); setSel(null); sfx('click'); };
+  // Quién compra al vender (el Coleccionista solo joyas y tesoros, y paga mejor)
+  useEffect(() => { actions.setActiveVendor(vendor); return () => actions.setActiveVendor(null); }, [vendor]);
 
   const title = view === 'forge' ? `Forja de ${v.name}` : view === 'contracts' ? 'Contratos de Garra Roja' : view === 'sell' ? `Vender a ${v.name}` : view === 'quests' ? `Encargos de ${v.name}` : `Tienda de ${v.name}`;
   const center: ReactNode =
@@ -142,7 +144,9 @@ function SellGrids({ sel, setSel }: { sel: Loc | null; setSel: (l: Loc | null) =
   return (
     <div className="flex flex-wrap" style={{ gap: 'calc(var(--gap) * 2)' }} data-testid="sell-grids">
       <div><SubHead>Mochila</SubHead><GridView grid={profile.backpack} container="backpack" cols={6} equipment={profile.equipment} mode="merchant" selected={sel} onSelect={pick} onQuick={quick} onAlt={quick} /></div>
-      <div><SubHead>Almacén</SubHead><GridView grid={profile.stash} container="stash" cols={6} equipment={profile.equipment} mode="merchant" selected={sel} onSelect={pick} onQuick={quick} onAlt={quick} /></div>
+      <div className="flex flex-col" style={{ height: 'min(62vh, 560px)', minHeight: 300 }}>
+        <StashPanel cols={8} mode="merchant" sel={sel} onSelect={pick} onQuick={quick} onAlt={quick} testId="sell-stash" />
+      </div>
       <p className="font-body text-sm text-stone-400 italic w-full">Elige un objeto para ver cuánto te da. Doble clic: vender al momento.</p>
     </div>
   );

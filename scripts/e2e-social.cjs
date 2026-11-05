@@ -126,7 +126,7 @@ const OUT = process.argv[3] || '/tmp/claude-0/social';
   // 4 · Extraer con un aliado: se despide y se lleva su parte del oro
   await enter('osario', 35, { forceWanderer: 'odo' });
   await toRival();
-  await G(() => { const d = window.__CRYPTRAIDERS__; d.actions.interactRival(); d.actions.rivalPropose(); d.actions.closeModal(); const s = d.getState(); d.setState({ expedition: { ...s.expedition, goldFound: s.expedition.goldFound + 500 } }); });
+  await G(() => { const d = window.__CRYPTRAIDERS__; d.actions.interactRival(); d.actions.rivalPropose(); d.actions.closeModal(); const s = d.getState(); const bp = [...s.expedition.backpack]; for (let k = 0; k < 5; k++) { const i = bp.indexOf(null); bp[i] = { uid: 'oro' + k, itemId: 'gold_coins', qty: 10 }; } d.setState({ expedition: { ...s.expedition, backpack: bp } }); }); // 50 monedas cogidas tras aliaros
   await G(() => window.__CRYPTRAIDERS__.actions.finishExpedition('extracted'));
   await page.waitForSelector('[data-testid=wanderer-note]');
   ok((await page.textContent('[data-testid=wanderer-note]')).includes('de oro'), 'al extraer se despide y se lleva su parte del oro');

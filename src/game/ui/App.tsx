@@ -5,6 +5,8 @@ import { TitleScreen, CreateScreen } from './TitleScreen';
 import { Lobby } from './Lobby';
 import { DungeonScreen } from './DungeonScreen';
 import { SummaryScreen } from './SummaryScreen';
+import { ElegirPersonaje } from './screens/ElegirPersonaje';
+import { CopiaSeguridad } from './screens/CopiaSeguridad';
 import { Toasts } from './common';
 import { exposeDebug } from '../state/store';
 import { stopMusic } from '../audio';
@@ -32,6 +34,8 @@ export function App() {
     <div className="relative h-full w-full">
       {screen === 'boot' && <div className="h-full flex items-center justify-center font-display text-stone-400 tracking-[0.3em]">CARGANDO…</div>}
       {screen === 'title' && <TitleScreen />}
+      {screen === 'select' && <ElegirPersonaje />}
+      {screen === 'backup' && <CopiaSeguridad />}
       {screen === 'create' && <CreateScreen />}
       {screen === 'lobby' && <Lobby />}
       {screen === 'dungeon' && <DungeonScreen />}

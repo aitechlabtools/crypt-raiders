@@ -241,7 +241,7 @@ describe('Armas y equipo por subzona (C4)', () => {
   });
   it('un arma a dos manos manda lo de la mano izquierda a la mochila', async () => {
     const { transfer } = await import('../src/core/inventory');
-    const c = { backpack: emptyGrid(24), stash: emptyGrid(24), loot: emptyGrid(12), pocket: emptyGrid(4), equipment: eq({ mainHand: 'rusty_sword', offHand: 'wooden_shield' }) };
+    const c = { backpack: emptyGrid(24), stash: emptyGrid(24), shared: [], loot: emptyGrid(12), pocket: emptyGrid(4), equipment: eq({ mainHand: 'rusty_sword', offHand: 'wooden_shield' }) };
     c.backpack[0] = { uid: 'gs', itemId: 'jailer_greatsword', qty: 1 };
     const r = transfer(c, { kind: 'grid', container: 'backpack', index: 0 }, { kind: 'equip', slot: 'mainHand' }, { classId: 'warrior', level: 30 });
     expect(r.ok).toBe(true);

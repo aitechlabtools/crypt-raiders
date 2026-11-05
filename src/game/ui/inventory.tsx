@@ -7,7 +7,8 @@ import type { EquipSlot, Equipment, Grid, ItemStack, Stats } from '../../core/ty
 import { EQUIP_SLOTS, STAT_KEYS } from '../../core/types';
 import { getItem, RARITY_INFO } from '../../core/data/items';
 import { CLASSES, STAT_LABELS } from '../../core/data/classes';
-import type { Loc } from '../../core/inventory';
+import { footprint, isCover, LAYOUTS, type Loc } from '../../core/inventory';
+import { capacityOf, isCoins } from '../../core/gold';
 import { sellPrice } from '../../core/economy';
 import { iconUrl } from '../../shared/art';
 import { actions, useGame } from '../state/store';
@@ -22,7 +23,7 @@ const SLOT_HINT_ICON: Record<EquipSlot, string> = {
 
 export type InvMode = 'lobby' | 'merchant' | 'dungeon';
 
-const DRAG_MIME = 'application/x-cryptraiders';
+export const DRAG_MIME = 'application/x-cryptraiders';
 
 export function ItemIcon({ itemId, size = 36 }: { itemId: string; size?: number }) {
   const def = getItem(itemId);
@@ -47,6 +48,7 @@ export function ItemTooltip({ stack, equipment, mode }: { stack: ItemStack; equi
         {r.name} · {def.slot ? SLOT_LABELS[def.slot] : categoryName(def.category)}
         {stack.qty > 1 ? ` · x${stack.qty}` : ''}
       </div>
+      {capacityOf(stack) > 0 && <div className="text-xs mb-1 text-gold" data-testid="tooltip-gold">Lleva {stack.gold ?? 0}/{capacityOf(stack)} monedas</div>}
       {def.uses !== undefined && <div className="text-xs mb-1 text-stone-300" data-testid="tool-uses">Usos: {stack.uses ?? def.uses}/{def.uses}{def.mineTime ? ` · pica en ${def.mineTime} s` : ''}</div>}
       {stack.quality !== undefined && <div className="text-xs mb-1" style={{ color: ['#9a9a9a', '#5fbf4a', '#e8b33a'][stack.quality] }}>Calidad {QUALITIES[stack.quality].name.toLowerCase()}{QUALITIES[stack.quality].bonus ? ` (+${Math.round(QUALITIES[stack.quality].bonus * 100)}%)` : ''}{stack.forgedBy ? ` · Forjada por ${stack.forgedBy}` : ''}</div>}
       {stack.affixes?.length ? <div className="text-xs mb-1 text-gold">{stack.affixes.map((a) => AFFIXES[a]?.description).filter(Boolean).join(' ')}</div> : null}
@@ -93,7 +95,7 @@ export function ItemTooltip({ stack, equipment, mode }: { stack: ItemStack; equi
 }
 
 function categoryName(c: string) {
-  return ({ potion: 'Consumible', material: 'Material', relic: 'Reliquia', jewel: 'Joya', key: 'Llave', quest: 'Objeto de misión', coin: 'Moneda', weapon: 'Arma', shield: 'Escudo', tool: 'Herramienta' } as Record<string, string>)[c] ?? c;
+  return ({ potion: 'Consumible', material: 'Material', relic: 'Reliquia', jewel: 'Joya', key: 'Llave', quest: 'Objeto de misión', coin: 'Moneda', gold: 'Oro', container: 'Saco de oro', weapon: 'Arma', shield: 'Escudo', tool: 'Herramienta' } as Record<string, string>)[c] ?? c;
 }
 
 interface SlotProps {
@@ -114,9 +116,11 @@ interface SlotProps {
   big?: boolean;
   /** Hay un objeto elegido esperando destino: las casillas vacías se marcan como posibles destinos. */
   awaiting?: boolean;
+  /** Posición en la rejilla (columna y fila, desde 1) y tamaño en casillas (objetos grandes: 2×2). */
+  cell?: { col: number; row: number; w: number; h: number };
 }
 
-export function ItemSlot({ stack, loc, lootId, equipment, mode, selected, placeholderIcon, label, onSelect, onQuick, onAlt, onEmpty, big, awaiting }: SlotProps) {
+export function ItemSlot({ stack, loc, lootId, equipment, mode, selected, placeholderIcon, label, onSelect, onQuick, onAlt, onEmpty, big, awaiting, cell }: SlotProps) {
   const [over, setOver] = useState(false);
   const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
   const rarity = stack ? RARITY_INFO[stackRarity(stack, getItem(stack.itemId))] : null;
@@ -130,7 +134,11 @@ export function ItemSlot({ stack, loc, lootId, equipment, mode, selected, placeh
       data-testid={testId}
       data-item={stack?.itemId ?? ''}
       className={`slot ${big ? 'slot-big' : ''} ${over ? 'drag-over' : ''} ${selected ? 'selected' : ''} ${awaiting && !stack ? 'slot-target' : ''}`}
-      style={rarity ? { borderColor: rarity.color + 'aa', boxShadow: `inset 0 0 0 1px #07060a, inset 0 0 14px ${rarity.color}33` } : undefined}
+      style={{
+        ...(rarity ? { borderColor: rarity.color + 'aa', boxShadow: `inset 0 0 0 1px #07060a, inset 0 0 14px ${rarity.color}33` } : {}),
+        ...(cell ? { gridColumn: `${cell.col} / span ${cell.w}`, gridRow: `${cell.row} / span ${cell.h}` } : {}),
+        ...(cell && (cell.w > 1 || cell.h > 1) ? { width: `calc(var(--slot) * ${cell.w} + ${(cell.w - 1) * 4}px)`, height: `calc(var(--slot) * ${cell.h} + ${(cell.h - 1) * 4}px)` } : {}),
+      }}
       draggable={!!stack}
       onDragStart={(e) => {
         setTip(null);
@@ -167,8 +175,11 @@ export function ItemSlot({ stack, loc, lootId, equipment, mode, selected, placeh
       onPointerLeave={() => setTip(null)}
       title={!stack && label ? label : undefined}
     >
-      {stack ? <ItemIcon itemId={stack.itemId} size={big ? 48 : 36} /> : placeholderIcon ? <img src={iconUrl(placeholderIcon, 3)} width={30} height={30} className="pixelated opacity-15" alt="" draggable={false} /> : null}
+      {stack ? (isCoins(stack)
+        ? <img src={iconUrl(stack.qty <= 3 ? 'coins1' : stack.qty <= 7 ? 'coins2' : 'coins3', 3)} width={36} height={36} alt="Monedas de oro" className="pixelated" draggable={false} />
+        : <ItemIcon itemId={stack.itemId} size={cell && cell.w > 1 ? 84 : big ? 48 : 36} />) : placeholderIcon ? <img src={iconUrl(placeholderIcon, 3)} width={30} height={30} className="pixelated opacity-15" alt="" draggable={false} /> : null}
       {stack && stack.qty > 1 && <span className="qty">{stack.qty}</span>}
+      {stack && capacityOf(stack) > 0 && <span className="qty" data-testid="slot-gold" style={{ color: stack.gold ? '#f2c75a' : '#a8a29e', fontSize: cell && cell.w > 1 ? 13 : 10 }}>{stack.gold ?? 0}/{capacityOf(stack)}</span>}
       {stack && loc.kind === 'grid' && (tooHigh || wrongClass) && (
         <span className="absolute left-0.5 top-0 text-[10px] leading-none px-0.5 bg-black/80 text-blood" data-testid="slot-locked" title={wrongClass ? 'Tu clase no puede usarlo' : `Requiere nivel ${sdef!.levelReq}`}>
           {wrongClass ? '✕' : `Nv${sdef!.levelReq}`}
@@ -186,8 +197,10 @@ export function ItemSlot({ stack, loc, lootId, equipment, mode, selected, placeh
 
 export function GridView(props: {
   grid: Grid;
-  container: 'backpack' | 'stash' | 'loot' | 'pocket';
+  container: 'backpack' | 'stash' | 'shared' | 'loot' | 'pocket';
   cols: number;
+  /** Primera casilla del contenedor que se pinta (páginas del almacén: el `grid` es solo esa página). */
+  offset?: number;
   lootId?: string;
   equipment?: Equipment;
   mode?: InvMode;
@@ -199,10 +212,17 @@ export function GridView(props: {
 }) {
   return (
     <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${props.cols}, var(--slot))` }} data-testid={`grid-${props.container}`}>
-      {props.grid.map((s, i) => {
+      {props.grid.map((s, k) => {
+        const i = k + (props.offset ?? 0);
+        // Las casillas tapadas por un objeto grande no se pintan: el objeto ocupa su hueco (2×2)
+        if (isCover(s)) return null;
+        const L = LAYOUTS[props.container];
+        const fixed = !!L && L.cols === props.cols;
+        const f = s && fixed ? footprint(s.itemId) : { w: 1, h: 1 };
+        const cell = fixed ? { col: (k % props.cols) + 1, row: Math.floor(k / props.cols) + 1, w: f.w, h: f.h } : undefined;
         const loc: Loc = { kind: 'grid', container: props.container, index: i };
         const sel = props.selected?.kind === 'grid' && props.selected.container === props.container && props.selected.index === i;
-        return <ItemSlot key={i} stack={s} loc={loc} lootId={props.lootId} equipment={props.equipment} mode={props.mode} selected={sel} onSelect={props.onSelect} onQuick={props.onQuick} onAlt={props.onAlt} onEmpty={props.onEmpty} awaiting={!!props.selected && !!props.onEmpty} />;
+        return <ItemSlot key={i} cell={cell} stack={s} loc={loc} lootId={props.lootId} equipment={props.equipment} mode={props.mode} selected={sel} onSelect={props.onSelect} onQuick={props.onQuick} onAlt={props.onAlt} onEmpty={props.onEmpty} awaiting={!!props.selected && !!props.onEmpty} />;
       })}
     </div>
   );

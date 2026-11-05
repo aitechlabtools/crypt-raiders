@@ -7,8 +7,11 @@ import { CLASSES } from '../../../core/data/classes';
 import { computeStats, baseStats } from '../../../core/stats';
 import { getItem } from '../../../core/data/items';
 import { gridValue, equippedValue, type Loc } from '../../../core/inventory';
-import { stashUpgrades } from '../../../core/economy';
-import { STASH_ROW, STASH_UPGRADE_COSTS } from '../../../config/stash';
+import { StashPanel } from '../StashPanel';
+import { gridGold } from '../../../core/gold';
+import { BAG_SIZES } from '../../../config/gold';
+import { DRAG_MIME, ItemIcon } from '../inventory';
+import { Modal } from '../common';
 import type { EquipSlot, ItemStack } from '../../../core/types';
 import { ItemSlot, GridView, StatsList, SLOT_LABELS, type InvMode } from '../inventory';
 import { PlayerSprite, GoldAmount } from '../common';
@@ -41,24 +44,29 @@ export function Alijo({ onDetails, onShop }: { onDetails: () => void; onShop?: (
   const pickerModal = picker && <SkinPicker onClose={() => setPicker(false)} onShop={onShop} />;
   const backpack = (
     <div data-testid="alijo-backpack">
-      <SubHead right={<button className="btn text-xs" onClick={() => actions.sortContainer('backpack')} data-testid="sort-backpack">Ordenar</button>}>
+      <SubHead right={<span className="flex gap-1">
+        <button className="btn text-xs" onClick={() => actions.groupGold('backpack')} data-testid="group-gold-backpack" title="Mete las monedas sueltas en tus saquitos y sacos">Agrupar oro</button>
+        <button className="btn text-xs" onClick={() => actions.sortContainer('backpack')} data-testid="sort-backpack">Ordenar</button></span>}>
         Mochila · {profile.backpack.filter(Boolean).length}/{profile.backpack.length}
       </SubHead>
       <GridView grid={profile.backpack} container="backpack" cols={6} {...grids} onQuick={quickFromBag} onAlt={(l) => { actions.quickMove(l, 'stash'); clear(); }} />
+      {gridGold(profile.backpack) > 0 && (
+        <div className="flex items-center justify-between text-xs mt-1.5" data-testid="gold-carried"><span className="text-stone-300">Oro encima (se pierde si mueres)</span><span className="font-display text-ember">{gridGold(profile.backpack)}</span></div>
+      )}
     </div>
   );
   const pocket = (
     <div className="mt-3" data-testid="alijo-pocket">
-      <SubHead right={<span className="text-[11px] text-heal">no se pierde al morir</span>}>Bolsillo seguro · {profile.pocket.filter(Boolean).length}/{profile.pocket.length}</SubHead>
+      <SubHead right={<span className="text-[11px] text-heal" data-testid="pocket-gold">{gridGold(profile.pocket) > 0 ? `oro a salvo: ${gridGold(profile.pocket)}` : 'no se pierde al morir'}</span>}>Bolsillo seguro · {profile.pocket.filter(Boolean).length}/{profile.pocket.length}</SubHead>
       <GridView grid={profile.pocket} container="pocket" cols={3} {...grids} onQuick={(l) => { actions.quickMove(l, 'backpack'); clear(); }} />
     </div>
   );
-  const stashCols = phone ? 6 : layout === 'tablet' ? 5 : 8;
-  const stash = (
-    <GridView grid={profile.stash} container="stash" cols={stashCols} {...grids}
+  // El almacén tiene 8 columnas en todos los formatos (los objetos de 2×2 necesitan la misma forma siempre)
+  const stashCols = 8;
+  const storage = (
+    <StashPanel cols={stashCols} sel={sel} onSelect={onSelect} onEmpty={onEmpty}
       onQuick={(l) => { actions.quickMove(l, 'backpack'); clear(); }} onAlt={(l) => { actions.quickMove(l, 'backpack'); clear(); }} />
   );
-  const stashFooter = <StashFooter />;
   const card = <ItemCard loc={sel} mode={MODE} onClear={clear} compact={phone} />;
 
   if (phone) {
@@ -74,9 +82,7 @@ export function Alijo({ onDetails, onShop }: { onDetails: () => void; onShop?: (
           ) : (
             <>
               <Panel className="min-h-0" bodyClassName="overflow-y-auto scroll-thin">{backpack}</Panel>
-              <Panel className="min-h-0" bodyClassName="overflow-y-auto scroll-thin" testId="alijo-storage">
-                <SubHead>Almacén · {profile.stash.filter(Boolean).length}/{profile.stash.length}</SubHead>{stash}{stashFooter}
-              </Panel>
+              {storage}
             </>
           )}
         </div>
@@ -117,10 +123,7 @@ export function Alijo({ onDetails, onShop }: { onDetails: () => void; onShop?: (
           )}
         </div>}
       </Panel>
-      <Panel title={`Almacén · ${profile.stash.filter(Boolean).length}`} className="min-h-0" bodyClassName="min-h-0 flex flex-col" testId="alijo-storage">
-        <div className="flex-1 min-h-0 overflow-y-auto scroll-thin">{stash}</div>
-        {stashFooter}
-      </Panel>
+      {storage}
       {pickerModal}
     </div>
   );
@@ -140,7 +143,7 @@ function EquipmentGrid({ sel, onSelect, onEmpty, onDone, onSkin }: { sel: Loc | 
   return (
     <div className="flex items-start gap-6" data-testid="equipment">
       <div className="flex flex-col items-center gap-2">{slot('mainHand', true)}{slot('gloves')}<SkinSlot onClick={onSkin} /></div>
-      <div className="flex flex-col items-center gap-2">{slot('helmet')}{slot('armor')}{slot('boots')}</div>
+      <div className="flex flex-col items-center gap-2">{slot('helmet')}{slot('armor')}{slot('boots')}<BagSlot sel={sel} onDone={onDone} /></div>
       <div className="flex flex-col items-center gap-2">{slot('offHand', true)}{slot('amulet')}{slot('ring')}</div>
     </div>
   );
@@ -168,17 +171,35 @@ function StatsColumn(props: Parameters<typeof StatsList>[0]) {
   return <div className="alijo-stats"><StatsList {...props} /></div>;
 }
 
-function StashFooter() {
+/** Casilla de la mochila puesta: nunca está vacía y no se pierde al morir. Suelta otra mochila aquí (o tócala y toca aquí) para cambiarla. */
+function BagSlot({ sel, onDone }: { sel: Loc | null; onDone: () => void }) {
   const profile = useGame((s) => s.profile)!;
-  const n = stashUpgrades(profile);
-  const cost = STASH_UPGRADE_COSTS[n];
+  const bag = profile.bag;
+  const def = getItem(bag.itemId);
+  const [over, setOver] = useState(false);
+  const [info, setInfo] = useState(false);
+  const selIsBag = sel?.kind === 'grid' && (() => { const g = sel.container === 'shared' ? profile.shared : sel.container === 'backpack' || sel.container === 'stash' ? profile[sel.container] : null; const x = g?.[sel.index]; return !!x && !!BAG_SIZES[x.itemId]; })();
   return (
-    <div className="flex items-center justify-between gap-2 mt-3 flex-wrap shrink-0">
-      <button className="btn text-sm" onClick={() => actions.sortContainer('stash')} data-testid="sort-stash">Ordenar</button>
-      {cost !== undefined
-        ? <button className="btn text-sm" disabled={profile.gold < cost} onClick={() => actions.upgradeStash()} data-testid="btn-stash-upgrade">Ampliar (+{STASH_ROW}) · {cost} oro</button>
-        : <span className="text-xs text-heal">Tamaño máximo</span>}
+    <div className="flex flex-col items-center gap-0.5">
+      <button className={`slot ${over ? 'drag-over' : ''} ${selIsBag ? 'slot-target' : ''}`} data-testid="slot-bag" data-item={bag.itemId} title={`${def.name} · ${profile.backpack.length} casillas`}
+        aria-label={`Mochila: ${def.name}, ${profile.backpack.length} casillas`}
+        onClick={() => { sfx('click'); if (selIsBag && sel) { actions.equipBag(sel); onDone(); } else setInfo(true); }}
+        onDragOver={(e) => { if (e.dataTransfer.types.includes(DRAG_MIME)) { e.preventDefault(); setOver(true); } }}
+        onDragLeave={() => setOver(false)}
+        onDrop={(e) => { e.preventDefault(); setOver(false); const raw = e.dataTransfer.getData(DRAG_MIME); if (raw) actions.equipBag((JSON.parse(raw) as { loc: Loc }).loc); }}>
+        <ItemIcon itemId={bag.itemId} size={36} />
+        <span className="qty">{profile.backpack.length}</span>
+      </button>
+      <span className="text-[10px] text-stone-300 uppercase tracking-wider">Mochila</span>
+      {info && (
+        <Modal onClose={() => setInfo(false)} testId="bag-info">
+          <h2 className="panel-title text-lg mb-2">{def.name}</h2>
+          <p className="font-body text-lg">{def.description}</p>
+          <p className="text-sm text-heal mt-2">Tu mochila tiene {profile.backpack.length} casillas. La mochila puesta no se pierde al morir.</p>
+          <p className="text-xs text-stone-400 mt-2">Para cambiarla, suelta otra mochila en esta casilla (o tócala y luego toca aquí). El Coleccionista vende mochilas más grandes, y puedes pasarle una a otro personaje por la página «Compartido».</p>
+          <button className="btn mt-4" style={{ minHeight: 44 }} onClick={() => setInfo(false)}>Cerrar</button>
+        </Modal>
+      )}
     </div>
   );
 }
-

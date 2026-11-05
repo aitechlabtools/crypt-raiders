@@ -4,7 +4,7 @@ import { SHOWCASE_GEAR } from '../shared/gearLook';
 import { CLASSES } from '../core/data/classes';
 import type { ClassId } from '../core/types';
 import { DonateButton, DONATE_URL, PLAY_URL, SiteFooter, SiteHeader } from './site';
-import { PhoneShot, RoadmapSection, ShotCarousel, VarkHollowSection, type Shot } from './sections';
+import { PhoneShot, RoadmapSection, SaveSection, ShotCarousel, VarkHollowSection, type Shot } from './sections';
 import { AlliesBlock, MechanicsGrid } from './mechanics';
 
 // Landing v3 (4/11): Portada · Tráiler · VarkHollow · Mecánicas · Galería · Hoja de ruta · Cierre. Textos sin cifras exactas (como mucho «más de X»).
@@ -130,6 +130,8 @@ export function App() {
           </div>
         </div>
       </section>
+
+      <SaveSection />
 
       <RoadmapSection />
 

@@ -1,3 +1,4 @@
+import { scaleLoot } from './wallet';
 import type { ClassId, ItemStack } from './types';
 import { CLASSES } from './data/classes';
 import type { Rng } from './rng';
@@ -32,7 +33,8 @@ export function rollLoot(table: LootTable, rng: Rng): LootResult {
     }
   }
   for (const a of table.always ?? []) items.push({ uid: makeUid(), itemId: a.itemId, qty: a.qty ?? 1 });
-  const gold = rng.int(table.gold[0], table.gold[1]);
+  // Oro en la escala de monedas (÷10, con un redondeo al azar que conserva la media)
+  const gold = scaleLoot(rng.int(table.gold[0], table.gold[1]), () => rng.next());
   return { items, gold };
 }
 
@@ -73,7 +75,7 @@ export const CHEST_TABLES: Record<string, LootTable> = {
 Object.assign(CHEST_TABLES, CRIPTA_CHESTS, INFIERNO_CHESTS);
 // Tutorial: contenido fijo (la llave en el baúl; una capucha y unas botas en el cofre de hierro)
 CHEST_TABLES['tut:box'] = { rolls: 0, gold: [5, 5], entries: [{ itemId: 'nothing', weight: 1 }], always: [{ itemId: 'iron_key' }] };
-CHEST_TABLES['tut:rich'] = { rolls: 0, gold: [25, 25], entries: [{ itemId: 'nothing', weight: 1 }], always: [{ itemId: 'leather_hood' }, { itemId: 'worn_boots' }] };
+CHEST_TABLES['tut:rich'] = { rolls: 0, gold: [25, 25], entries: [{ itemId: 'nothing', weight: 1 }], always: [{ itemId: 'leather_hood' }, { itemId: 'worn_boots' }, { itemId: 'gold_pouch' }] };
 
 /**
  * Tabla de un cofre ajustada a la subzona: más oro y tiradas en las subzonas hondas de cada zona, y el equipo de su nivel

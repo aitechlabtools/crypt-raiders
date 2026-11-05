@@ -1,3 +1,4 @@
+import { withGold } from './helpers';
 import { describe, expect, it } from 'vitest';
 import { VENDORS, VENDOR_ORDER } from '../src/core/data/vendors';
 import { QUESTS } from '../src/core/data/quests';
@@ -13,7 +14,8 @@ describe('Vendedores y reputación', () => {
   it('toda la mercancía existe y cada vendedor tiene misiones', () => {
     for (const id of VENDOR_ORDER) {
       for (const s of VENDORS[id].stock) expect(ITEMS[s.itemId], `${id} → ${s.itemId}`).toBeTruthy();
-      expect(QUESTS.filter((q) => q.vendor === id).length, id).toBeGreaterThanOrEqual(4);
+      // El Coleccionista no da encargos (solo comercia)
+      if (id !== 'coleccionista') expect(QUESTS.filter((q) => q.vendor === id).length, id).toBeGreaterThanOrEqual(4);
     }
   });
   it('las misiones apuntan a criaturas y objetos que existen', () => {
@@ -25,11 +27,11 @@ describe('Vendedores y reputación', () => {
   it('los rangos bajan el precio', () => {
     expect(rankOf(0)).toBe(0);
     expect(rankOf(320)).toBe(2);
-    expect(buyPrice('iron_sword', 0)).toBe(ITEMS.iron_sword.value);
-    expect(buyPrice('iron_sword', 1500)).toBe(Math.round(ITEMS.iron_sword.value * (1 - REP_RANKS[4].discount)));
+    expect(buyPrice('iron_sword', 0)).toBe(Math.round(ITEMS.iron_sword.value / 10));
+    expect(buyPrice('iron_sword', 1500)).toBe(Math.round(ITEMS.iron_sword.value / 10 * (1 - REP_RANKS[4].discount)));
   });
   it('lo bueno pide rango: sin reputación no te lo venden', () => {
-    const p = { ...createProfile('A', 'warrior', { cloak: 0, skin: 0 }), gold: 10_000 };
+    const p = withGold(createProfile('A', 'warrior', { cloak: 0, skin: 0 }), 10_000);
     expect(buy(p, 'bone_key', 'vesper').ok).toBe(false);
     expect(buy({ ...p, reputation: { vesper: 300 } }, 'bone_key', 'vesper').ok).toBe(true);
     expect(buy(p, 'bone_key', 'orvel').ok).toBe(false);
@@ -60,15 +62,3 @@ describe('Misiones de los vendedores', () => {
   });
 });
 
-import { upgradeStash, stashUpgrades } from '../src/core/economy';
-describe('Ampliar el almacén', () => {
-  it('cada ampliación añade una fila y cuesta más; tiene un máximo', () => {
-    let p = { ...createProfile('A', 'warrior', { cloak: 0, skin: 0 }), gold: 100_000 };
-    const start = p.stash.length;
-    for (let i = 0; i < 4; i++) { const r = upgradeStash(p); expect(r.ok).toBe(true); if (r.ok) p = r.profile; }
-    expect(p.stash.length).toBe(start + 32);
-    expect(stashUpgrades(p)).toBe(4);
-    expect(upgradeStash(p).ok).toBe(false);
-    expect(p.gold).toBe(100_000 - 500 - 1500 - 4000 - 10000);
-  });
-});

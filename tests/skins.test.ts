@@ -1,10 +1,11 @@
+import { withGold } from './helpers';
 import { describe, expect, it } from 'vitest';
 import { SKINS, SKIN_ORDER, anchorFor, LAYER_ORDER } from '../src/core/data/skins';
 import { buyBlock, buySkin, equipSkin, ownsSkin, wornSkin } from '../src/core/skins';
 import { createProfile, sanitizeProfile } from '../src/core/profile';
 import { computeStats } from '../src/core/stats';
 
-const base = (gold = 20000) => ({ ...createProfile('Penitente', 'warrior', { cloak: 0, skin: 0 }), gold });
+const base = (gold = 20000) => withGold(createProfile('Penitente', 'warrior', { cloak: 0, skin: 0 }), gold);
 
 describe('Atuendos', () => {
   it('hay 3 a la venta, con oro como moneda y datos completos', () => {
@@ -24,10 +25,11 @@ describe('Atuendos', () => {
     expect(r.profile.gold).toBe(p.gold - SKINS.skin_penitent.price.amount);
     expect(ownsSkin(r.profile, 'skin_penitent')).toBe(true);
     expect(r.profile.backpack).toEqual(p.backpack);
-    expect(r.profile.stash).toEqual(p.stash);
+    // el almacén solo cambia en el oro pagado (ningún objeto nuevo)
+    expect(r.profile.stash.filter((x) => x && !['gold_coins', 'gold_pouch', 'gold_sack', 'cover'].includes(x.itemId))).toEqual(p.stash.filter((x) => x && !['gold_coins', 'gold_pouch', 'gold_sack', 'cover'].includes(x.itemId)));
   });
   it('no se puede comprar sin oro suficiente, dos veces, ni con otra moneda', () => {
-    expect(buyBlock(base(100), 'skin_ash_lord')).toMatch(/Te faltan/);
+    expect(buyBlock(base(100), 'skin_ash_lord')).toMatch(/te faltan/i);
     const r = buySkin(base(), 'skin_penitent');
     if (!r.ok) throw new Error('compra');
     expect(buyBlock(r.profile, 'skin_penitent')).toMatch(/Ya es tuyo/);

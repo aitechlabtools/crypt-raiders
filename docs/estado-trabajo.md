@@ -1,8 +1,139 @@
 # Crypt Raiders · Estado del trabajo (traspaso entre chats)
 
-Última actualización: 4 de noviembre de 2026.
+Última actualización: 5 de noviembre de 2026.
 Este documento resume todo lo hablado y hecho para que otro chat de Claude pueda continuar sin perder contexto.
 Léelo junto con CLAUDE.md (reglas permanentes del proyecto).
+
+## Novedades del 5/11: varios personajes, almacén por páginas y copia de seguridad (en curso)
+- Plan aprobado: docs/plan-personajes-copia.md. Maquetas: mockups/personajes-copia (index.html).
+- Decisiones: bestiario de cada personaje; atuendos comprados de la cuenta y el puesto de cada personaje; precios de páginas
+  aprobados (2.500 / 6.000 / 12.000 / 25.000; Compartido 15.000; 120 casillas por página) y se devuelve el oro de «Ampliar (+8)»;
+  importar sustituye la partida entera; recordatorio de copia a los 7 días o 10 expediciones; botón «Compartir archivo» en el móvil.
+- **Fase 1 hecha (sin cambios visibles):** partida en formato 3 (src/core/save.ts): cuenta (atuendos comprados, ajustes, tutorial,
+  página Compartido, último personaje, datos de copia, id para la nube) + hasta 4 personajes (lo demás, con `stashPages`).
+  - El juego sigue trabajando con `state.profile` (personaje activo + cuenta): `composeProfile` lo monta y `applyProfile` lo reparte
+    al guardar (store.ts: `save`, `activeId`, `syncSave`).
+  - Persistencia (db.ts): clave nueva `save`; la antigua `profile` se convierte sola al hueco 1 y NO se borra (respaldo).
+    `save-undo` queda preparada para deshacer importaciones. Con ?debug, `__CRYPTRAIDERS__.getSave()` enseña la partida.
+  - Tests: tests/save.test.ts (migración v1/v2 con almacén ampliado y lleno, ida y vuelta, 4 huecos, borrar, reparación). 199 tests.
+- **Fase 2 hecha: varios personajes.**
+  - Menú: «Continuar como…» y «Elegir personaje» (sustituye a «Nuevo personaje», que borraba). Ajustes ya no borra personajes.
+  - Pantalla «Elige quién baja» (screens/ElegirPersonaje.tsx, screen 'select'): 4 huecos con sprite y atuendo, nombre, clase,
+    nivel, oro y última partida; los vacíos crean un personaje en ese hueco; borrar pide escribir el nombre.
+  - Lobby: tocar el nombre arriba a la izquierda abre «Cambiar de personaje» (y «Ver todos · Nuevo personaje»).
+  - Tutorial: si ya lo jugó algún personaje, los nuevos empiezan con «Saltar el tutorial» marcado (y sin los avisos de bienvenida);
+    se puede desmarcar para jugarlo.
+  - store.ts: `roster`, `activeId`, `accountTutorialDone`, `createSlot`; acciones openSelect, newCharacter, selectCharacter,
+    deleteCharacterById (deleteCharacter borra el activo).
+  - Prueba nueva: `node scripts/personajes-check.cjs <url>/play/ <carpeta>` (tres formatos, 44 px, recarga).
+- **Fase 3 hecha: almacén por páginas.**
+  - Valores en src/config/stash.ts: 120 casillas por página (8 × 15, en escritorio se ve entera sin desplazar), páginas 2–5 a
+    2.500 / 6.000 / 12.000 / 25.000, «Compartido» a 15.000 (una vez, para todos los personajes).
+  - Las páginas propias van seguidas en `profile.stash` (página k = casillas k·120…): contar, gastar materiales y entregar
+    encargos siguen mirando todo el almacén propio. «Compartido» es `profile.shared` (de la cuenta), contenedor 'shared'.
+    Lógica en src/core/stashPages.ts; panel en src/game/ui/StashPanel.tsx (Alijo y Vender de los mercaderes).
+  - Pestañas: candado y precio en las no compradas (la siguiente se compra con confirmación); «Compartido» en verde azulado
+    con su icono y el texto «Compartido» en escritorio. Mover a otra página: arrastrar a la pestaña o tocar el objeto y luego
+    la pestaña. «Al almacén» va a la página que se ve. «Ordenar» solo ordena la página vista.
+  - Migración: el almacén antiguo (40 + filas de «Ampliar») pasa a la página 1 y se devuelve el oro pagado (una sola vez),
+    con un aviso en el título («El almacén tiene páginas»). Los avisos de una vez viven en `account.notes`.
+  - Pruebas: tests/stashPages.test.ts y `node scripts/almacen-check.cjs <url>/play/ <carpeta>` (tres formatos).
+- **Fase 4 hecha: copia de seguridad** (pantalla «Copia de seguridad» del menú, screen 'backup', screens/CopiaSeguridad.tsx).
+  - src/core/backup.ts: archivo `crypt-raiders-copia-AAAA-MM-DD.json` con { format, v, game, exportedAt, summary, data, sig }
+    y código de texto `CR1.` + JSON comprimido con fflate (deflate) en base64url (unos 1.400 caracteres con un personaje).
+    Firma: hash de 64 bits con sal; si se edita a mano, se rechaza («La copia está dañada o se ha modificado a mano»).
+    Los datos pasan por sanitizeSave al cargar: copias de formatos anteriores se migran igual.
+  - Guardar: Exportar archivo, Compartir archivo (solo donde el navegador puede compartir archivos: móviles) y Copiar código
+    (con el texto visible por si el portapapeles falla). Cargar: Importar archivo y Pegar código (con «Pegar del portapapeles»).
+  - Antes de cargar: qué contiene (personajes, clase, nivel, fecha, atuendos, Compartido) y aviso de que sustituye la partida;
+    la actual se guarda en `save-undo` y aparece «Deshacer la última carga».
+  - Recordatorio: «Última copia: hace X días · N expediciones desde entonces»; en el menú, aviso discreto junto a «Copia de
+    seguridad» a los 7 días o 10 expediciones (o sin ninguna copia con alguna expedición hecha). `account.backup.expeditionsAt`.
+  - Al arrancar se pide `navigator.storage.persist()`. Aviso de Safari en iPhone/iPad (isIosSafari / isStandalone en device.ts).
+  - Pie del menú: «Tu progreso se guarda en este navegador: haz copias de seguridad.»
+  - Nueva dependencia: fflate (package.json y package-lock.json).
+  - Pruebas: tests/backup.test.ts y `node scripts/copia-check.cjs <url>/play/ <carpeta>` (exporta en ordenador e importa en un
+    iPhone emulado con archivo y en una tableta pegando el código; copia editada; deshacer).
+- **Fase 5 hecha: menú principal.** Con partida: «Continuar como [último personaje]», «Elegir personaje», «Copia de seguridad»
+  (con el recordatorio discreto), «Ajustes» y «Volver a la web». Sin partida (primera vez): «Nuevo personaje» y «Tengo una copia»
+  (abre la copia con el bloque «Cargar una partida» destacado), «Ajustes» y «Volver a la web». En pantallas bajas el logo y los
+  botones se compactan (game.css: .title-wrap, .title-menu). Pie: «Tu progreso se guarda en este navegador: haz copias de seguridad.»
+- Fase 6 (landing y textos legales) aplazada al final de todo, para incluir también el oro físico.
+- **Oro físico:** plan aprobado (docs/plan-oro-fisico.md, mockups/oro-fisico). Respuestas: las mochilas mejores no se
+  pierden; el Coleccionista compra joyas, tesoros, cálices y gemas; el encargo «Coleccionista» de Orvel pasa a «Numismático»;
+  con la mochila llena, las monedas se quedan en el saco del suelo con aviso.
+- **Fase O1 hecha: objetos de varias casillas.** Objeto nuevo `gold_sack` (Saco de oro, 2×2; aún no se puede conseguir).
+  - El objeto vive en su casilla de arriba a la izquierda; las otras tres guardan una marca `cover` (uid «cover:<uid>»),
+    así todo lo que busca casillas libres las ve ocupadas. core/inventory.ts: LAYOUTS (mochila 6, almacén y Compartido 8 con
+    páginas de 15 filas, bolsillo 3), canPlace, removeAt, repairGrid, addToGrid/sortGrid con forma; transfer y quickMove.
+  - Reglas: se mueve a un hueco de 2×2 libre (puede desplazarse sobre su propio hueco), no se intercambia, no se suelta nada
+    encima, no cabe en el bolsillo ni se equipa, no queda entre dos páginas; ordenar pone los sacos primero.
+  - Almacén con 8 columnas en todos los formatos (Alijo y Vender). Icono provisional «sack» (y «pouch») en art.ts.
+  - Pruebas: tests/multicell.test.ts y el paso «saco de 2×2» de scripts/almacen-check.cjs.
+- **Fase O2 hecha: monedas y sacos** (aún no se consiguen jugando: llegan con la economía y el Coleccionista).
+  - Objetos: `gold_coins` (Monedas de oro, de 10 en 10, categoría 'gold'), `gold_pouch` (Saquito, 1 casilla, 50) y
+    `gold_sack` (Saco, 2×2, 250). Capacidades en src/config/gold.ts; el contenido va en `ItemStack.gold`.
+  - core/gold.ts: depositCoins, withdrawCoins, splitCoins, groupGold, goldOf/gridGold. Soltar monedas sobre un saco (por
+    cualquier casilla, también entre mochila y almacén) las mete; lo que no cabe se queda.
+  - Interfaz: icono de monedas según el montón (coins1/2/3), «37/50» en la esquina del saco, «Lleva X/Y monedas» en la ficha;
+    acciones «Sacar monedas» y «Dividir» con el selector GoldAmountPicker (−10/−1/+1/+10, barra, 10·25·50·Todo);
+    botón «Agrupar oro» en la mochila y en el almacén (la página que se ve).
+  - Bolsillo seguro: admite monedas y saquitos; el saco grande no. No se venden monedas ni sacos con oro.
+  - Pruebas: tests/gold.test.ts y los pasos de oro de scripts/almacen-check.cjs.
+- **Fase O3 hecha: economía con oro físico (incluye la migración del oro, que estaba prevista para O6).**
+  - El oro de un personaje son las monedas de sus páginas propias (no «Compartido»). `profile.gold` es solo un reflejo:
+    lo pone al día `set()` del store con syncGold. Pagos y cobros en src/core/wallet.ts (spendGold, earnGold, earnGoldSafe).
+    Pagar: sueltas → saquitos → sacos. Cobrar: sacos con hueco (los más llenos antes) → sueltas de 10 en 10.
+  - Economía ÷10 (GOLD_SCALE en config/gold.ts): precios de compra y venta, contratos, forja (forgeCost), botín (scaleLoot,
+    redondeo al azar que conserva la media) y oro de Kael. Datos editados: atuendos 150/400/900, páginas 250/600/1.200/2.500,
+    «Compartido» 1.500, recompensas de encargos ÷10, «extraer por valor de» 25 y 150, tutorial 10, oro inicial 6 monedas.
+    El encargo «Coleccionista» de Orvel se llama «Numismático». Saquito y saco valen 50 y 250 (de antes) = 5 y 25 monedas.
+  - Vender sin sitio para el oro: se agrupan las monedas sueltas de cada página y se reintenta; si sigue sin caber, no se vende
+    y se explica qué hacer. Botones sin oro: «Oro insuficiente · X». En la mochila: «Oro encima (se pierde si mueres)».
+  - Migración (save.ts): personajes sin `goldPhysical` → su oro (con lo devuelto por «Ampliar») ÷10 redondeando hacia arriba,
+    en sacos llenos, saquitos y monedas en su almacén (si no cabe, páginas gratis). Aviso «El oro ahora pesa». Copias incluidas.
+  - Al extraer, el oro encontrado aún entra directo en el almacén (O4 lo hará físico en la mochila).
+  - Pruebas: tests/wallet.test.ts (+ ayuda tests/helpers.ts `withGold`). Con ?debug, `setState` con `profile.gold` deja ese
+    oro en monedas de verdad (setGoldExactly). Scripts actualizados a la escala nueva.
+- **Fase O4 hecha: oro físico en las expediciones.**
+  - Al ganar un combate, objetos y monedas caen en un saco en el suelo («Saco de <enemigo>») que se abre solo al continuar;
+    la experiencia sigue siendo directa. Lo que no cojas se queda en el suelo. El errante muerto deja sus monedas en su bolsa.
+  - Cofres: su oro son monedas dentro del cofre. Botones «Coger el oro (N)» y «Cogerlo todo».
+  - Al coger monedas van primero a los saquitos y sacos con hueco de la mochila y luego sueltas (putCoinsPartial);
+    con la mochila llena se quedan en el saco/cofre con el aviso «Tu mochila está llena».
+  - El oro de la mochila se pierde al morir; el del bolsillo seguro no (se ve «oro a salvo: N» en el bolsillo, en el Alijo y
+    en el inventario de la mazmorra). HUD: «Oro encima». Al extraer, el oro vuelve en la mochila (resumen: oro que traes).
+  - Kael: su parte son monedas de tu mochila de las cogidas desde que os aliasteis (takeCoins).
+  - `expedition.goldFound` queda solo como dato (oro soltado); ya no se suma al extraer.
+  - e2e.cjs comprueba el saco del botín; e2e-tutorial, e2e-social y mobile-check, actualizados.
+- **Fase O5 hecha: El Coleccionista y las mochilas.**
+  - Mercader nuevo `coleccionista` (duende prestamista, sprite provisional `vendor_collector`): vende saquito (5), saco (25),
+    Mochila reforzada (30 casillas, 150) y Mochila de explorador (36, 600). Solo tienda y vender (sin encargos).
+  - Compra joyas y tesoros (categorías jewel, relic, ring, amulet, coin) pagando un 25 % más (config/gold.ts:
+    COLLECTOR_BUYS, COLLECTOR_PRICE_MULT); lo demás no se lo vendes. `activeVendor` en el store decide quién compra.
+  - Mochilas como objetos (`backpack_basic` 24, `backpack_30`, `backpack_36`; BAG_SIZES): casilla «Mochila» en el equipo
+    (debajo de Pies), nunca vacía, no se pierde al morir. Comprar una más grande te la pone y la vieja va a tu mochila;
+    cambiarla (solo en el refugio): soltar otra en la casilla, tocar y tocar, o «Equipar mochila»; a una más pequeña solo con
+    las últimas casillas vacías. Se pueden vender o pasar a otro personaje por «Compartido». core/bag.ts. Iconos bag1/2/3.
+  - Pruebas: tests/collector.test.ts; menus-check incluye la tienda y la venta del Coleccionista.
+- **Fase O7 hecha: tutorial con oro físico y lista de assets.**
+  - Tutorial: tras el primer combate, paso «gold» (coger el oro del saco del botín) y, tras equiparse, paso «pocket»
+    (meter las monedas en el saquito y guardarlo en el bolsillo seguro). El cofre del tutorial trae un saquito; la victoria da al menos 4 monedas.
+  - Saco del botín: la cabecera con «Coger el oro» y «Cogerlo todo» queda fija arriba al desplazar (móvil con mochila de 36).
+  - docs/ASSETS.md: lista de iconos y sprites provisionales del oro, las mochilas y El Coleccionista.
+- **Fase 6 hecha: landing y textos legales.**
+  - Legales (fecha 5/11): aviso legal y privacidad explican la copia de seguridad (archivo o código, la guarda el jugador, no se envía nada);
+    la tabla de cookies describe la partida con hasta cuatro personajes y la copia para deshacer una importación.
+  - Landing: tarjetas «El oro pesa» y «El Coleccionista» en Mecánicas; apartado nuevo «Tu partida es tuya» antes de la hoja de ruta;
+    hoja de ruta con oro físico, El Coleccionista, personajes y páginas, y copia de seguridad.
+  - Capturas de la landing rehechas (landing-shots cierra el aviso de habilidades y usa poco oro para no llenar el almacén de sacos).
+  - El tráiler se actualizará al final, con el arte definitivo.
+- Plan «Personajes, páginas y copia» y plan «Oro físico»: TERMINADOS.
+- Oro físico, decisiones ya tomadas: economía dividida entre 10; mochilas mejores que se compran; saco grande de 2×2 con
+  250 monedas (precio 25) y saquito de 1 casilla con 50 (precio 5); monedas sueltas de 10 en 10; los vende un mercader nuevo,
+  un duende, «El Coleccionista», que además compra joyas; con el almacén lleno no se completa la venta; iconos provisionales.
+- Después: oro físico (monedas que ocupan casilla, saquitos y sacos, pago automático desde las páginas propias, el oro y el botín
+  de los enemigos caen en un saco en el suelo). Primero análisis, economía y maquetas en mockups/oro-fisico; esperar aprobación.
 
 ## Novedades del 4/11 (tarde)
 - **Despliegue arreglado (0.2.2.1):** los tests de equilibrio fallaban en GitHub (el mago perdía casi siempre contra los jefes

@@ -2,7 +2,7 @@
 // Derecha: sobre la clase (descripción, arma, puntos fuertes y débiles, habilidades y equipo inicial).
 // Abajo: Volver, el nombre del personaje y Confirmar.
 import { useEffect, useRef, useState } from 'react';
-import { actions, tutorialDoneOnDevice } from '../../state/store';
+import { actions, tutorialDoneOnDevice, useGame } from '../../state/store';
 import { CLASSES } from '../../../core/data/classes';
 import type { ClassId } from '../../../core/types';
 import { CLOAK_COLORS, CLOAK_NAMES, SKIN_COLORS, SKIN_NAMES } from '../../../shared/palette';
@@ -33,8 +33,11 @@ export function CrearPersonaje() {
   const ap = { cloak, skin };
   const valid = name.trim().length >= 2;
   // Si en este navegador ya se completó el tutorial alguna vez, se puede saltar
-  const canSkip = tutorialDoneOnDevice();
-  const [skip, setSkip] = useState(false);
+  // Con el tutorial ya jugado por otro personaje de la partida, los nuevos empiezan directamente (pueden jugarlo si quieren)
+  const accountDone = useGame((s) => s.accountTutorialDone);
+  const hasRoster = useGame((s) => s.roster.length > 0);
+  const canSkip = accountDone || tutorialDoneOnDevice();
+  const [skip, setSkip] = useState(accountDone);
   const create = () => { if (!valid) return; sfx('equip'); void actions.createCharacter(name, cls, ap, canSkip && skip); };
   const side = phone ? 236 : layout === 'tablet' ? 268 : 340;
 
@@ -110,7 +113,7 @@ export function CrearPersonaje() {
 
       {/* Volver · nombre · Confirmar */}
       <div className="grid items-end" style={{ gridTemplateColumns: `${side}px minmax(0,1fr) ${side}px`, gap: 'var(--gap)' }}>
-        <button className="btn cta text-base self-stretch" style={{ fontSize: phone ? 14 : 18, letterSpacing: '.1em' }} onClick={() => actions.goto('title')} data-testid="btn-create-back">Volver</button>
+        <button className="btn cta text-base self-stretch" style={{ fontSize: phone ? 14 : 18, letterSpacing: '.1em' }} onClick={() => (hasRoster ? void actions.openSelect() : actions.goto('title'))} data-testid="btn-create-back">Volver</button>
         <label className="flex flex-col items-center justify-self-center w-full max-w-sm">
           {!phone && <span className="text-[11px] tracking-[0.25em] uppercase text-stone-400 mb-1">Nombre del personaje</span>}
           <input data-testid="name-input" value={name} maxLength={18} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && create()}

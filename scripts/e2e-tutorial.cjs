@@ -18,7 +18,7 @@ const DEVICE = process.argv[4];
   const G = (fn, a) => page.evaluate(fn, a);
   const ok = (c, msg) => { if (!c) throw new Error(msg); console.log('✓', msg); };
   const step = () => G(() => window.__CRYPTRAIDERS__.getState().tutorial?.step ?? -1);
-  const IDS = ['move', 'fight', 'box', 'rich', 'equip', 'potion', 'talk', 'ally', 'together', 'betrayal', 'extract'];
+  const IDS = ['move', 'fight', 'gold', 'box', 'rich', 'equip', 'pocket', 'potion', 'talk', 'ally', 'together', 'betrayal', 'extract'];
   const stepId = async () => IDS[await step()] ?? null;
   const waitStep = async (id, ms = 6000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { if ((await stepId()) === id) return true; await page.waitForTimeout(150); } return false; };
   const tp = (x, y) => G(([x, y]) => window.__CRYPTRAIDERS__.scene().debugTeleport(x, y), [x, y]);
@@ -26,7 +26,13 @@ const DEVICE = process.argv[4];
     for (let i = 0; i < 80; i++) {
       const s = await G(() => { const c = window.__CRYPTRAIDERS__.getState().combat; return c ? c.state.outcome ?? 'on' : null; });
       if (s === null) break;
-      if (s !== 'on') { await tap('[data-testid=btn-combat-continue]'); break; }
+      if (s !== 'on') {
+        await tap('[data-testid=btn-combat-continue]');
+        // Oro físico: tras ganar se abre el saco del botín; se coge todo y se cierra
+        await page.waitForTimeout(300);
+        if (await page.$('[data-testid=loot-modal]')) { await tap('[data-testid=btn-take-all]'); await tap('[data-testid=btn-close-loot]'); }
+        break;
+      }
       if (await page.$('[data-testid=act-attack]:not([disabled])')) await tap('[data-testid=act-attack]:not([disabled])');
       await page.waitForTimeout(250);
     }
@@ -76,7 +82,13 @@ const DEVICE = process.argv[4];
   await page.screenshot({ path: `${OUT}/04-equipar.png` });
   // 5 · Equiparse la capucha
   await G(() => { const d = window.__CRYPTRAIDERS__; const i = d.getState().expedition.backpack.findIndex((x) => x?.itemId === 'leather_hood'); d.actions.quickEquip({ kind: 'grid', container: 'backpack', index: i }); });
-  ok(await waitStep('potion'), 'paso 5: equiparse la capucha');
+  ok(await waitStep('pocket'), 'paso 5: equiparse la capucha');
+  // 5b · Oro físico: monedas al saquito y saquito al bolsillo seguro
+  await G(() => { const d = window.__CRYPTRAIDERS__; const bp = d.getState().expedition.backpack;
+    const c = bp.findIndex((x) => x?.itemId === 'gold_coins'); const pch = bp.findIndex((x) => x?.itemId === 'gold_pouch');
+    d.actions.transfer({ kind: 'grid', container: 'backpack', index: c }, { kind: 'grid', container: 'backpack', index: pch });
+    const i = d.getState().expedition.backpack.findIndex((x) => x?.itemId === 'gold_pouch'); d.actions.quickMove({ kind: 'grid', container: 'backpack', index: i }, 'pocket'); });
+  ok(await waitStep('potion'), 'paso 5b: monedas al saquito y saquito al bolsillo seguro');
   // 6 · Poción tras la trampa
   await tp(1 + 27 + 3, 4);
   await page.waitForTimeout(800);
@@ -126,7 +138,7 @@ const DEVICE = process.argv[4];
   await page.waitForSelector('[data-testid=tutorial-note]', { timeout: 15000 });
   await page.screenshot({ path: `${OUT}/11-resumen.png` });
   const p = await G(() => window.__CRYPTRAIDERS__.getState().profile);
-  ok(p.tutorialDone && p.gold >= 100, 'al extraer: tutorial completado, oro y equipo básico');
+  ok(p.tutorialDone && p.gold >= 10, 'al extraer: tutorial completado, oro y equipo básico');
   ok(p.kael.missStreak === 0, 'el tutorial no cuenta para la aparición de Kael');
   await tap('[data-testid=btn-back-lobby]');
 

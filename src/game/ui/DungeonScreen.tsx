@@ -1,3 +1,4 @@
+import { gridGold } from '../../core/gold';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Phaser from 'phaser';
 import { DungeonScene, activeScene } from '../engine/DungeonScene';
@@ -156,7 +157,7 @@ function Hud() {
 
           <div className="absolute left-3 bottom-3 panel px-3 py-2 text-sm z-10 flex items-center gap-4 hud-loot">
             <span>Botín: <span className="text-gold" data-testid="hud-loot-value">{gridValue(exp.backpack)}</span></span>
-            <span className="flex items-center gap-1">Oro: <GoldAmount value={exp.goldFound} /></span>
+            <span className="flex items-center gap-1" title="Oro que llevas encima: se pierde si mueres">Oro encima: <GoldAmount value={gridGold(exp.backpack)} /></span>
           </div>
         </>
       )}
@@ -235,7 +236,7 @@ function TouchTopHud() {
         <Bar value={exp.hp} max={stats.maxHp} color="#c4283b" label={phone ? undefined : 'Vida'} testId="hud-hp" />
         <div className="h-1" />
         <Bar value={exp.mp} max={stats.maxMp} color={CLASSES[ch.classId].resource === 'impetus' ? '#e08a3d' : '#3d7be0'} label={phone ? undefined : CLASSES[ch.classId].resourceName} />
-        <div className="text-[11px] mt-1.5 flex items-center gap-1 flex-wrap">Botín: <span className="text-gold" data-testid="hud-loot-value">{gridValue(exp.backpack)}</span> · Oro: <GoldAmount value={exp.goldFound} /></div>
+        <div className="text-[11px] mt-1.5 flex items-center gap-1 flex-wrap">Botín: <span className="text-gold" data-testid="hud-loot-value">{gridValue(exp.backpack)}</span> · Oro encima: <GoldAmount value={gridGold(exp.backpack)} /></div>
       </div>
 
       <div className="absolute left-1/2 -translate-x-1/2 z-10 text-center pointer-events-none" style={{ top: safe('top', edge) }}>
@@ -288,9 +289,12 @@ function LootModal() {
   const selStack = sel?.kind === 'grid' && sel.container === 'loot' ? grid[sel.index] : null;
   return (
     <Modal onClose={() => actions.closeLoot()} wide testId="loot-modal">
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-3 gap-2 sticky top-0 z-10 py-1" style={{ background: '#16151b' }}>
         <h2 className="panel-title text-xl">{session.title}</h2>
-        <button className="btn btn-gold" onClick={() => actions.takeAll(session.id)} data-testid="btn-take-all">Cogerlo todo</button>
+        <div className="flex gap-2 flex-wrap justify-end">
+          {grid.some((x) => x?.itemId === 'gold_coins') && <button className="btn" onClick={() => actions.takeGold(session.id)} data-testid="btn-take-gold">Coger el oro ({gridGold(grid)})</button>}
+          <button className="btn btn-gold" onClick={() => actions.takeAll(session.id)} data-testid="btn-take-all">Cogerlo todo</button>
+        </div>
       </div>
       {share && (
         <div className="panel p-3 mb-3 border-heal flex items-center gap-3">
@@ -465,7 +469,7 @@ function DungeonInventory() {
           <GridView grid={s.expedition.backpack} container="backpack" cols={6} equipment={s.expedition.equipment} mode="dungeon" selected={sel} onSelect={setSel}
             onQuick={(l, st) => (getItem(st.itemId).slot ? actions.quickEquip(l) : getItem(st.itemId).use ? actions.useItem(l) : undefined)} />
           <div className="mt-3">
-            <div className="text-xs text-gold mb-1">Bolsillo seguro · no se pierde al morir</div>
+            <div className="text-xs text-gold mb-1">Bolsillo seguro · no se pierde al morir{gridGold(s.expedition.pocket) > 0 ? ` · oro a salvo: ${gridGold(s.expedition.pocket)}` : ''}</div>
             <GridView grid={s.expedition.pocket} container="pocket" cols={3} equipment={s.expedition.equipment} mode="dungeon" selected={sel} onSelect={setSel} onQuick={(l) => actions.quickMove(l, 'backpack')} />
           </div>
           <div className="mt-4"><ItemActions loc={sel} mode="dungeon" onClear={clear} /></div>

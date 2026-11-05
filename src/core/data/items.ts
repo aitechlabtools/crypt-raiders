@@ -91,6 +91,16 @@ const list: ItemDef[] = [
   { id: 'golden_chalice', name: 'Cáliz dorado', description: 'Aún conserva restos de vino oscuro.', icon: 'chalice', category: 'relic', rarity: 'rare', value: 180, stack: 1 },
   { id: 'blood_gem', name: 'Gema de sangre', description: 'Brilla más cuando alguien muere cerca.', icon: 'gem_red', category: 'jewel', rarity: 'epic', value: 260, stack: 1 },
   { id: 'crypt_key', name: 'Llave de la cripta', description: 'Fría y pesada. Abre algo, en algún lugar.', icon: 'key', category: 'key', rarity: 'uncommon', value: 30, stack: 1 },
+  // ── Oro físico: sacos (ver config/gold.ts) ──
+  { id: 'gold_coins', name: 'Monedas de oro', description: 'Oro del Bastión. Pesa: si lo llevas encima, lo arriesgas.', icon: 'coins', category: 'gold', rarity: 'common', value: 1, stack: 10 },
+  { id: 'gold_pouch', name: 'Saquito de oro', description: 'Guarda hasta 50 monedas en una casilla. Cabe en el bolsillo seguro.', icon: 'pouch', category: 'container', rarity: 'common', value: 50, stack: 1 },
+  // Mejoras de mochila del Coleccionista (no son objetos: al comprarlas, la mochila crece para siempre)
+  { id: 'backpack_basic', name: 'Mochila de cuero', description: '24 casillas (6×4). La que llevan todos los que bajan por primera vez.', icon: 'bag1', category: 'bag', rarity: 'common', value: 10, stack: 1 },
+  { id: 'backpack_30', name: 'Mochila reforzada', description: '30 casillas (6×5). La mochila puesta no se pierde al morir.', icon: 'bag2', category: 'bag', rarity: 'uncommon', value: 1500, stack: 1 },
+  { id: 'backpack_36', name: 'Mochila de explorador', description: '36 casillas (6×6). La mochila puesta no se pierde al morir.', icon: 'bag3', category: 'bag', rarity: 'rare', value: 6000, stack: 1 },
+  { id: 'gold_sack', name: 'Saco de oro', description: 'Saco de arpillera con el cordón bien prieto. Guarda hasta 250 monedas. Ocupa 2×2 casillas y no cabe en el bolsillo seguro.', icon: 'sack', category: 'container', rarity: 'uncommon', value: 250, stack: 1, size: { w: 2, h: 2 } },
+  // Casilla tapada por un objeto de 2×2 (no es un objeto de verdad: no se ve, no se vende, no se cuenta)
+  { id: 'cover', name: '', description: '', icon: 'coin', category: 'cover', rarity: 'common', value: 0, stack: 1 },
   // ── Llaves de cofres (ver data/chests.ts) ──
   { id: 'iron_key', name: 'Llave de hierro', description: 'Abre los cofres de hierro de la Mazmorra.', icon: 'key', category: 'key', rarity: 'uncommon', value: 40, stack: 5 },
   { id: 'bone_key', name: 'Llave de hueso', description: 'Abre las arcas sepulcrales de la Cripta.', icon: 'key', category: 'key', rarity: 'rare', value: 160, stack: 5 },

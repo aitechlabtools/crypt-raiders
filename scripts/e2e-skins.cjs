@@ -27,7 +27,7 @@ const DEVICE = process.argv[4];
   await tap('[data-testid=btn-create]');
   await tap('[data-testid=btn-tutorial-ok]');
   ok(!(await page.$('[data-testid=tab-wardrobe]')), 'ya no hay pestaña Vestuario');
-  await G(() => { const d = window.__CRYPTRAIDERS__; const p = d.getState().profile; d.setState({ profile: { ...p, gold: 5000 } }); });
+  await G(() => { const d = window.__CRYPTRAIDERS__; const p = d.getState().profile; d.setState({ profile: { ...p, gold: 500 } }); }); // 500 monedas: da para unos atuendos (150, 400) pero no para el de 900
 
   // Tienda
   await tap('[data-testid=tab-shop]');
@@ -36,10 +36,10 @@ const DEVICE = process.argv[4];
   await tap('[data-testid=shop-buy-skin_penitent]');
   ok(!!(await page.$('[data-testid=skin-confirm]')), 'pide confirmación antes de comprar');
   await tap('[data-testid=skin-confirm-cancel]');
-  ok((await G(() => window.__CRYPTRAIDERS__.getState().profile.gold)) === 5000, 'cancelar no cobra');
+  ok((await G(() => window.__CRYPTRAIDERS__.getState().profile.gold)) === 500, 'cancelar no cobra');
   await tap('[data-testid=shop-buy-skin_penitent]');
   await tap('[data-testid=skin-confirm-ok]');
-  ok((await G(() => window.__CRYPTRAIDERS__.getState().profile.gold)) === 3500, 'comprar descuenta 1.500 de oro');
+  ok((await G(() => window.__CRYPTRAIDERS__.getState().profile.gold)) === 350, 'comprar descuenta 150 monedas');
   await tap('[data-testid=skin-bought-equip]');
   ok((await G(() => window.__CRYPTRAIDERS__.getState().profile.skins.equipped)) === 'skin_penitent', 'tras comprar, «Ponérmelo» lo equipa');
   ok(!!(await page.$('[data-testid=skin-equipped-skin_penitent]')), 'la tarjeta pasa a «Equipada»');

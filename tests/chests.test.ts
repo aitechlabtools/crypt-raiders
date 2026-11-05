@@ -37,7 +37,7 @@ describe('Bolsillo seguro', () => {
     expect(canPocket('health_potion')).toBe(true);
     expect(canPocket('rusty_sword')).toBe(false);
     const p = createProfile('A', 'warrior', { cloak: 0, skin: 0 });
-    const c = { backpack: addToGrid(p.backpack, { uid: 'k', itemId: 'iron_key', qty: 1 }).grid, stash: p.stash, loot: emptyGrid(0), pocket: emptyGrid(POCKET_SIZE), equipment: p.equipment };
+    const c = { backpack: addToGrid(p.backpack, { uid: 'k', itemId: 'iron_key', qty: 1 }).grid, stash: p.stash, shared: [], loot: emptyGrid(0), pocket: emptyGrid(POCKET_SIZE), equipment: p.equipment };
     const sword = c.backpack.findIndex((s) => s?.itemId === 'rusty_sword');
     const key = c.backpack.findIndex((s) => s?.itemId === 'iron_key');
     if (sword >= 0) expect(quickMove(c, { kind: 'grid', container: 'backpack', index: sword }, 'pocket').ok).toBe(false);

@@ -100,7 +100,7 @@ export function ContractsPanel() {
               {profile.mercDiscounts.includes(m.id) && <p className="text-xs text-heal">Lo rescataste: el primer contrato sale a mitad de precio.</p>}
               <button className="btn btn-gold py-2 mt-1" disabled={!!contract || profile.gold < contractPrice(profile, m.id, exps)}
                 onClick={() => actions.hireMerc(m.id, exps, stance)} data-testid="merc-hire">
-                {contract ? 'Ya tienes un contrato en vigor' : `Contratar · ${contractPrice(profile, m.id, exps)} oro`}
+                {contract ? 'Ya tienes un contrato en vigor' : profile.gold < contractPrice(profile, m.id, exps) ? `Oro insuficiente · ${contractPrice(profile, m.id, exps)}` : `Contratar · ${contractPrice(profile, m.id, exps)} oro`}
               </button>
             </>
           )}

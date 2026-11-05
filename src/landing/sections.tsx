@@ -170,6 +170,35 @@ export function PhoneShot({ src, alt }: { src: string; alt: string }) {
   );
 }
 
+// ── Tu partida es tuya: cómo se guarda ─────────────────────────────────────────
+const SAVE_POINTS = [
+  { icon: 'lantern', title: 'Se guarda en tu navegador', text: 'Sin cuentas ni registros: tu partida se queda en tu dispositivo y no se envía a ningún servidor.' },
+  { icon: 'tome_dark', title: 'Haz una copia cuando quieras', text: 'Desde el juego la descargas como archivo o como código de texto, y la cargas en otro navegador u otro dispositivo. El juego te recuerda hacerla de vez en cuando.' },
+  { icon: 'gem_red', title: 'Cuidado al borrar datos', text: 'Si borras los datos del navegador o juegas en modo incógnito, la partida se pierde. Con una copia la recuperas.' },
+];
+
+export function SaveSection() {
+  return (
+    <section id="tu-partida" className="border-t border-stone-800 scroll-mt-14" data-testid="save-section">
+      <div className="max-w-6xl mx-auto px-4 py-20">
+        <h2 className="font-display text-3xl md:text-5xl text-parchment">Tu partida es tuya</h2>
+        <div className="grid md:grid-cols-3 gap-6 mt-10">
+          {SAVE_POINTS.map((p) => (
+            <div key={p.title} className="flex gap-4 items-start">
+              <img src={iconUrl(p.icon, 2)} width={32} height={32} alt="" className="pixelated shrink-0 mt-1" />
+              <div>
+                <h3 className="font-display text-xl text-gold">{p.title}</h3>
+                <p className="font-body text-lg text-stone-300 mt-1">{p.text}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="font-body text-stone-500 mt-8">Los detalles están en la <a href="./privacidad.html" className="underline decoration-dotted hover:text-parchment">Política de privacidad</a>.</p>
+      </div>
+    </section>
+  );
+}
+
 // ── Hoja de ruta ──────────────────────────────────────────────────────────────
 const RM_COLOR: Record<string, string> = { ahora: '#5fd19a', pronto: '#e8b33a', multijugador: '#a35ae0' };
 

@@ -6,7 +6,9 @@ export type Rarity = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
 
 export type ItemCategory =
   | 'weapon' | 'shield' | 'helmet' | 'armor' | 'gloves' | 'boots' | 'ring' | 'amulet'
-  | 'potion' | 'material' | 'relic' | 'jewel' | 'key' | 'quest' | 'coin' | 'tool';
+  | 'potion' | 'material' | 'relic' | 'jewel' | 'key' | 'quest' | 'coin' | 'tool'
+  /** Sacos de oro (contenedores). `cover`: casilla tapada por un objeto de varias casillas (interno, no se ve). */
+  | 'container' | 'cover' | 'gold' | 'bag';
 
 export type EquipSlot = 'mainHand' | 'offHand' | 'helmet' | 'armor' | 'gloves' | 'boots' | 'ring' | 'amulet';
 
@@ -47,7 +49,7 @@ export interface ItemDef {
   levelReq?: number;
   /** Tamaño máximo de pila. 1 = no apilable. */
   stack?: number;
-  /** Preparado para inventarios con objetos de varias casillas. En la demo todo ocupa 1x1. */
+  /** Objetos de varias casillas (el saco de oro ocupa 2×2). Sin valor: 1×1. Ver core/inventory.ts (casillas tapadas). */
   size?: { w: number; h: number };
   use?: ItemEffect;
   /** Familia del arma o de la secundaria (decide quién puede llevarla y su estilo). */
@@ -80,6 +82,8 @@ export interface ItemStack {
   forgedBy?: string;
   /** Usos que le quedan a una herramienta (p. ej. un pico). Sin valor = nueva. */
   uses?: number;
+  /** Monedas que lleva un saquito o un saco de oro. */
+  gold?: number;
   /** Rareza de este ejemplar (sin valor: la del objeto). */
   rarity?: Rarity;
   /** Atributos aleatorios de este ejemplar (ids de data/rarity.ts, p. ej. «vampire»). */
@@ -193,7 +197,10 @@ export interface Profile {
   character: CharacterData;
   gold: number;
   backpack: Grid;
+  /** Páginas propias del almacén, seguidas (120 casillas cada una; ver core/stashPages.ts). */
   stash: Grid;
+  /** Página «Compartido» (de la cuenta, la ven todos los personajes); null si aún no se ha comprado. */
+  shared: Grid | null;
   equipment: Equipment;
   quests: QuestProgress[];
   stats: ProfileStats;
@@ -222,6 +229,10 @@ export interface Profile {
   kael: { missStreak: number; met?: number };
   /** Habilidades de clase: las desbloqueadas (la primera es la inicial) y la que llevas equipada. */
   classSkills: { unlocked: string[]; equipped: string };
+  /** Mochila puesta (decide cuántas casillas tiene la mochila). No se pierde al morir. */
+  bag: ItemStack;
+  /** El oro ya es físico (monedas en el almacén). Sin valor: partida de antes, se convierte al cargarla. */
+  goldPhysical?: boolean;
   /** Última subzona a la que se bajó (la tarjeta de Jugar la propone de nuevo). */
   lastSubzone: string | null;
   settings: Settings;

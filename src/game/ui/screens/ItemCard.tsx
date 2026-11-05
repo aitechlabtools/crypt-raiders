@@ -1,3 +1,4 @@
+import { capacityOf } from '../../../core/gold';
 // Ficha del objeto elegido: qué es, qué da y qué puedes hacer con él. Si es un arma o una secundaria,
 // muestra las habilidades que te daría al equiparla (así se comparan armas sin ir y volver).
 import { AFFIXES, specialMods, stackName, stackRarity, stackStats } from '../../../core/data/rarity';
@@ -13,7 +14,7 @@ import { ItemIcon, SLOT_LABELS, type InvMode } from '../inventory';
 import { ItemActions } from '../common';
 import { useIsTouch } from '../../../shared/device';
 
-const CATEGORY: Record<string, string> = { potion: 'Consumible', material: 'Material', relic: 'Reliquia', jewel: 'Joya', key: 'Llave', quest: 'Objeto de misión', coin: 'Moneda', weapon: 'Arma', shield: 'Escudo', tool: 'Herramienta' };
+const CATEGORY: Record<string, string> = { potion: 'Consumible', material: 'Material', relic: 'Reliquia', jewel: 'Joya', key: 'Llave', quest: 'Objeto de misión', coin: 'Moneda', gold: 'Oro', container: 'Saco de oro', weapon: 'Arma', shield: 'Escudo', tool: 'Herramienta' };
 
 export function ItemCard({ loc, mode, onClear, compact = false }: { loc: Loc | null; mode: InvMode; onClear: () => void; compact?: boolean }) {
   const s = useGame((x) => x);
@@ -56,6 +57,7 @@ export function ItemCard({ loc, mode, onClear, compact = false }: { loc: Loc | n
           ) : null}
           {specials.length && Object.keys(specialMods(st, def, specials)).length ? <span className="text-[#c79bff]" data-testid="item-card-mods">{' · '}{Object.entries(specialMods(st, def, specials)).map(([id, m]) => `${getSkill(id).name}${m.cooldown ? ` ${m.cooldown} recarga` : ''}${m.power ? ` +${Math.round(m.power * 100)} %` : ''}`).join(', ')}</span> : null}
           {st.affixes?.length ? <span className="text-gold" data-testid="item-card-affixes">{' · '}{st.affixes.map((a) => AFFIXES[a]?.description).filter(Boolean).join(' ')}</span> : null}
+          {capacityOf(st) > 0 && <span className="text-gold text-sm mr-2" data-testid="card-gold">Lleva {st.gold ?? 0}/{capacityOf(st)} monedas.</span>}
           {!statLine.length && !specials.length && <span className="font-body italic text-stone-300 text-[15px]">{def.description}</span>}
         </div>
         {(wrongClass || tooHigh) && <div className="text-xs text-blood mt-0.5">{wrongClass ? `Solo para: ${def.classes!.map((k) => CLASSES[k].name).join(', ')}` : `Requiere nivel ${def.levelReq} (tienes ${who!.level})`}</div>}

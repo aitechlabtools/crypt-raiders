@@ -1,3 +1,4 @@
+import { spendGold } from './wallet';
 // Lógica de los atuendos: tenerlos, comprarlos con oro y ponérselos. Nunca tocan las estadísticas.
 import { SKINS } from './data/skins';
 import type { Profile } from './types';
@@ -12,7 +13,7 @@ export function buyBlock(p: Profile, id: string): string | null {
   if (!s) return 'Ese atuendo no existe.';
   if (ownsSkin(p, id)) return 'Ya es tuyo.';
   if (s.price.currency !== 'gold') return 'Este atuendo aún no está a la venta.';
-  if (p.gold < s.price.amount) return `Te faltan ${s.price.amount - p.gold} de oro.`;
+  if (p.gold < s.price.amount) return `Oro insuficiente: te faltan ${s.price.amount - p.gold}.`;
   return null;
 }
 
@@ -20,7 +21,9 @@ export function buySkin(p: Profile, id: string): { ok: true; profile: Profile } 
   const block = buyBlock(p, id);
   if (block) return { ok: false, error: block };
   const s = SKINS[id];
-  return { ok: true, profile: { ...p, gold: p.gold - s.price.amount, skins: { ...p.skins, owned: [...p.skins.owned, id] } } };
+  const paid = spendGold(p, s.price.amount);
+  if (!paid.ok) return paid;
+  return { ok: true, profile: { ...paid.profile, skins: { ...p.skins, owned: [...p.skins.owned, id] } } };
 }
 
 /** Ponerse un atuendo (o quitárselo con null). Solo los que tienes. */

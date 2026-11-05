@@ -1,3 +1,4 @@
+import { withGold } from './helpers';
 import { describe, expect, it } from 'vitest';
 import { RECIPES, QUALITIES } from '../src/core/data/forge';
 import { ITEMS } from '../src/core/data/items';
@@ -11,7 +12,7 @@ const rich = () => {
   const p = createProfile('Brandiano', 'warrior', { cloak: 0, skin: 0 });
   let stash = p.stash;
   for (const [id, q] of [['bone_dust', 20], ['old_coin', 20], ['iron_ore', 20], ['copper_ore', 20], ['silver_ore', 20], ['blessed_silver', 20], ['ancient_bone', 20]] as const) stash = addToGrid(stash, { uid: id, itemId: id, qty: 10 }).grid, stash = addToGrid(stash, { uid: id + '2', itemId: id, qty: q - 10 }).grid;
-  return { ...p, stash, gold: 10_000 };
+  return withGold({ ...p, stash }, 10_000);
 };
 
 describe('Forja', () => {
@@ -27,7 +28,7 @@ describe('Forja', () => {
     const r = forge(p, 'r_tempered_sword', false, makeRng(3));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
-    expect(r.profile.gold).toBe(p.gold - 120);
+    expect(r.profile.gold).toBe(p.gold - 12); // 120 de antes ÷ 10
     const made = r.profile.backpack.find((s) => s?.itemId === 'tempered_sword')!;
     expect(made.quality).toBe(r.quality);
     expect(made.forgedBy).toBe('Brandiano');

@@ -13,7 +13,7 @@ import type { ReactNode } from 'react';
 import { DONATE_URL } from '../landing/site';
 import { Dato, EmailInline, MailButton, StorageTable, revealData, useRevealed, type LegalSection } from './LegalPage';
 
-export const UPDATED = '3 de noviembre de 2026';
+export const UPDATED = '5 de noviembre de 2026';
 
 function Titular() {
   const shown = useRevealed();
@@ -65,13 +65,14 @@ export const AVISO: PageDef = {
     </> },
     { id: 'alpha', title: 'La alpha y tu progreso', body: <>
       <p>Crypt Raiders es una <strong>alpha en desarrollo</strong>: puede tener errores, y su contenido, su equilibrio y sus reglas pueden cambiar entre versiones.</p>
-      <p>Tu progreso (personaje, equipo, oro, ajustes) se guarda <strong>solo en tu navegador</strong>, en tu dispositivo. No se guarda en ningún servidor y el titular no tiene copia. Por eso puede perderse si:</p>
+      <p>Tu progreso (tus personajes, su equipo, su oro y tus ajustes) se guarda <strong>solo en tu navegador</strong>, en tu dispositivo. No se guarda en ningún servidor y el titular no tiene copia. Por eso puede perderse si:</p>
       <ul>
         <li>borras los datos de navegación o los datos de este sitio;</li>
         <li>juegas en una ventana privada o de incógnito;</li>
         <li>cambias de navegador o de dispositivo, o instalas el juego como app (la app instalada tiene su propio guardado);</li>
         <li>una actualización del juego obliga a cambiar el formato de las partidas.</li>
       </ul>
+      <p>Para protegerte de estas pérdidas, el juego te deja hacer una <strong>copia de seguridad</strong> (en Ajustes) como archivo o como código de texto, y cargarla después en este u otro navegador. La copia la guardas tú: el titular no la recibe. Te recomendamos hacerla a menudo; el juego te lo recuerda de vez en cuando.</p>
       <p>El titular procura conservar las partidas entre versiones, pero no puede garantizarlo mientras el juego esté en desarrollo.</p>
     </> },
     { id: 'propiedad', title: 'Propiedad intelectual e industrial', body: <>
@@ -106,7 +107,8 @@ export const PRIVACIDAD: PageDef = {
     </> },
     { id: 'datos', title: 'Qué datos tratamos', body: <>
       <p><strong>El titular no recoge datos personales a través de la web.</strong> No hay registro, formularios, comentarios, analítica, píxeles de seguimiento, publicidad ni botones de redes sociales.</p>
-      <p><strong>Tu partida se queda en tu dispositivo.</strong> El juego guarda en tu navegador el nombre que le pones a tu personaje, su progreso, su equipo y tus ajustes de sonido. Esos datos no salen de tu dispositivo: el titular no los recibe ni puede verlos. Puedes borrarlos cuando quieras desde Ajustes en el juego («Borrar personaje») o borrando los datos del sitio en tu navegador. Los detalles están en la <a href="./cookies.html">Política de cookies</a>.</p>
+      <p><strong>Tu partida se queda en tu dispositivo.</strong> El juego guarda en tu navegador los nombres que pones a tus personajes, su progreso, su equipo y tus ajustes de sonido. Esos datos no salen de tu dispositivo: el titular no los recibe ni puede verlos. Puedes borrarlos cuando quieras desde Ajustes en el juego («Borrar personaje») o borrando los datos del sitio en tu navegador. Los detalles están en la <a href="./cookies.html">Política de cookies</a>.</p>
+      <p><strong>Las copias de seguridad también son tuyas.</strong> Si haces una copia de tu partida, el juego crea un archivo o un código de texto en tu dispositivo. No se envía a ningún sitio: tú decides dónde guardarlo y con quién compartirlo. Al cargar una copia, el juego solo la lee en tu navegador.</p>
       <p><strong>Todo se sirve desde esta web.</strong> Las tipografías, las imágenes y el tráiler están alojados en la propia web: tu navegador no se conecta a servicios de terceros (como Google Fonts o YouTube) para mostrarlos.</p>
     </> },
     { id: 'alojamiento', title: 'Alojamiento web: GitHub Pages', body: <>
@@ -152,7 +154,7 @@ export const PRIVACIDAD: PageDef = {
 // POLÍTICA DE COOKIES
 // ─────────────────────────────────────────────────────────────────────────────
 const STORAGE_ROWS = [
-  { name: 'cryptraiders', where: 'IndexedDB (base de datos del navegador)', owner: 'Propia', purpose: 'Guardar tu partida: personaje, progreso, equipo, oro y ajustes de sonido.', duration: 'Hasta que borres el personaje o los datos del sitio.', type: 'Técnica, necesaria' },
+  { name: 'cryptraiders', where: 'IndexedDB (base de datos del navegador)', owner: 'Propia', purpose: 'Guardar tu partida: tus personajes (hasta cuatro), su progreso, equipo y oro, tu almacén y tus ajustes de sonido. Al cargar una copia de seguridad, guarda también la partida anterior para poder deshacerlo.', duration: 'Hasta que borres el personaje o los datos del sitio.', type: 'Técnica, necesaria' },
   { name: 'cryptraiders.profile', where: 'Almacenamiento local (localStorage)', owner: 'Propia', purpose: 'Lo mismo que la anterior. Solo se usa si tu navegador no admite IndexedDB.', duration: 'Hasta que borres el personaje o los datos del sitio.', type: 'Técnica, necesaria' },
   { name: 'dreadbound', where: 'IndexedDB (base de datos del navegador)', owner: 'Propia', purpose: 'Partida guardada con el nombre anterior del juego (DREADBOUND). Solo existe si jugaste antes del cambio de nombre; se copia a «cryptraiders».', duration: 'Hasta que borres el personaje o los datos del sitio.', type: 'Técnica, necesaria' },
 ];

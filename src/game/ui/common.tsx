@@ -1,10 +1,13 @@
+import { capacityOf, isCoins } from '../../core/gold';
+import { BAG_SIZES } from '../../config/gold';
+import { GoldAmountPicker } from './GoldAmountPicker';
 import { canPocket } from '../../core/inventory';
 import { useIsTouch } from '../../shared/device';
 import { useEffect, useState, type ReactNode } from 'react';
 import type { Loc } from '../../core/inventory';
 import { stackAt } from '../../core/inventory';
 import { getItem } from '../../core/data/items';
-import { sellPrice } from '../../core/economy';
+import { buysThis, vendorSellPrice } from '../../core/economy';
 import type { Appearance, ClassId, Equipment } from '../../core/types';
 import { heroUrl, monsterUrl, iconUrl } from '../../shared/art';
 import { actions, containersFor, getState, useGame } from '../state/store';
@@ -78,6 +81,7 @@ export function Toasts() {
 export function ItemActions({ loc, mode, onClear, lootId, buttonsOnly = false }: { loc: Loc | null; mode: InvMode; onClear: () => void; lootId?: string; buttonsOnly?: boolean }) {
   const s = useGame((x) => x);
   const touch = useIsTouch();
+  const [picker, setPicker] = useState<'withdraw' | 'split' | null>(null);
   if (!loc) return <div className="text-stone-400 text-sm italic font-body">{touch ? 'Toca un objeto para ver sus acciones.' : 'Selecciona un objeto para ver sus acciones. Doble clic: acción rápida · Clic derecho: mover · Arrastra para colocar.'}</div>;
   const c = containersFor(s, lootId);
   const st = c ? stackAt(c, loc) : null;
@@ -92,20 +96,38 @@ export function ItemActions({ loc, mode, onClear, lootId, buttonsOnly = false }:
   if (loc.kind === 'equip') btns.push(b('Quitar', () => { actions.unequip(loc); onClear(); }, '', 'act-unequip'));
   if (def.use && mode === 'dungeon' && inGrid && loc.container === 'backpack') btns.push(b('Usar', () => actions.useItem(loc), 'btn-gold', 'act-use'));
   if (mode === 'lobby' && inGrid && loc.container === 'backpack') btns.push(b('Al almacén', () => { actions.quickMove(loc, 'stash'); onClear(); }, '', 'act-stash'));
-  if (mode === 'lobby' && inGrid && loc.container === 'stash') btns.push(b('A la mochila', () => { actions.quickMove(loc, 'backpack'); onClear(); }, '', 'act-backpack'));
-  if (mode === 'merchant' && inGrid && (loc.container === 'backpack' || loc.container === 'stash')) {
-    btns.push(b(`Vender (${sellPrice(def.id, st)})`, () => { actions.sell(loc.container as 'backpack' | 'stash', loc.index); if (st.qty <= 1) onClear(); }, 'btn-gold', 'act-sell'));
-    if (st.qty > 1) btns.push(b(`Vender todo (${sellPrice(def.id, st) * st.qty})`, () => { actions.sell(loc.container as 'backpack' | 'stash', loc.index, true); onClear(); }));
+  if (mode === 'lobby' && inGrid && (loc.container === 'stash' || loc.container === 'shared')) btns.push(b('A la mochila', () => { actions.quickMove(loc, 'backpack'); onClear(); }, '', 'act-backpack'));
+  if (mode === 'lobby' && inGrid && BAG_SIZES[st.itemId] && loc.container !== 'loot' && loc.container !== 'pocket') btns.push(b('Equipar mochila', () => { actions.equipBag(loc); onClear(); }, 'btn-gold', 'act-equip-bag'));
+  // Oro físico: sacar monedas de un saco y dividir un montón
+  if (inGrid && loc.container !== 'loot' && capacityOf(st) > 0 && (st.gold ?? 0) > 0 && mode !== 'merchant') btns.push(b('Sacar monedas', () => setPicker('withdraw'), 'btn-gold', 'act-withdraw'));
+  if (inGrid && loc.container !== 'loot' && isCoins(st) && st.qty > 1 && mode !== 'merchant') btns.push(b('Dividir', () => setPicker('split'), '', 'act-split'));
+  const unsellable = isCoins(st) || (st.gold ?? 0) > 0;
+  if (mode === 'merchant' && inGrid && unsellable && (loc.container === 'backpack' || loc.container === 'stash')) btns.push(<span key="nosell" className="text-xs text-stone-400 self-center">{isCoins(st) ? 'Las monedas ya son oro.' : 'Vacía el saco para venderlo.'}</span>);
+  if (mode === 'merchant' && inGrid && !unsellable && (loc.container === 'backpack' || loc.container === 'stash')) {
+    const vend = s.activeVendor ?? 'orvel';
+    if (!buysThis(vend, def.id)) btns.push(<span key="nobuy" className="text-xs text-stone-400 self-center">El Coleccionista solo compra joyas y tesoros.</span>);
+    else btns.push(b(`Vender (${vendorSellPrice(vend, def.id, st)})`, () => { actions.sell(loc.container as 'backpack' | 'stash', loc.index); if (st.qty <= 1) onClear(); }, 'btn-gold', 'act-sell'));
+    if (st.qty > 1 && buysThis(vend, def.id)) btns.push(b(`Vender todo (${vendorSellPrice(vend, def.id, st) * st.qty})`, () => { actions.sell(loc.container as 'backpack' | 'stash', loc.index, true); onClear(); }));
   }
   if ((mode === 'lobby' || mode === 'dungeon') && inGrid && loc.container === 'backpack' && canPocket(st.itemId)) btns.push(b('Al bolsillo seguro', () => { actions.quickMove(loc, 'pocket'); onClear(); }, '', 'act-pocket'));
   if (inGrid && loc.container === 'pocket') btns.push(b('A la mochila', () => { actions.quickMove(loc, 'backpack'); onClear(); }, '', 'act-unpocket'));
   if (mode === 'dungeon' && inGrid && loc.container === 'backpack') btns.push(b('Soltar', () => { actions.dropItem(loc); onClear(); }, 'btn-danger', 'act-drop'));
-  if (buttonsOnly) return <div className="flex gap-2 flex-wrap" data-testid="item-actions">{btns}</div>;
+  const pickerModal = picker && inGrid && (picker === 'withdraw'
+    ? <GoldAmountPicker title="Sacar monedas" max={st.gold ?? 0} initial={Math.min(st.gold ?? 0, 10)} onClose={() => setPicker(null)}
+        from={<><ItemIcon itemId={st.itemId} size={36} /><span className="font-body text-lg">{def.name} · <b className="text-gold">{st.gold ?? 0}</b>/{capacityOf(st)}</span></>}
+        confirm={(n) => `Sacar ${n}`} note="Las monedas que saques irán a una casilla libre de este mismo sitio (de 10 en 10)."
+        onConfirm={(n) => actions.withdrawGold(loc, n)} />
+    : <GoldAmountPicker title="Dividir montón" max={st.qty - 1} initial={Math.floor(st.qty / 2)} onClose={() => setPicker(null)}
+        from={<span className="font-body text-lg">Monedas de oro · <b className="text-gold">{st.qty}</b></span>}
+        confirm={(n) => `Separar ${n}`} note="Las que separes irán a la casilla libre más cercana."
+        onConfirm={(n) => actions.splitGold(loc, n)} />);
+  if (buttonsOnly) return <div className="flex gap-2 flex-wrap" data-testid="item-actions">{btns}{pickerModal}</div>;
   return (
     <div className="flex items-center gap-3 flex-wrap">
       <ItemIcon itemId={st.itemId} size={32} />
       <span style={{ color: RARITY_INFO[def.rarity].color }}>{def.name}</span>
       <div className="flex gap-2 flex-wrap">{btns}</div>
+      {pickerModal}
     </div>
   );
 }

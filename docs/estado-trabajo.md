@@ -427,7 +427,16 @@ sin sección ni botón de Windows, tráiler de 60 s.
 - Landing, aliados: más aire entre el texto y las fichas, y tres puntos que explican el reparto (cofres y sacos por valor,
   qué pasa si das poco o nada, y la parte del oro en el portal).
 - Juego: los títulos de pantalla con `border-0` (Atuendos, Mercaderes, Misiones) ya no sacan la raya de debajo.
+- Hoja de ruta: «Ya en el juego» resumida en puntos cortos.
 - Ventana del botín con aliado: el aviso explica la marca de la barra y que repartir rebaja lo que pide en el portal.
+
+## Legibilidad de textos — HECHO el 5/11 (commit pendiente del usuario)
+- Números: en Pixelify Sans el 5 parecía una S. Las cifras 0-9 van ahora en Jersey 10 (fuente «Cifras» en shared/theme.css
+  con unicode-range y size-adjust; archivo en src/shared/fonts). Se aplica sola a todo el texto pixelado (juego y landing).
+- Tamaños mínimos (game.css, bloque «Legibilidad»): las tallas de 9-12 px y text-xs pasan a 14 px; text-sm, 13 y 14 px a 16 px;
+  text-base a 17 px. En pantallas bajas (móvil en horizontal) 12/14/16 px. También suben chips, etiquetas de servicios,
+  barras del combate, accesos rápidos y la lista de atributos del Alijo.
+- Créditos de tipografías en las páginas legales (Jersey 10, SIL OFL). Capturas: node scripts/legibilidad-shots.cjs <url>/play/ <carpeta> [antes].
 
 ## Encargos guardados
 - Skins de traje completo: HECHO (docs/plan-skins.md, maquetas en mockups/skins).

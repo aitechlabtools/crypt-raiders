@@ -431,12 +431,13 @@ sin sección ni botón de Windows, tráiler de 60 s.
 - Ventana del botín con aliado: el aviso explica la marca de la barra y que repartir rebaja lo que pide en el portal.
 
 ## Legibilidad de textos — HECHO el 5/11 (commit pendiente del usuario)
-- Números: en Pixelify Sans el 5 parecía una S. Las cifras 0-9 van ahora en Jersey 10 (fuente «Cifras» en shared/theme.css
-  con unicode-range y size-adjust; archivo en src/shared/fonts). Se aplica sola a todo el texto pixelado (juego y landing).
+- Tipografías: solo tres. Cinzel (títulos), Crimson Pro (textos largos) y Grenze (interfaz: botones, etiquetas y datos),
+  que sustituye a Pixelify Sans (el 5 parecía una S). La variable sigue llamándose --font-pixel (shared/theme.css).
+  Números a la misma altura con font-variant-numeric: lining-nums. Se quitaron Pixelify Sans y Jersey 10.
 - Tamaños mínimos (game.css, bloque «Legibilidad»): las tallas de 9-12 px y text-xs pasan a 14 px; text-sm, 13 y 14 px a 16 px;
   text-base a 17 px. En pantallas bajas (móvil en horizontal) 12/14/16 px. También suben chips, etiquetas de servicios,
   barras del combate, accesos rápidos y la lista de atributos del Alijo.
-- Créditos de tipografías en las páginas legales (Jersey 10, SIL OFL). Capturas: node scripts/legibilidad-shots.cjs <url>/play/ <carpeta> [antes].
+- Créditos de tipografías en las páginas legales (Cinzel, Crimson Pro y Grenze, SIL OFL). Capturas: node scripts/legibilidad-shots.cjs <url>/play/ <carpeta> [antes].
 
 ## Encargos guardados
 - Skins de traje completo: HECHO (docs/plan-skins.md, maquetas en mockups/skins).

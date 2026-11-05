@@ -77,7 +77,7 @@ export const AVISO: PageDef = {
     </> },
     { id: 'propiedad', title: 'Propiedad intelectual e industrial', body: <>
       <p>El juego Crypt Raiders, su nombre, el mundo de VarkHollow, los logotipos, los gráficos en pixel art, los textos, la música, los sonidos, el tráiler y el código de esta web pertenecen al titular, salvo que se indique lo contrario. Está prohibido reproducirlos, distribuirlos, transformarlos o comunicarlos públicamente sin su autorización, salvo para uso personal y para compartir enlaces o capturas citando la fuente.</p>
-      <p>Algunos elementos son de terceros y se usan con su licencia: las tipografías Cinzel, Crimson Pro, Pixelify Sans y Jersey 10 (SIL Open Font License) y las bibliotecas de software libre con las que está hecha la web (por ejemplo React y Phaser, con licencia MIT).</p>
+      <p>Algunos elementos son de terceros y se usan con su licencia: las tipografías Cinzel, Crimson Pro y Grenze (SIL Open Font License) y las bibliotecas de software libre con las que está hecha la web (por ejemplo React y Phaser, con licencia MIT).</p>
     </> },
     { id: 'responsabilidad', title: 'Exclusión de responsabilidad', body: <>
       <p>El titular intenta que la web y la alpha funcionen bien y estén siempre disponibles, pero no lo garantiza: puede haber interrupciones, errores o pérdidas de progreso. En la medida en que lo permita la ley, el titular no responde de los daños que se deriven de ello, ni del mal uso que otras personas hagan de la web.</p>

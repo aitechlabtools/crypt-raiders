@@ -4,25 +4,15 @@
 @import "@fontsource/crimson-pro/400.css";
 @import "@fontsource/crimson-pro/400-italic.css";
 @import "@fontsource/crimson-pro/600.css";
-@import "@fontsource/pixelify-sans/400.css";
-@import "@fontsource/pixelify-sans/600.css";
-
-/* Cifras: en Pixelify Sans el 5 se parece a la S y al 2. Solo los números (0-9) van en Jersey 10 (SIL OFL),
-   ajustada al tamaño de Pixelify. Se aplica sola a todo el texto pixelado, sin tocar cada texto. */
-@font-face {
-  font-family: "Cifras";
-  font-style: normal;
-  font-weight: 100 900;
-  font-display: swap;
-  src: url("./fonts/jersey-10-latin-400-normal.woff2") format("woff2");
-  unicode-range: U+0030-0039;
-  size-adjust: 135%;
-}
+@import "@fontsource/grenze/500.css";
+@import "@fontsource/grenze/600.css";
+@import "@fontsource/grenze/700.css";
 
 @theme {
   --font-display: "Cinzel", serif;
   --font-body: "Crimson Pro", Georgia, serif;
-  --font-pixel: "Cifras", "Pixelify Sans", monospace;
+  /* Letra de la interfaz (botones, etiquetas y datos). Se llamaba «pixel» cuando era Pixelify Sans; ahora es Grenze. */
+  --font-pixel: "Grenze", Georgia, serif;
   --color-void: #07060a;
   --color-crypt: #0f0d14;
   --color-stone-900: #15131a;
@@ -52,3 +42,6 @@
   image-rendering: pixelated;
   image-rendering: crisp-edges;
 }
+
+/* Números a la misma altura en Grenze y Crimson Pro (por defecto llevan cifras de estilo antiguo, que bajan de la línea) */
+html { font-variant-numeric: lining-nums; }

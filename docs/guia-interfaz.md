@@ -109,3 +109,29 @@ Todo está en un sitio: `src/config/ui.ts` (para el código) y el bloque «Base 
   «Equiparla» o «Ahora no»). `ClassSkillCards` ya no se usa en Personaje.
 - Datos: `CLASSES[c].classSkills` (5 ids, la primera es la inicial) y `CLASS_UNLOCK_LEVELS` en config/progression.ts.
 - testids: `class-unlock`, `pick-class-<id>`, `btn-try-class`.
+
+## Mover objetos: arrastrar y soltar con ratón y dedo (5/11)
+- `src/game/ui/pointerDrag.tsx` sustituye al arrastre nativo del navegador (que solo iba con ratón). `ItemSlot` llama a
+  `startPointerDrag` en `pointerdown`; los destinos llevan `data-drop` (casillas: `{type:'loc'}`, pestañas del almacén:
+  `{type:'page'}` —si te quedas encima se abre esa página—, mochila puesta: `{type:'bag'}`). `DragLayer` (en App) pinta el icono.
+- Ratón: pulsar y mover 5 px. Dedo: mantener ~220 ms y mover; si el dedo se mueve antes, es desplazamiento del panel.
+  Durante el arrastre no hay desplazamiento ni zoom (touchmove no pasivo + `html.is-dragging`). En táctil el icono va 46 px
+  por encima del dedo y el destino se busca en la punta del icono. Mantener pulsado en táctil NO hace la acción del clic derecho.
+- Soltar en un destino llama a `actions.transfer` (intercambia, junta montones o equipa según core/inventory.ts; las reglas no
+  cambian y los errores salen como siempre). Soltar fuera: el icono vuelve a su casilla.
+- Resaltado: solo la ranura de equipo donde encaja el objeto (verde, discontinua y ✓) y las demás se apagan; las casillas vacías
+  no se marcan. El destino bajo el puntero se marca en dorado. Objeto elegido: doble contorno blanco y dorado por fuera del de
+  rareza, con brillo que late (`.slot.selected`). Elegir un objeto y tocar una ranura de equipo ocupada lo equipa ahí.
+- Prueba: `node scripts/arrastre-check.cjs <url>/play/ <carpeta>`.
+
+## Comparar, gestión rápida y venta múltiple (5/11)
+- Comparar: `compareWithEquipped` e `isUpgrade` (inventory.tsx). La ficha (`ItemCard`) dice «Frente a X: mejor en N · peor en M»
+  con cada diferencia ▲/▼ (incluye rareza y atributos) y los ataques que llevas ahora. Las piezas que mejoran lo puesto y puedes
+  llevar muestran un ▲ verde en su casilla (`.slot-up`).
+- Mochila: «Vaciar mochila» (todo al almacén, página abierta y luego las demás; pide confirmación si hay algo raro o mejor) y
+  «Guardar materiales» (`actions.emptyBackpack`). Mayús+clic: mochila ⇄ almacén.
+- Vender (Mercaderes → Vender): tocar marca/desmarca (doble contorno dorado y moneda, `.is-marked`); también se puede arrastrar
+  a la zona «A vender» (`data-drop {type:'sell'}` → evento `cr-drop-sell`). Panel con lista, total, «Marcar equipo común /
+  materiales / tesoros», «Vender N objetos · X oro» (`actions.sellMany`; confirma si hay algo raro, épico, legendario o mejor que
+  lo puesto) y «Recomprar» los últimos 5 al mismo precio mientras sigas con ese mercader (`state.buyback`, `actions.buyBack`).
+- Pruebas: `node scripts/objetos-check.cjs <url>/play/ <carpeta>` y `node scripts/arrastre-check.cjs`.

@@ -10,7 +10,7 @@ import { Panel } from '../kit';
 import { useLayout } from '../../../config/ui';
 import { sfx } from '../../audio';
 import { FullscreenButton } from '../FullscreenButton';
-import { isIosSafari, isStandalone } from '../../../shared/device';
+import { isIosSafari, isStandalone, useIsTouch } from '../../../shared/device';
 
 export function CopiaSeguridad() {
   const layout = useLayout();
@@ -26,8 +26,11 @@ export function CopiaSeguridad() {
   const [paste, setPaste] = useState(false);
   const [pending, setPending] = useState<{ save: SaveData; summary: BackupSummaryEntry[]; at: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const hasGame = roster.length > 0;
+  // «Compartir» solo en pantallas táctiles: en ordenador el menú de compartir del sistema no sirve para esto y basta «Descargar»
+  const isTouchNow = useIsTouch();
 
   const exportFile = async () => {
     sfx('click');
@@ -40,8 +43,15 @@ export function CopiaSeguridad() {
     const r = await actions.exportBackup();
     if (!r) return;
     const file = new File([r.json], r.fileName, { type: 'application/json' });
+    setInfo(null);
     try { await navigator.share({ files: [file], title: 'Copia de Crypt Raiders' }); }
-    catch { /* el jugador canceló o no se pudo: no pasa nada */ }
+    catch (e) {
+      // Cancelar no es un error. Cualquier otro fallo (p. ej. Windows rechaza los .json aunque el navegador diga que puede
+      // compartirlos) se resuelve descargando el archivo, para que el jugador no se quede sin copia.
+      if (e instanceof DOMException && e.name === 'AbortError') return;
+      downloadText(r.json, r.fileName);
+      setInfo('Tu sistema no deja compartir este archivo, así que se ha descargado. Lo tienes en tu carpeta de descargas.');
+    }
   };
   const copyCode = async () => {
     sfx('click');
@@ -61,7 +71,7 @@ export function CopiaSeguridad() {
     try { tryLoad(await f.text()); } catch { setError('No se ha podido leer el archivo.'); }
     if (fileInput.current) fileInput.current.value = '';
   };
-  const canShare = typeof navigator !== 'undefined' && !!navigator.canShare && (() => { try { return navigator.canShare({ files: [new File(['{}'], 'x.json', { type: 'application/json' })] }); } catch { return false; } })();
+  const canShare = isTouchNow && typeof navigator !== 'undefined' && !!navigator.canShare && (() => { try { return navigator.canShare({ files: [new File(['{}'], 'x.json', { type: 'application/json' })] }); } catch { return false; } })();
 
   return (
     <div className="h-full flex flex-col relative" style={{ background: 'radial-gradient(ellipse at 50% 30%, #1a1520 0%, #0d0b11 55%, #07060a 100%)' }} data-testid="screen-backup">
@@ -117,6 +127,7 @@ export function CopiaSeguridad() {
               )}
             </Panel>
           </div>
+          {info && <p className="panel p-3 text-gold font-body text-lg" role="status" data-testid="backup-info">{info}</p>}
           {error && !paste && <p className="panel p-3 text-blood font-body text-lg" role="alert" data-testid="backup-error">{error}</p>}
           <p className="text-center text-xs text-stone-400">
             {roster.length ? `${roster.length} ${roster.length === 1 ? 'personaje' : 'personajes'}` : 'Sin personajes'} · La copia incluye también los atuendos, la página «Compartido», el tutorial y los ajustes.

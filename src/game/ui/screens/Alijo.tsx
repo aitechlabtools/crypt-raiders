@@ -6,11 +6,16 @@ import { actions, useGame } from '../../state/store';
 import { CLASSES } from '../../../core/data/classes';
 import { computeStats, baseStats } from '../../../core/stats';
 import { getItem } from '../../../core/data/items';
-import { gridValue, equippedValue, type Loc } from '../../../core/inventory';
+import { gridValue, equippedValue, isCover, type Loc } from '../../../core/inventory';
+import { stackRarity } from '../../../core/data/rarity';
+import { useIsTouch } from '../../../shared/device';
 import { StashPanel } from '../StashPanel';
 import { gridGold } from '../../../core/gold';
 import { BAG_SIZES } from '../../../config/gold';
-import { DRAG_MIME, ItemIcon } from '../inventory';
+import { ItemIcon } from '../inventory';
+import { dragJustEnded, useDrag } from '../pointerDrag';
+
+const BAG_DROP = JSON.stringify({ type: 'bag' });
 import { Modal } from '../common';
 import type { EquipSlot, ItemStack } from '../../../core/types';
 import { ItemSlot, GridView, StatsList, SLOT_LABELS, type InvMode } from '../inventory';
@@ -35,13 +40,34 @@ export function Alijo({ onDetails, onShop }: { onDetails: () => void; onShop?: (
   const same = (a: Loc | null, b: Loc) => !!a && JSON.stringify(a) === JSON.stringify(b);
 
   // Tocar un objeto lo elige (o lo suelta si ya estaba elegido); tocar una casilla libre lleva allí el elegido.
-  const onSelect = (l: Loc) => { setSel(same(sel, l) ? null : l); sfx('click'); };
+  const onSelect = (l: Loc) => {
+    // Con un objeto de la mochila o del almacén elegido, tocar una ranura de equipo ocupada lo equipa ahí (cambia lo puesto)
+    if (sel && sel.kind === 'grid' && l.kind === 'equip') { actions.transfer(sel, l); clear(); return; }
+    setSel(same(sel, l) ? null : l); sfx('click');
+  };
   const onEmpty = (l: Loc) => { if (!sel) return; actions.transfer(sel, l); clear(); };
   const quickFromBag = (l: Loc, s: ItemStack) => { (getItem(s.itemId).slot ? actions.quickEquip(l) : actions.quickMove(l, 'stash')); clear(); };
   const grids = { equipment: profile.equipment, mode: MODE, selected: sel, onSelect, onEmpty };
+  // Vaciar la mochila: pide confirmación solo si hay algo raro o mejor
+  const touchy = useIsTouch();
+  const [confirmEmpty, setConfirmEmpty] = useState(false);
+  const bagItems = profile.backpack.filter((x): x is ItemStack => !!x && !isCover(x));
+  const bagUsed = bagItems.length > 0;
+  const hasMaterials = bagItems.some((x) => getItem(x.itemId).category === 'material');
+  const valuable = bagItems.filter((x) => ['rare', 'epic', 'legendary'].includes(stackRarity(x, getItem(x.itemId))));
+  const askEmpty = () => { sfx('click'); if (valuable.length) setConfirmEmpty(true); else { actions.emptyBackpack(); clear(); } };
+  const emptyModal = confirmEmpty && (
+    <Modal onClose={() => setConfirmEmpty(false)} testId="confirm-empty">
+      <h2 className="panel-title text-lg mb-2">¿Vaciar la mochila?</h2>
+      <p className="font-body text-lg">Todo pasa al almacén, también {valuable.length === 1 ? 'un objeto valioso' : `${valuable.length} objetos valiosos`}: {valuable.slice(0, 3).map((x) => getItem(x.itemId).name).join(', ')}{valuable.length > 3 ? '…' : ''}.</p>
+      <p className="text-sm text-stone-400 mt-1">El equipo puesto y el bolsillo seguro no se tocan.</p>
+      <div className="flex gap-2 mt-4"><button className="btn btn-gold" style={{ minHeight: 44 }} onClick={() => { actions.emptyBackpack(); setConfirmEmpty(false); clear(); }} data-testid="btn-confirm-empty">Vaciar</button>
+        <button className="btn" style={{ minHeight: 44 }} onClick={() => setConfirmEmpty(false)}>Cancelar</button></div>
+    </Modal>
+  );
 
   const equipment = <EquipmentGrid sel={sel} onSelect={onSelect} onEmpty={onEmpty} onDone={clear} onSkin={() => setPicker(true)} />;
-  const pickerModal = picker && <SkinPicker onClose={() => setPicker(false)} onShop={onShop} />;
+  const pickerModal = <>{picker && <SkinPicker onClose={() => setPicker(false)} onShop={onShop} />}{emptyModal}</>;
   const backpack = (
     <div data-testid="alijo-backpack">
       <SubHead right={<span className="flex gap-1">
@@ -50,6 +76,10 @@ export function Alijo({ onDetails, onShop }: { onDetails: () => void; onShop?: (
         Mochila · {profile.backpack.filter(Boolean).length}/{profile.backpack.length}
       </SubHead>
       <GridView grid={profile.backpack} container="backpack" cols={6} {...grids} onQuick={quickFromBag} onAlt={(l) => { actions.quickMove(l, 'stash'); clear(); }} />
+      <div className="flex gap-1 mt-1.5" data-testid="backpack-quick">
+        <button className="btn text-xs flex-1" style={{ minHeight: touchy ? 44 : 34 }} onClick={askEmpty} disabled={!bagUsed} data-testid="empty-backpack" title="Pasa todo lo de la mochila al almacén (no toca el equipo ni el bolsillo seguro)">Vaciar mochila</button>
+        <button className="btn text-xs flex-1" style={{ minHeight: touchy ? 44 : 34 }} onClick={() => { actions.emptyBackpack(true); clear(); }} disabled={!hasMaterials} data-testid="store-materials" title="Manda minerales y materiales al almacén">Guardar materiales</button>
+      </div>
       {gridGold(profile.backpack) > 0 && (
         <div className="flex items-center justify-between text-xs mt-1.5" data-testid="gold-carried"><span className="text-stone-300">Oro encima (se pierde si mueres)</span><span className="font-display text-ember">{gridGold(profile.backpack)}</span></div>
       )}
@@ -132,10 +162,13 @@ export function Alijo({ onDetails, onShop }: { onDetails: () => void; onShop?: (
 /** Equipamiento en tres columnas: arma (grande) y manos · cabeza, torso y pies · secundaria (grande), amuleto y anillo. */
 function EquipmentGrid({ sel, onSelect, onEmpty, onDone, onSkin }: { sel: Loc | null; onSelect: (l: Loc) => void; onEmpty: (l: Loc) => void; onDone: () => void; onSkin: () => void }) {
   const eq = useGame((s) => s.profile!.equipment);
+  const prof = useGame((s) => s.profile!);
+  // Objeto elegido en la mochila o el almacén (para iluminar la ranura de equipo donde encaja)
+  const selItem = sel?.kind === 'grid' ? (() => { const g = sel.container === 'shared' ? prof.shared : sel.container === 'backpack' || sel.container === 'stash' || sel.container === 'pocket' ? prof[sel.container] : null; return g?.[sel.index]?.itemId; })() : undefined;
   const slot = (s: EquipSlot, big = false) => (
     <div className="flex flex-col items-center gap-0.5" key={s}>
       <ItemSlot stack={eq[s]} loc={{ kind: 'equip', slot: s }} equipment={eq} mode={MODE} placeholderIcon={SLOT_ICON[s]} label={SLOT_LABELS[s]} big={big}
-        selected={sel?.kind === 'equip' && sel.slot === s} awaiting={!!sel} onSelect={onSelect} onEmpty={onEmpty}
+        selected={sel?.kind === 'equip' && sel.slot === s} awaiting={!!sel} onSelect={onSelect} onEmpty={onEmpty} movingItemId={selItem}
         onQuick={(l) => { actions.unequip(l); onDone(); }} onAlt={(l) => { actions.unequip(l); onDone(); }} />
       <span className="text-[10px] text-stone-300 uppercase tracking-wider">{SLOT_LABELS[s]}</span>
     </div>
@@ -176,17 +209,17 @@ function BagSlot({ sel, onDone }: { sel: Loc | null; onDone: () => void }) {
   const profile = useGame((s) => s.profile)!;
   const bag = profile.bag;
   const def = getItem(bag.itemId);
-  const [over, setOver] = useState(false);
   const [info, setInfo] = useState(false);
+  const drag = useDrag();
+  const over = !!drag && !drag.back && drag.over === BAG_DROP;
+  const dragBag = !!drag && !drag.back && !!BAG_SIZES[drag.itemId];
   const selIsBag = sel?.kind === 'grid' && (() => { const g = sel.container === 'shared' ? profile.shared : sel.container === 'backpack' || sel.container === 'stash' ? profile[sel.container] : null; const x = g?.[sel.index]; return !!x && !!BAG_SIZES[x.itemId]; })();
   return (
     <div className="flex flex-col items-center gap-0.5">
-      <button className={`slot ${over ? 'drag-over' : ''} ${selIsBag ? 'slot-target' : ''}`} data-testid="slot-bag" data-item={bag.itemId} title={`${def.name} · ${profile.backpack.length} casillas`}
+      <button className={`slot ${over ? 'drag-over' : ''} ${selIsBag || dragBag ? 'drop-ok' : drag && !drag.back ? 'drop-dim' : ''}`} data-testid="slot-bag" data-item={bag.itemId} title={`${def.name} · ${profile.backpack.length} casillas`}
         aria-label={`Mochila: ${def.name}, ${profile.backpack.length} casillas`}
-        onClick={() => { sfx('click'); if (selIsBag && sel) { actions.equipBag(sel); onDone(); } else setInfo(true); }}
-        onDragOver={(e) => { if (e.dataTransfer.types.includes(DRAG_MIME)) { e.preventDefault(); setOver(true); } }}
-        onDragLeave={() => setOver(false)}
-        onDrop={(e) => { e.preventDefault(); setOver(false); const raw = e.dataTransfer.getData(DRAG_MIME); if (raw) actions.equipBag((JSON.parse(raw) as { loc: Loc }).loc); }}>
+        onClick={() => { if (dragJustEnded()) return; sfx('click'); if (selIsBag && sel) { actions.equipBag(sel); onDone(); } else setInfo(true); }}
+        data-drop={BAG_DROP}>
         <ItemIcon itemId={bag.itemId} size={36} />
         <span className="qty">{profile.backpack.length}</span>
       </button>

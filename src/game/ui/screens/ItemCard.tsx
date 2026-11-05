@@ -10,7 +10,7 @@ import { CLASSES, STAT_LABELS } from '../../../core/data/classes';
 import { STAT_KEYS } from '../../../core/types';
 import { getSkill } from '../../../core/data/skills';
 import { QUALITIES } from '../../../core/data/forge';
-import { ItemIcon, SLOT_LABELS, type InvMode } from '../inventory';
+import { compareWithEquipped, ItemIcon, SLOT_LABELS, type InvMode } from '../inventory';
 import { ItemActions } from '../common';
 import { useIsTouch } from '../../../shared/device';
 
@@ -36,6 +36,9 @@ export function ItemCard({ loc, mode, onClear, compact = false }: { loc: Loc | n
   const statLine = stats ? STAT_KEYS.filter((k) => stats[k]).map((k) => `${stats[k]! > 0 ? '+' : ''}${stats[k]} ${k === 'maxMp' && who ? CLASSES[who.classId].resourceName : STAT_LABELS[k]}`) : [];
   const wrongClass = !!(def.slot && who && def.classes && !def.classes.includes(who.classId));
   const tooHigh = !!(def.slot && who && def.levelReq && who.level < def.levelReq);
+  // Comparación con lo que llevas puesto en esa ranura (no si es lo que ya llevas)
+  const cmp = loc.kind === 'grid' ? compareWithEquipped(st, s.profile?.equipment) : null;
+  const wornSpecials = cmp?.worn && (def.slot === 'mainHand' || def.slot === 'offHand') ? itemSpecials(getItem(cmp.worn.itemId)) : [];
   return (
     <div className="flex gap-3 items-start" data-testid="item-card">
       <div className="slot shrink-0" style={{ borderColor: r.color + 'aa' }}><ItemIcon itemId={st.itemId} />{st.qty > 1 && <span className="qty">{st.qty}</span>}</div>
@@ -60,6 +63,17 @@ export function ItemCard({ loc, mode, onClear, compact = false }: { loc: Loc | n
           {capacityOf(st) > 0 && <span className="text-gold text-sm mr-2" data-testid="card-gold">Lleva {st.gold ?? 0}/{capacityOf(st)} monedas.</span>}
           {!statLine.length && !specials.length && <span className="font-body italic text-stone-300 text-[15px]">{def.description}</span>}
         </div>
+        {cmp && (
+          <div className="mt-1.5 text-[13px] leading-snug" data-testid="item-card-compare">
+            <span className="text-stone-400">{cmp.wornName ? <>Frente a <span className="text-stone-200">{cmp.wornName}</span>: </> : 'Ranura vacía: '}</span>
+            {cmp.diffs.length === 0 ? <span className="text-stone-300">igual</span> : <>
+              <span className={cmp.better > cmp.worse ? 'text-heal' : cmp.worse > cmp.better ? 'text-blood' : 'text-stone-200'}>mejor en {cmp.better} · peor en {cmp.worse}</span>
+              <span className="text-stone-500"> — </span>
+              {cmp.diffs.map(([k, d], i) => <span key={k} className={d > 0 ? 'text-heal' : 'text-blood'}>{i ? ' · ' : ''}{d > 0 ? '▲' : '▼'} {d > 0 ? '+' : ''}{d} {k === 'maxMp' && who ? CLASSES[who.classId].resourceName : STAT_LABELS[k]}</span>)}
+            </>}
+            {wornSpecials.length > 0 && specials.length > 0 && wornSpecials.join() !== specials.join() && <span className="block text-stone-400"> Ahora llevas: {wornSpecials.map((g) => getSkill(g).name).join(', ')}</span>}
+          </div>
+        )}
         {(wrongClass || tooHigh) && <div className="text-xs text-blood mt-0.5">{wrongClass ? `Solo para: ${def.classes!.map((k) => CLASSES[k].name).join(', ')}` : `Requiere nivel ${def.levelReq} (tienes ${who!.level})`}</div>}
         <div className="mt-2"><ItemActions loc={loc} mode={mode} onClear={onClear} buttonsOnly /></div>
       </div>

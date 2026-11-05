@@ -6,7 +6,8 @@ import { pageCount, pageSlice, pageStart, nextPageCost, type StashPage } from '.
 import { SHARED_PAGE_COST, STASH_MAX_PAGES, STASH_PAGE_SIZE } from '../../config/stash';
 import type { Loc } from '../../core/inventory';
 import type { ItemStack } from '../../core/types';
-import { DRAG_MIME, GridView, type InvMode } from './inventory';
+import { GridView, type InvMode } from './inventory';
+import { dragJustEnded, useDrag } from './pointerDrag';
 import { GoldAmount, Modal } from './common';
 import { useLayout } from '../../config/ui';
 import { sfx } from '../audio';
@@ -14,7 +15,9 @@ import { sfx } from '../audio';
 /** Color propio de la página «Compartido» (verde azulado): se distingue de las páginas del personaje. */
 export const SHARED_COLOR = '#7fd6c9';
 
-export function StashPanel({ cols, sel, onSelect, onEmpty, onQuick, onAlt, mode = 'lobby', compactHeader = false, title = 'Almacén', testId = 'alijo-storage' }: {
+export function StashPanel({ cols, sel, onSelect, onEmpty, onQuick, onAlt, mode = 'lobby', compactHeader = false, title = 'Almacén', testId = 'alijo-storage', marked }: {
+  /** Venta: casillas marcadas para vender. */
+  marked?: (l: Loc) => boolean;
   cols: number; sel: Loc | null; onSelect: (l: Loc) => void; onEmpty?: (l: Loc) => void;
   onQuick?: (l: Loc, s: ItemStack) => void; onAlt?: (l: Loc, s: ItemStack) => void;
   /** Al tocar una pestaña con un objeto elegido, se lleva allí y se suelta la elección. */
@@ -45,7 +48,7 @@ export function StashPanel({ cols, sel, onSelect, onEmpty, onQuick, onAlt, mode 
       {shownPage === 'shared' && <p className="text-[11px] px-3 pt-2" style={{ color: SHARED_COLOR }}>Lo que dejes aquí lo verán y podrán coger todos tus personajes.</p>}
       <div className="ui-pbody min-h-0 flex flex-col">
         <div className="flex-1 min-h-0 overflow-y-auto scroll-thin">
-          <GridView key={String(shownPage)} grid={grid} container={shownPage === 'shared' ? 'shared' : 'stash'} offset={shownPage === 'shared' ? 0 : pageStart(shownPage)}
+          <GridView key={String(shownPage)} marked={marked} grid={grid} container={shownPage === 'shared' ? 'shared' : 'stash'} offset={shownPage === 'shared' ? 0 : pageStart(shownPage)}
             cols={cols} equipment={profile.equipment} mode={mode} selected={sel} onSelect={onSelect} onEmpty={onEmpty} onQuick={onQuick} onAlt={onAlt} />
         </div>
       </div>
@@ -60,32 +63,26 @@ function PageTabs({ sel, onMoved }: { sel: Loc | null; onMoved: () => void }) {
   const wide = useLayout() === 'desktop';
   const owned = pageCount(profile.stash);
   const [buying, setBuying] = useState<StashPage | null>(null);
-  const [over, setOver] = useState<StashPage | null>(null);
+  // Arrastrar un objeto sobre una pestaña: se resalta y, si se queda encima, se abre esa página (pointerDrag.tsx)
+  const drag = useDrag();
+  const tabDrop = (pg: StashPage, isOwned: boolean) => JSON.stringify({ type: 'page', page: pg, owned: isOwned });
+  const overTab = (pg: StashPage, isOwned: boolean) => !!drag && !drag.back && drag.over === tabDrop(pg, isOwned);
   const tap = (pg: StashPage, isOwned: boolean) => {
+    if (dragJustEnded()) return;
     sfx('click');
     if (!isOwned) return setBuying(pg);
     if (sel && !(sel.kind === 'grid' && isSamePage(sel, pg))) { actions.moveToPage(sel, pg); onMoved(); return; }
     actions.setStashPage(pg);
   };
-  const dnd = (pg: StashPage, isOwned: boolean) => ({
-    onDragOver: (e: React.DragEvent) => { if (isOwned && e.dataTransfer.types.includes(DRAG_MIME)) { e.preventDefault(); setOver(pg); } },
-    onDragLeave: () => setOver(null),
-    onDrop: (e: React.DragEvent) => {
-      e.preventDefault(); setOver(null);
-      const raw = e.dataTransfer.getData(DRAG_MIME);
-      if (!raw || !isOwned) return;
-      const data = JSON.parse(raw) as { loc: Loc; lootId?: string };
-      if (!data.lootId) actions.moveToPage(data.loc, pg);
-    },
-  });
+  const dnd = (pg: StashPage, isOwned: boolean) => ({ 'data-drop': tabDrop(pg, isOwned) });
   const tabs: ReactNode[] = [];
   for (let k = 0; k < STASH_MAX_PAGES; k++) {
     const isOwned = k < owned;
     const on = page === k;
     const price = k === owned ? nextPageCost(profile.stash) : null;
     tabs.push(
-      <button key={k} className={`pill ${on ? 'on' : ''} ${over === k ? 'drag-over' : ''}`} {...dnd(k, isOwned)}
-        style={{ flex: '1 1 0', minWidth: 44, minHeight: 44, padding: 0, opacity: isOwned ? 1 : k === owned ? 0.75 : 0.4, outline: over === k ? '2px solid #e8b33a' : undefined }}
+      <button key={k} className={`pill ${on ? 'on' : ''} ${overTab(k, isOwned) ? 'drag-over' : ''}`} {...dnd(k, isOwned)}
+        style={{ flex: '1 1 0', minWidth: 44, minHeight: 44, padding: 0, opacity: isOwned ? 1 : k === owned ? 0.75 : 0.4, outline: overTab(k, isOwned) ? '2px solid #e8b33a' : undefined }}
         disabled={!isOwned && k !== owned} onClick={() => tap(k, isOwned)} data-testid={`stash-page-${k}`}
         title={isOwned ? `Página ${k + 1}` : price ? `Página ${k + 1} · ${price} de oro` : `Página ${k + 1} (compra antes la ${owned + 1})`}
         aria-label={isOwned ? `Página ${k + 1}` : `Página ${k + 1}, bloqueada`}>
@@ -96,10 +93,10 @@ function PageTabs({ sel, onMoved }: { sel: Loc | null; onMoved: () => void }) {
   const sharedOn = page === 'shared';
   const hasShared = !!profile.shared;
   tabs.push(
-    <button key="shared" className={`pill ${over === 'shared' ? 'drag-over' : ''}`} {...dnd('shared', hasShared)} onClick={() => tap('shared', hasShared)} data-testid="stash-page-shared"
+    <button key="shared" className={`pill ${overTab('shared', hasShared) ? 'drag-over' : ''}`} {...dnd('shared', hasShared)} onClick={() => tap('shared', hasShared)} data-testid="stash-page-shared"
       title={hasShared ? 'Compartido · para todos tus personajes' : `Compartido · ${SHARED_PAGE_COST} de oro`} aria-label="Página Compartido"
       style={{ flex: wide ? '2.4 1 0' : '1 1 0', minWidth: 44, minHeight: 44, padding: '0 6px', gap: 6, borderColor: '#3f8f8a', color: sharedOn ? '#07130c' : SHARED_COLOR,
-        background: sharedOn ? SHARED_COLOR : 'rgba(63,143,138,.15)', opacity: hasShared ? 1 : 0.75, outline: over === 'shared' ? '2px solid #e8b33a' : undefined }}>
+        background: sharedOn ? SHARED_COLOR : 'rgba(63,143,138,.15)', opacity: hasShared ? 1 : 0.75, outline: overTab('shared', hasShared) ? '2px solid #e8b33a' : undefined }}>
       {hasShared ? <IconShare /> : <IconLock />}{wide && <span>Compartido</span>}
     </button>,
   );

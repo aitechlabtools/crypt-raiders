@@ -69,8 +69,22 @@ html, body, #root {
   align-items: center;
   justify-content: center;
 }
-.slot.drag-over { border-color: var(--color-gold); background: #1e1a10; }
-.slot.selected { border-color: var(--color-parchment); }
+/* Objeto elegido: doble contorno por FUERA del borde de rareza (blanco y dorado, más grueso) y un brillo que late.
+   Se distingue de la rareza por el grosor y el contorno exterior, no solo por el color. */
+@keyframes slotsel { 0%,100% { box-shadow: 0 0 0 2px #07060a, 0 0 0 5px #fff4c2, 0 0 12px 4px #e8b33a88 } 50% { box-shadow: 0 0 0 2px #07060a, 0 0 0 5px #fff4c2, 0 0 20px 7px #e8b33acc } }
+.slot.selected { position: relative; z-index: 2; animation: slotsel 1.2s steps(4) infinite; }
+@media (prefers-reduced-motion: reduce) { .slot.selected { animation: none; box-shadow: 0 0 0 2px #07060a, 0 0 0 5px #fff4c2; } }
+/* Arrastrar (pointerDrag.tsx): casilla de origen atenuada, destino bajo el puntero en dorado, ranura de equipo que encaja en verde */
+.slot { -webkit-touch-callout: none; user-select: none; -webkit-user-select: none; }
+.slot.is-lifted { opacity: .35; }
+.slot.drag-over { border-color: var(--color-gold); background: #2a2116; box-shadow: 0 0 0 2px #e8b33a; }
+.slot.drop-ok { border-style: dashed; border-color: #5fd19a; background: #5fd19a1f; position: relative; }
+.slot.drop-ok::after { content: '✓'; position: absolute; right: 3px; top: 1px; color: #5fd19a; font: 700 12px system-ui, sans-serif; }
+.slot.drop-dim { opacity: .4; }
+.drag-ghost { position: fixed; z-index: 200; pointer-events: none; transform: translate(-50%, -50%) rotate(-6deg); filter: drop-shadow(0 8px 6px #000c); }
+.drag-ghost.is-back { transition: left .18s steps(4), top .18s steps(4), opacity .18s; opacity: .2; }
+html.is-dragging, html.is-dragging * { cursor: grabbing !important; }
+html.is-dragging body { touch-action: none; overscroll-behavior: none; }
 .slot .qty {
   position: absolute;
   right: 2px;
@@ -397,3 +411,10 @@ html.is-touch .tut-guide { top: auto; bottom: max(8px, env(safe-area-inset-botto
   .text-base { font-size: 14px; line-height: 1.4; }
   .text-lg { font-size: 15px; line-height: 1.4; }
 }
+
+/* Casilla con una pieza mejor que la que llevas puesta (inventory.tsx → isUpgrade) */
+.slot-up { position: absolute; left: 2px; bottom: 0; color: #5fd19a; font: 700 11px system-ui, sans-serif; text-shadow: 0 1px 0 #000; pointer-events: none; }
+/* Venta: casillas marcadas (doble contorno fijo y una moneda en la esquina: no depende solo del color) */
+.slot.is-marked { position: relative; z-index: 1; box-shadow: 0 0 0 2px #07060a, 0 0 0 5px #f2c75a; }
+.mark-coin { position: absolute; right: -6px; top: -6px; width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #ffe08a, #c48f22 70%); border: 2px solid #07060a; pointer-events: none; }
+.sell-drop.drag-over { border-color: var(--color-gold); background: #2a2116; }

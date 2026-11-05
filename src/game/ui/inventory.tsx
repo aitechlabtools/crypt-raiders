@@ -3,6 +3,7 @@ import { AFFIXES, stackName, stackRarity, stackStats } from '../../core/data/rar
 import { QUALITIES } from '../../core/data/forge';
 import { useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
+import { dragJustEnded, startPointerDrag, useDrag } from './pointerDrag';
 import type { EquipSlot, Equipment, Grid, ItemStack, Stats } from '../../core/types';
 import { EQUIP_SLOTS, STAT_KEYS } from '../../core/types';
 import { getItem, RARITY_INFO } from '../../core/data/items';
@@ -94,6 +95,29 @@ export function ItemTooltip({ stack, equipment, mode }: { stack: ItemStack; equi
   );
 }
 
+/** Compara una pieza con la que llevas puesta en su ranura (con rareza y atributos). null si no es equipable. */
+export function compareWithEquipped(stack: ItemStack, equipment: Equipment | undefined) {
+  const def = getItem(stack.itemId);
+  if (!def.slot || !equipment) return null;
+  const worn = equipment[def.slot];
+  if (worn && worn.uid === stack.uid) return null;
+  const a = stackStats(stack, def);
+  const b = worn ? stackStats(worn, getItem(worn.itemId)) : ({} as Partial<Stats>);
+  const diffs = STAT_KEYS.map((k) => [k, (a[k] ?? 0) - (b[k] ?? 0)] as const).filter(([, d]) => d !== 0);
+  const better = diffs.filter(([, d]) => d > 0).length, worse = diffs.filter(([, d]) => d < 0).length;
+  return { worn, wornName: worn ? stackName(worn, getItem(worn.itemId)) : null, diffs, better, worse };
+}
+
+/** ¿Es una mejora clara para el personaje (puede llevarlo y gana en más atributos de los que pierde)? */
+export function isUpgrade(stack: ItemStack, equipment: Equipment | undefined, who: { classId: string; level: number } | undefined): boolean {
+  const def = getItem(stack.itemId);
+  if (!def.slot || !who || (def.classes && !def.classes.includes(who.classId as never)) || (def.levelReq && who.level < def.levelReq)) return false;
+  const c = compareWithEquipped(stack, equipment);
+  if (!c) return false;
+  const sum = c.diffs.reduce((t, [, d]) => t + d, 0);
+  return c.better > c.worse || (c.better === c.worse && sum > 0);
+}
+
 function categoryName(c: string) {
   return ({ potion: 'Consumible', material: 'Material', relic: 'Reliquia', jewel: 'Joya', key: 'Llave', quest: 'Objeto de misión', coin: 'Moneda', gold: 'Oro', container: 'Saco de oro', weapon: 'Arma', shield: 'Escudo', tool: 'Herramienta' } as Record<string, string>)[c] ?? c;
 }
@@ -118,53 +142,51 @@ interface SlotProps {
   awaiting?: boolean;
   /** Posición en la rejilla (columna y fila, desde 1) y tamaño en casillas (objetos grandes: 2×2). */
   cell?: { col: number; row: number; w: number; h: number };
+  /** Objeto elegido esperando destino (ranuras de equipo: se ilumina la suya). */
+  movingItemId?: string;
+  /** Marcado para vender. */
+  marked?: boolean;
 }
 
-export function ItemSlot({ stack, loc, lootId, equipment, mode, selected, placeholderIcon, label, onSelect, onQuick, onAlt, onEmpty, big, awaiting, cell }: SlotProps) {
-  const [over, setOver] = useState(false);
+// Último tipo de puntero usado (para no tratar «mantener pulsado» en táctil como clic derecho)
+let lastPointer = 'mouse';
+if (typeof window !== 'undefined') window.addEventListener('pointerdown', (e) => { lastPointer = e.pointerType; }, true);
+
+export function ItemSlot({ stack, loc, lootId, equipment, mode, selected, placeholderIcon, label, onSelect, onQuick, onAlt, onEmpty, big, cell, movingItemId, marked }: SlotProps) {
   const [tip, setTip] = useState<{ x: number; y: number } | null>(null);
   const rarity = stack ? RARITY_INFO[stackRarity(stack, getItem(stack.itemId))] : null;
   const who = useGame((s) => s.profile?.character);
   const sdef = stack ? getItem(stack.itemId) : null;
   const tooHigh = !!(sdef?.slot && who && sdef.levelReq && who.level < sdef.levelReq);
   const wrongClass = !!(sdef?.slot && who && sdef.classes && !sdef.classes.includes(who.classId));
+  const eqNow = useGame((s) => s.profile?.equipment);
+  const upgrade = !!stack && loc.kind === 'grid' && !!sdef?.slot && isUpgrade(stack, eqNow, who);
   const testId = loc.kind === 'equip' ? `slot-equip-${loc.slot}` : `slot-${loc.container}-${loc.index}`;
+  const dropRaw = JSON.stringify({ type: 'loc', loc, lootId });
+  const drag = useDrag();
+  const over = !!drag && !drag.back && drag.over === dropRaw;
+  const dragging = !!drag && !drag.back && JSON.stringify(drag.from) === JSON.stringify(loc);
+  // Ranuras de equipo: al mover un objeto (arrastrándolo o elegido), solo se ilumina la ranura donde encaja; las demás se apagan
+  const moving = drag && !drag.back ? drag.itemId : movingItemId;
+  const fits = loc.kind === 'equip' && !!moving ? getItem(moving).slot === loc.slot : null;
   return (
     <div
       data-testid={testId}
       data-item={stack?.itemId ?? ''}
-      className={`slot ${big ? 'slot-big' : ''} ${over ? 'drag-over' : ''} ${selected ? 'selected' : ''} ${awaiting && !stack ? 'slot-target' : ''}`}
+      className={`slot ${big ? 'slot-big' : ''} ${over ? 'drag-over' : ''} ${selected && !dragging ? 'selected' : ''} ${dragging ? 'is-lifted' : ''} ${marked ? 'is-marked' : ''} ${fits === true ? 'drop-ok' : fits === false ? 'drop-dim' : ''}`}
       style={{
         ...(rarity ? { borderColor: rarity.color + 'aa', boxShadow: `inset 0 0 0 1px #07060a, inset 0 0 14px ${rarity.color}33` } : {}),
         ...(cell ? { gridColumn: `${cell.col} / span ${cell.w}`, gridRow: `${cell.row} / span ${cell.h}` } : {}),
         ...(cell && (cell.w > 1 || cell.h > 1) ? { width: `calc(var(--slot) * ${cell.w} + ${(cell.w - 1) * 4}px)`, height: `calc(var(--slot) * ${cell.h} + ${(cell.h - 1) * 4}px)` } : {}),
       }}
-      draggable={!!stack}
-      onDragStart={(e) => {
-        setTip(null);
-        e.dataTransfer.setData(DRAG_MIME, JSON.stringify({ loc, lootId }));
-        e.dataTransfer.effectAllowed = 'move';
-      }}
-      onDragOver={(e) => {
-        if (e.dataTransfer.types.includes(DRAG_MIME)) {
-          e.preventDefault();
-          setOver(true);
-        }
-      }}
-      onDragLeave={() => setOver(false)}
-      onDrop={(e) => {
-        e.preventDefault();
-        setOver(false);
-        const raw = e.dataTransfer.getData(DRAG_MIME);
-        if (!raw) return;
-        const data = JSON.parse(raw) as { loc: Loc; lootId?: string };
-        actions.transfer(data.loc, loc, data.lootId ?? lootId);
-      }}
-      onClick={() => (stack ? onSelect?.(loc) : onEmpty?.(loc))}
-      onDoubleClick={() => stack && onQuick?.(loc, stack)}
+      data-drop={dropRaw}
+      onPointerDown={(e) => { if (stack) { setTip(null); startPointerDrag(e, loc, stack.itemId, lootId); } }}
+      onClick={(e) => { if (dragJustEnded()) return; if (stack && e.shiftKey && onAlt) { onAlt(loc, stack); return; } if (stack) onSelect?.(loc); else onEmpty?.(loc); }}
+      onDoubleClick={() => stack && !dragJustEnded() && onQuick?.(loc, stack)}
       onContextMenu={(e) => {
         e.preventDefault();
-        if (stack) onAlt?.(loc, stack);
+        // En táctil, mantener pulsado es para arrastrar: no hace la acción del clic derecho
+        if (stack && lastPointer !== 'touch') onAlt?.(loc, stack);
       }}
       onPointerEnter={(e) => {
         // Solo con ratón: en táctil la ficha del objeto sustituye a esta ventanita
@@ -179,13 +201,15 @@ export function ItemSlot({ stack, loc, lootId, equipment, mode, selected, placeh
         ? <img src={iconUrl(stack.qty <= 3 ? 'coins1' : stack.qty <= 7 ? 'coins2' : 'coins3', 3)} width={36} height={36} alt="Monedas de oro" className="pixelated" draggable={false} />
         : <ItemIcon itemId={stack.itemId} size={cell && cell.w > 1 ? 84 : big ? 48 : 36} />) : placeholderIcon ? <img src={iconUrl(placeholderIcon, 3)} width={30} height={30} className="pixelated opacity-15" alt="" draggable={false} /> : null}
       {stack && stack.qty > 1 && <span className="qty">{stack.qty}</span>}
+      {marked && <span className="mark-coin" aria-label="Marcado para vender" data-testid="slot-marked" />}
       {stack && capacityOf(stack) > 0 && <span className="qty" data-testid="slot-gold" style={{ color: stack.gold ? '#f2c75a' : '#a8a29e', fontSize: cell && cell.w > 1 ? 13 : 10 }}>{stack.gold ?? 0}/{capacityOf(stack)}</span>}
+      {stack && loc.kind === 'grid' && !tooHigh && !wrongClass && upgrade && <span className="slot-up" title="Mejor que lo que llevas puesto" data-testid="slot-upgrade">▲</span>}
       {stack && loc.kind === 'grid' && (tooHigh || wrongClass) && (
         <span className="absolute left-0.5 top-0 text-[10px] leading-none px-0.5 bg-black/80 text-blood" data-testid="slot-locked" title={wrongClass ? 'Tu clase no puede usarlo' : `Requiere nivel ${sdef!.levelReq}`}>
           {wrongClass ? '✕' : `Nv${sdef!.levelReq}`}
         </span>
       )}
-      {tip && stack && createPortal(
+      {tip && stack && !drag && createPortal(
         <div className="fixed z-[100] pointer-events-none" style={{ left: Math.min(tip.x, window.innerWidth - 270), top: Math.min(tip.y, window.innerHeight - 280) }}>
           <ItemTooltip stack={stack} equipment={equipment} mode={mode} />
         </div>,
@@ -209,6 +233,8 @@ export function GridView(props: {
   onQuick?: (loc: Loc, stack: ItemStack) => void;
   onAlt?: (loc: Loc, stack: ItemStack) => void;
   onEmpty?: (loc: Loc) => void;
+  /** Venta: casillas marcadas para vender (contorno y moneda). */
+  marked?: (loc: Loc) => boolean;
 }) {
   return (
     <div className="grid gap-1" style={{ gridTemplateColumns: `repeat(${props.cols}, var(--slot))` }} data-testid={`grid-${props.container}`}>
@@ -222,7 +248,7 @@ export function GridView(props: {
         const cell = fixed ? { col: (k % props.cols) + 1, row: Math.floor(k / props.cols) + 1, w: f.w, h: f.h } : undefined;
         const loc: Loc = { kind: 'grid', container: props.container, index: i };
         const sel = props.selected?.kind === 'grid' && props.selected.container === props.container && props.selected.index === i;
-        return <ItemSlot key={i} cell={cell} stack={s} loc={loc} lootId={props.lootId} equipment={props.equipment} mode={props.mode} selected={sel} onSelect={props.onSelect} onQuick={props.onQuick} onAlt={props.onAlt} onEmpty={props.onEmpty} awaiting={!!props.selected && !!props.onEmpty} />;
+        return <ItemSlot key={i} cell={cell} stack={s} loc={loc} lootId={props.lootId} equipment={props.equipment} mode={props.mode} selected={sel} marked={props.marked?.(loc)} onSelect={props.onSelect} onQuick={props.onQuick} onAlt={props.onAlt} onEmpty={props.onEmpty} awaiting={!!props.selected && !!props.onEmpty} />;
       })}
     </div>
   );

@@ -135,6 +135,18 @@ Léelo junto con CLAUDE.md (reglas permanentes del proyecto).
 - Después: oro físico (monedas que ocupan casilla, saquitos y sacos, pago automático desde las páginas propias, el oro y el botín
   de los enemigos caen en un saco en el suelo). Primero análisis, economía y maquetas en mockups/oro-fisico; esperar aprobación.
 
+## Novedades del 5/11 (tarde, casa)
+- **Copia de seguridad:** si el sistema no deja compartir el archivo (Windows rechaza los .json), se descarga y se avisa;
+  «Compartir archivo» solo sale en pantallas táctiles.
+- **Alijo, fase 1 (selección y arrastre):** arrastrar y soltar con ratón y con dedo en mochila, almacén, bolsillo, equipo,
+  pestañas de página y mochila puesta (`pointerDrag.tsx`); solo se ilumina la ranura de equipo que encaja; contorno de objeto
+  elegido mucho más visible; tocar un objeto y luego una ranura de equipo ocupada lo equipa. Ver docs/guia-interfaz.md.
+- **Alijo, resto de fases:** comparación con lo puesto en la ficha y ▲ en las casillas de las mejoras; «Vaciar mochila» y
+  «Guardar materiales»; Mayús+clic; venta de varios marcados con total, selección rápida, confirmación de lo valioso y recompra.
+  Decidido: en Vender siempre se puede marcar varios; recompra de los últimos 5 mientras sigas con el mercader; «Soltar» sigue
+  igual; el oro de la venta va al almacén (ya era así). No hay barra flotante: las acciones siguen en la ficha.
+  Pendiente: el tutorial (enseñar a arrastrar y a tocar y luego tocar). Maquetas en mockups/inventario.
+
 ## Novedades del 4/11 (tarde)
 - **Despliegue arreglado (0.2.2.1):** los tests de equilibrio fallaban en GitHub (el mago perdía casi siempre contra los jefes
   de mitad de juego). Cambios: Último bastión 2 turnos/recarga 9, Escudo de maná 30 %/recarga 3, Maldición de debilidad con daño

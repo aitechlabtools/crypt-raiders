@@ -16,6 +16,7 @@ import { buy, sell } from '../../core/economy';
 import { addToPage, buySharedPage, buyStashPage, joinPages, pageCount, pageSlice as pageSliceOf, sortPage, splitPages, type StashPage } from '../../core/stashPages';
 import { equipBag } from '../../core/bag';
 import { coins as coinsStack, gridGold, groupGold, isCoins, splitCoins, withdrawCoins } from '../../core/gold';
+import { spendGold } from '../../core/wallet';
 import { earnGoldSafe, NO_ROOM_FOR_GOLD, putCoinsPartial, setGoldExactly, stackGoldValue, syncGold } from '../../core/wallet';
 import { COIN_ID } from '../../config/gold';
 import { computeStats } from '../../core/stats';
@@ -168,6 +169,8 @@ export interface GameState {
   backup: BackupStatus | null;
   /** Mercader con el que se está hablando (decide qué compra y a qué precio al vender). */
   activeVendor: VendorId | null;
+  /** Últimos objetos vendidos al mercader abierto: se pueden recomprar al mismo precio hasta salir de él. */
+  buyback: { stack: ItemStack; price: number }[];
   /** Bloque que se destaca al abrir la copia de seguridad («Tengo una copia» → cargar). */
   backupFocus: 'load' | null;
   /** Hay una partida guardada de antes de la última importación (para deshacerla): cuándo se importó. */
@@ -205,6 +208,7 @@ const initial: GameState = {
   noticeTitle: null,
   backup: null,
   activeVendor: null,
+  buyback: [],
   backupFocus: null,
   undoAt: null,
   persisted: null,
@@ -676,7 +680,7 @@ export const actions = {
     applyContainers({ ...c, stash });
   },
 
-  setActiveVendor(v: VendorId | null) { set({ activeVendor: v }); },
+  setActiveVendor(v: VendorId | null) { set({ activeVendor: v, buyback: [] }); },
 
   /** Se pone otra mochila (solo en el refugio). La que llevabas ocupa su sitio. */
   equipBag(loc: Loc) {
@@ -937,6 +941,71 @@ export const actions = {
     sfx('coin');
     set({ profile: r.profile });
     if (item) toast(`Vendes ${getItem(item.itemId).name} por ${r.profile.gold - p.gold} de oro.`, 'good', getItem(item.itemId).icon);
+  },
+
+  /** Vender de una vez todo lo marcado (casillas de la mochila y del almacén). Devuelve cuánto se ha ganado. */
+  sellMany(locs: { container: 'backpack' | 'stash'; index: number }[]): number {
+    const p0 = state.profile;
+    if (!p0 || !locs.length) return 0;
+    const vendor = state.activeVendor ?? 'orvel';
+    let p = p0; let sold = 0; const bought: { stack: ItemStack; price: number }[] = []; let fail: string | null = null;
+    for (const l of locs) {
+      const item = p[l.container][l.index];
+      if (!item) continue;
+      let r = sell(p, l.container, l.index, true, vendor);
+      if (!r.ok && r.error === NO_ROOM_FOR_GOLD) {
+        const grouped = joinPages(splitPages(p.stash).map((pg) => groupGold(pg).grid));
+        r = sell({ ...p, stash: grouped }, l.container, l.index, true, vendor);
+      }
+      if (!r.ok) { fail = r.error; continue; }
+      bought.push({ stack: item, price: r.profile.gold - p.gold });
+      p = r.profile; sold++;
+    }
+    const gain = p.gold - p0.gold;
+    if (sold) {
+      sfx('coin');
+      set({ profile: p, buyback: [...bought.reverse(), ...state.buyback].slice(0, 5) });
+      toast(`Vendes ${sold === 1 ? '1 objeto' : `${sold} objetos`} por ${gain} de oro.`, 'good', 'coin');
+    }
+    if (fail) invError(sold ? `No se pudo vender todo: ${fail}` : fail);
+    return gain;
+  },
+
+  /** Recomprar algo recién vendido al mismo precio (va a la mochila). */
+  buyBack(i: number) {
+    const p = state.profile;
+    const b = state.buyback[i];
+    if (!p || !b) return;
+    const paid = spendGold(p, b.price);
+    if (!paid.ok) return invError(`Te faltan monedas: cuesta ${b.price} de oro.`);
+    const r = addToGrid(paid.profile.backpack, b.stack);
+    if (r.leftover) return invError('No hay sitio en la mochila para recomprarlo.');
+    sfx('pickup');
+    set({ profile: { ...paid.profile, backpack: r.grid }, buyback: state.buyback.filter((_, k) => k !== i) });
+    toast(`Recompras ${getItem(b.stack.itemId).name}.`, 'info', getItem(b.stack.itemId).icon);
+  },
+
+  /** Vaciar la mochila en el almacén (página abierta y luego las demás propias). Con `onlyMaterials`, solo minerales y materiales.
+   *  No toca el equipo puesto ni el bolsillo seguro. Devuelve cuántos objetos no cupieron. */
+  emptyBackpack(onlyMaterials = false): number {
+    const p = state.profile;
+    if (!p) return 0;
+    let moved = 0;
+    p.backpack.forEach((st, i) => {
+      if (!st || isCover(st)) return;
+      if (onlyMaterials && getItem(st.itemId).category !== 'material') return;
+      const before = state.profile!.backpack[i];
+      const hadErr = state.invError;
+      actions.quickMove({ kind: 'grid', container: 'backpack', index: i }, 'stash');
+      if (state.profile!.backpack[i] !== before) moved++;
+      else if (!hadErr) set({ invError: null });
+    });
+    const left = state.profile!.backpack.filter((st, i) => st && !isCover(st) && (!onlyMaterials || getItem(st.itemId).category === 'material') && i >= 0).length;
+    set({ invError: null });
+    if (moved) toast(left ? `Guardas ${moved} ${moved === 1 ? 'objeto' : 'objetos'}. ${left} no caben: compra otra página del almacén.` : `Guardas ${moved} ${moved === 1 ? 'objeto' : 'objetos'} en el almacén.`, left ? 'info' : 'good');
+    else if (left) invError('No cabe nada más en el almacén.');
+    else toast(onlyMaterials ? 'No llevas materiales.' : 'La mochila ya está vacía.', 'info');
+    return left;
   },
 
   claimRecruitKit() {

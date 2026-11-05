@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { DragLayer } from './pointerDrag';
 import { RotateNotice } from '../../shared/RotateNotice';
 import { actions, useGame } from '../state/store';
 import { TitleScreen, CreateScreen } from './TitleScreen';
@@ -41,6 +42,7 @@ export function App() {
       {screen === 'dungeon' && <DungeonScreen />}
       {screen === 'summary' && <SummaryScreen />}
       <Toasts />
+      <DragLayer />
       <RotateNotice onChange={actions.setSuspended} />
     </div>
   );

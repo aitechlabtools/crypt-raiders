@@ -11,8 +11,15 @@ import { readyQuestCount } from '../../../core/quests';
 import { getItem } from '../../../core/data/items';
 import { owned } from '../../../core/forge';
 import type { Loc } from '../../../core/inventory';
-import { MonsterSprite, GoldAmount } from '../common';
-import { GridView, ItemIcon } from '../inventory';
+import { MonsterSprite, GoldAmount, Modal } from '../common';
+import { GridView, ItemIcon, isUpgrade } from '../inventory';
+import { useDrag } from '../pointerDrag';
+import { buysThis, vendorSellPrice } from '../../../core/economy';
+import { isCover } from '../../../core/inventory';
+import { isCoins } from '../../../core/gold';
+import { stackRarity } from '../../../core/data/rarity';
+import { RARITY_INFO } from '../../../core/data/items';
+import type { ItemStack } from '../../../core/types';
 import { RepBar, ShopStock, VendorQuests, type VendorTarget, type VendorView } from '../VendorsTab';
 import { ForgePanel } from '../ForgePanel';
 import { ContractsPanel } from '../ContractsPanel';
@@ -80,11 +87,12 @@ function VendorInterior({ vendor, initial, onBack }: { vendor: VendorId; initial
   const scale = usePixelScale('vendor');
   const [view, setView] = useState<VendorView>(initial);
   const [sel, setSel] = useState<Loc | null>(null);
+  const [marks, setMarks] = useState<string[]>([]);
   const v = VENDORS[vendor];
   const rep = profile.reputation[vendor] ?? 0;
   const rank = rankOf(rep);
   const discount = REP_RANKS[rank].discount;
-  const go = (x: VendorView) => { setView(x); setSel(null); sfx('click'); };
+  const go = (x: VendorView) => { setView(x); setSel(null); setMarks([]); sfx('click'); };
   // Quién compra al vender (el Coleccionista solo joyas y tesoros, y paga mejor)
   useEffect(() => { actions.setActiveVendor(vendor); return () => actions.setActiveVendor(null); }, [vendor]);
 
@@ -94,9 +102,12 @@ function VendorInterior({ vendor, initial, onBack }: { vendor: VendorId; initial
       : view === 'quests' ? <VendorQuests vendor={vendor} />
         : view === 'forge' ? <ForgePanel />
           : view === 'contracts' ? <ContractsPanel />
-            : <SellGrids sel={sel} setSel={setSel} />;
+            : <SellGrids sel={sel} setSel={setSel} marks={marks} setMarks={setMarks} vendor={vendor} />;
   const side: ReactNode = view === 'sell'
-    ? <Panel title="Ficha" className="min-h-0 h-full" bodyClassName="overflow-y-auto scroll-thin"><ItemCard loc={sel} mode="merchant" onClear={() => setSel(null)} /></Panel>
+    ? <Panel title="A vender" className="min-h-0 h-full" bodyClassName="overflow-y-auto scroll-thin flex flex-col" testId="sale-panel">
+        <SalePanel vendor={vendor} marks={marks} setMarks={setMarks} onSold={() => setSel(null)} />
+        <div className="panel p-3 mt-3"><ItemCard loc={sel} mode="merchant" onClear={() => setSel(null)} compact /></div>
+      </Panel>
     : view === 'forge'
       ? <Panel title="Tus materiales" className="min-h-0 h-full" bodyClassName="overflow-y-auto scroll-thin flex flex-col"><Materials /></Panel>
       : <Panel title="Tu mochila" className="min-h-0 h-full" bodyClassName="overflow-y-auto scroll-thin flex flex-col"><BagSummary /></Panel>;
@@ -124,7 +135,7 @@ function VendorInterior({ vendor, initial, onBack }: { vendor: VendorId; initial
     return (
       <div className="h-full grid relative" style={{ ...pad, gridTemplateColumns: '170px minmax(0,1fr)', paddingRight: 'calc(max(var(--pad), env(safe-area-inset-right)) + 40px)' }} data-testid="vendor-interior">
         {left}{main}
-        <Drawer label={view === 'forge' ? 'Materiales' : view === 'sell' ? 'Ficha' : 'Mochila'} side="right" testId="vendor-side">{side}</Drawer>
+        <Drawer label={view === 'forge' ? 'Materiales' : view === 'sell' ? (marks.length ? `Vender (${marks.length})` : 'A vender') : 'Mochila'} side="right" testId="vendor-side">{side}</Drawer>
       </div>
     );
   }
@@ -136,21 +147,103 @@ function VendorInterior({ vendor, initial, onBack }: { vendor: VendorId; initial
   );
 }
 
-/** Vender: la mochila y el almacén; al elegir un objeto, su ficha (a la derecha) muestra el precio y «Vender». */
-function SellGrids({ sel, setSel }: { sel: Loc | null; setSel: (l: Loc | null) => void }) {
+/** Vender: la mochila y el almacén. Tocar un objeto lo marca para vender (y enseña su ficha); se pueden marcar varios
+ *  o arrastrarlos a la zona «A vender». Doble clic: vender ese al momento. */
+const markKey = (l: Loc) => (l.kind === 'grid' && (l.container === 'backpack' || l.container === 'stash') ? `${l.container}:${l.index}` : null);
+function SellGrids({ sel, setSel, marks, setMarks, vendor }: { sel: Loc | null; setSel: (l: Loc | null) => void; marks: string[]; setMarks: (m: string[] | ((m: string[]) => string[])) => void; vendor: VendorId }) {
   const profile = useGame((s) => s.profile)!;
-  const quick = (l: Loc) => { if (l.kind === 'grid' && (l.container === 'backpack' || l.container === 'stash')) actions.sell(l.container, l.index); };
-  const pick = (l: Loc) => setSel(sel && JSON.stringify(sel) === JSON.stringify(l) ? null : l);
+  const quick = (l: Loc) => { if (l.kind === 'grid' && (l.container === 'backpack' || l.container === 'stash')) { actions.sell(l.container, l.index, true); setMarks((m) => m.filter((k) => k !== markKey(l))); } };
+  const toggle = (l: Loc) => {
+    const k = markKey(l);
+    setSel(l);
+    if (!k) return;
+    const g = l.kind === 'grid' && (l.container === 'backpack' || l.container === 'stash') ? profile[l.container][l.index] : null;
+    if (g && (!buysThis(vendor, g.itemId) || isCoins(g) || (g.gold ?? 0) > 0)) { sfx('error'); return; }
+    sfx('click');
+    setMarks((m) => (m.includes(k) ? m.filter((x) => x !== k) : [...m, k]));
+  };
+  // Soltar un objeto arrastrado sobre la zona de venta lo marca
+  useEffect(() => {
+    const h = (e: Event) => { const l = (e as CustomEvent<Loc>).detail; const k = markKey(l); if (k) setMarks((m) => (m.includes(k) ? m : [...m, k])); setSel(l); };
+    window.addEventListener('cr-drop-sell', h); return () => window.removeEventListener('cr-drop-sell', h);
+  }, [setMarks, setSel]);
+  const isMarked = (l: Loc) => { const k = markKey(l); return !!k && marks.includes(k); };
   return (
     <div className="flex flex-wrap" style={{ gap: 'calc(var(--gap) * 2)' }} data-testid="sell-grids">
-      <div><SubHead>Mochila</SubHead><GridView grid={profile.backpack} container="backpack" cols={6} equipment={profile.equipment} mode="merchant" selected={sel} onSelect={pick} onQuick={quick} onAlt={quick} /></div>
+      <div><SubHead>Mochila</SubHead><GridView grid={profile.backpack} container="backpack" cols={6} equipment={profile.equipment} mode="merchant" selected={sel} onSelect={toggle} onQuick={quick} onAlt={quick} marked={isMarked} /></div>
       <div className="flex flex-col" style={{ height: 'min(62vh, 560px)', minHeight: 300 }}>
-        <StashPanel cols={8} mode="merchant" sel={sel} onSelect={pick} onQuick={quick} onAlt={quick} testId="sell-stash" />
+        <StashPanel cols={8} mode="merchant" sel={sel} onSelect={toggle} onQuick={quick} onAlt={quick} testId="sell-stash" marked={isMarked} />
       </div>
-      <p className="font-body text-sm text-stone-400 italic w-full">Elige un objeto para ver cuánto te da. Doble clic: vender al momento.</p>
+      <p className="font-body text-sm text-stone-400 italic w-full">Toca los objetos para marcarlos (o arrástralos a «A vender») y véndelos todos de una vez. Doble clic: vender al momento.</p>
     </div>
   );
 }
+
+/** Zona de venta: lo marcado con su precio, el total, selección rápida, vender todo y recomprar lo último vendido. */
+function SalePanel({ vendor, marks, setMarks, onSold }: { vendor: VendorId; marks: string[]; setMarks: (m: string[]) => void; onSold: () => void }) {
+  const profile = useGame((s) => s.profile)!;
+  const buyback = useGame((s) => s.buyback);
+  const [confirm, setConfirm] = useState(false);
+  const drag = useDrag();
+  const over = !!drag && !drag.back && drag.over === SELL_DROP;
+  const rows = marks.map((k) => {
+    const [container, i] = k.split(':') as ['backpack' | 'stash', string];
+    const st = profile[container][Number(i)];
+    return st && !isCover(st) ? { k, container, index: Number(i), st, price: vendorSellPrice(vendor, st.itemId, st) * st.qty } : null;
+  }).filter((x): x is NonNullable<typeof x> => !!x);
+  const total = rows.reduce((t, r) => t + r.price, 0);
+  const risky = rows.filter((r) => ['rare', 'epic', 'legendary'].includes(stackRarity(r.st, getItem(r.st.itemId))) || isUpgrade(r.st, profile.equipment, profile.character));
+  // Selección rápida en la mochila y la página abierta del almacén
+  const all = (pred: (st: ItemStack) => boolean) => {
+    const ks: string[] = [];
+    (['backpack', 'stash'] as const).forEach((c) => profile[c].forEach((st, i) => { if (st && !isCover(st) && !isCoins(st) && !(st.gold ?? 0) && buysThis(vendor, st.itemId) && pred(st)) ks.push(`${c}:${i}`); }));
+    setMarks([...new Set([...marks, ...ks])]); sfx('click');
+  };
+  const doSell = () => { actions.sellMany(rows.map((r) => ({ container: r.container, index: r.index }))); setMarks([]); setConfirm(false); onSold(); };
+  return (
+    <div data-testid="sale-zone">
+      <div className={`sell-drop border-2 border-dashed border-stone-700 p-2 min-h-[64px] ${over ? 'drag-over' : ''}`} data-drop={SELL_DROP}>
+        {rows.length ? (
+          <ul className="space-y-0.5 text-[14px]">{rows.map((r) => (
+            <li key={r.k} className="flex items-center gap-2">
+              <ItemIcon itemId={r.st.itemId} size={20} /><span className="flex-1 truncate" style={{ color: RARITY_INFO[stackRarity(r.st, getItem(r.st.itemId))].color }}>{getItem(r.st.itemId).name}{r.st.qty > 1 ? ` ×${r.st.qty}` : ''}</span>
+              <span className="text-gold">{r.price}</span>
+              <button className="text-stone-500 hover:text-parchment w-7 h-7" onClick={() => setMarks(marks.filter((x) => x !== r.k))} aria-label="Quitar de la venta">✕</button>
+            </li>))}</ul>
+        ) : <p className="text-[13px] text-stone-400 italic text-center py-3">Toca objetos para marcarlos o arrástralos aquí.</p>}
+      </div>
+      {rows.length > 0 && <div className="flex justify-between font-display text-parchment mt-2"><span>Total</span><span className="text-gold" data-testid="sale-total">{total} oro</span></div>}
+      <div className="flex flex-wrap gap-1 mt-2">
+        <button className="btn text-xs" style={{ minHeight: 44 }} onClick={() => all((st) => stackRarity(st, getItem(st.itemId)) === 'common' && !!getItem(st.itemId).slot)} data-testid="mark-common">Marcar equipo común</button>
+        <button className="btn text-xs" style={{ minHeight: 44 }} onClick={() => all((st) => getItem(st.itemId).category === 'material')} data-testid="mark-materials">Marcar materiales</button>
+        <button className="btn text-xs" style={{ minHeight: 44 }} onClick={() => all((st) => ['jewel', 'relic'].includes(getItem(st.itemId).category))} data-testid="mark-treasure">Marcar tesoros</button>
+        {rows.length > 0 && <button className="btn text-xs" style={{ minHeight: 44 }} onClick={() => setMarks([])} data-testid="mark-none">Quitar marcas</button>}
+      </div>
+      <button className="btn btn-gold w-full mt-3 font-display" style={{ minHeight: 48 }} disabled={!rows.length} onClick={() => (risky.length ? setConfirm(true) : doSell())} data-testid="btn-sell-marked">
+        {rows.length ? `Vender ${rows.length === 1 ? '1 objeto' : `${rows.length} objetos`} · ${total} oro` : 'Vender'}
+      </button>
+      {buyback.length > 0 && (
+        <div className="mt-3" data-testid="buyback">
+          <div className="text-[11px] tracking-[0.15em] uppercase text-stone-400 mb-1">Recomprar (mientras sigas aquí)</div>
+          {buyback.map((b, i) => (
+            <button key={i} className="w-full flex items-center gap-2 text-[14px] py-1 hover:bg-[#15131a]" style={{ minHeight: 36 }} onClick={() => actions.buyBack(i)} data-testid={`buyback-${i}`}>
+              <ItemIcon itemId={b.stack.itemId} size={20} /><span className="flex-1 text-left truncate">{getItem(b.stack.itemId).name}{b.stack.qty > 1 ? ` ×${b.stack.qty}` : ''}</span><span className="text-gold">↺ {b.price}</span>
+            </button>))}
+        </div>
+      )}
+      {confirm && (
+        <Modal onClose={() => setConfirm(false)} testId="confirm-sell">
+          <h2 className="panel-title text-lg mb-2">¿Vender también esto?</h2>
+          <p className="font-body text-lg">Entre lo marcado hay {risky.length === 1 ? 'algo valioso' : `${risky.length} objetos valiosos`}: {risky.slice(0, 4).map((r) => getItem(r.st.itemId).name).join(', ')}{risky.length > 4 ? '…' : ''}.</p>
+          <p className="text-sm text-stone-400 mt-1">Si te equivocas, podrás recomprarlo al mismo precio mientras sigas con este mercader.</p>
+          <div className="flex gap-2 mt-4"><button className="btn btn-gold" style={{ minHeight: 44 }} onClick={doSell} data-testid="btn-confirm-sell">Vender {rows.length} · {total} oro</button>
+            <button className="btn" style={{ minHeight: 44 }} onClick={() => setConfirm(false)}>Cancelar</button></div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+const SELL_DROP = JSON.stringify({ type: 'sell' });
 
 function BagSummary() {
   const profile = useGame((s) => s.profile)!;

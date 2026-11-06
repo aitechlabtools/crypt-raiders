@@ -183,9 +183,9 @@ Léelo junto con CLAUDE.md (reglas permanentes del proyecto).
   cryptraiders.es solo redirige (301) a gravevow.com: las partidas de ese dominio se pierden (decisión del usuario; es una alpha).
   Guardado: IndexedDB «gravevow» y localStorage «gravevow.*». Copias: formato «gravevow-backup», código «GV1.»; se siguen
   aceptando las copias antiguas («cryptraiders-backup» y «CR1.»). Correo de contacto: solo en imagen (d4/d5) y en MailButton.
-- Repositorio: aitechlabtools/crypt-raiders (antes dreadbound; GitHub redirige el enlace viejo). Web publicada con GitHub Pages en gravevow.com (el dominio se configura en Ajustes › Pages del repositorio).
+- Repositorio: aitechlabtools/gravevow (antes dreadbound y crypt-raiders; GitHub redirige los enlaces viejos). Web publicada con GitHub Pages en gravevow.com (el dominio se configura en Ajustes › Pages del repositorio).
   OJO: cada push a `main` publica la web (workflow .github/workflows/deploy.yml).
-- Carpeta de trabajo en el ordenador: `Documents\GitHub\crypt-raiders`.
+- Carpeta de trabajo en el ordenador: `Documents\GitHub\gravevow` (renombrada el 6/11).
 - Claude edita los archivos directamente en esa carpeta. El usuario hace el commit y el push con GitHub Desktop
   (Claude NO hace commits ni push). Al terminar cada fase, Claude da el texto del commit en español.
 - Se trabaja en dos ordenadores (casa y otro): push antes de cambiar de equipo, pull al llegar.
@@ -465,4 +465,4 @@ sin sección ni botón de Windows, tráiler de 60 s.
 Cambio de nombre a Gravevow (6/11): HECHO. Juego, app instalable, landing (logo con filete rojo y rombo), textos legales
 (dominio, tabla de almacenamiento, fecha), imágenes del correo d4/d5, botón de correo, tráiler v5 renderizado de nuevo
 (gravevow-trailer.mp4/.webm y póster) y scripts de prueba. Pendiente del usuario: dominio en Hostinger y GitHub Pages,
-redirección de cryptraiders.es, nombre en Stripe, buzón de correo nuevo, y renombrar el repositorio si quiere.
+redirección de cryptraiders.es y nombre en Stripe. Repositorio y carpeta ya renombrados a «gravevow».

@@ -12,17 +12,10 @@ a:focus-visible, button:focus-visible, span[aria-disabled]:focus-visible { outli
 
 .site-nav { background: linear-gradient(180deg, rgba(7, 6, 10, 0.92), rgba(7, 6, 10, 0.6)); backdrop-filter: blur(6px); border-bottom: 1px solid rgba(58, 55, 65, 0.6); }
 
-.hero-title {
-  font-size: clamp(2.6rem, 8.4vw, 7.6rem);
-  letter-spacing: 0.08em;
-  line-height: 0.9;
-  /* Letras como piedra tallada: luz arriba, sombra profunda abajo */
-  background: linear-gradient(180deg, #f2eee2 0%, #d9d3c1 45%, #8c8693 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 3px 0 #07060a) drop-shadow(0 0 30px rgba(196, 40, 59, 0.35));
-}
+/* Logo de la portada: llena el ancho en el móvil (sin pasarse) y se queda en 7,6rem en pantallas grandes. */
+.hero-logo { font-size: clamp(2.4rem, calc((100vw - 2rem) / 6.75), 7.6rem); }
+/* El lema cabe siempre en una sola línea. */
+.hero-tagline { font-size: clamp(0.9rem, calc((100vw - 2rem) / 20.5), 1.875rem); white-space: nowrap; }
 .hero-fade { background: linear-gradient(180deg, rgba(7,6,10,0.55) 0%, rgba(7,6,10,0) 25%, rgba(7,6,10,0) 45%, rgba(7,6,10,0.85) 80%, #07060a 100%), linear-gradient(90deg, rgba(7,6,10,0.75) 0%, rgba(7,6,10,0) 55%); }
 
 .btn-play {
@@ -244,10 +237,3 @@ a:focus-visible, button:focus-visible, span[aria-disabled]:focus-visible { outli
 .share-how li::before { content: ""; position: absolute; left: 3px; top: .55em; width: 8px; height: 8px; transform: rotate(45deg); background: #6b4a12; }
 .share-how b { color: var(--color-bone); font-weight: 600; }
 
-/* Filete del logo GRAVEVOW: dos hojas rojas que se afilan hacia un rombo central (el juramento). */
-.hero-vow { display: flex; align-items: center; width: min(100%, 36rem); margin-top: 0.9rem; filter: drop-shadow(0 0 8px rgba(196, 40, 59, 0.55)); }
-.hero-vow span { flex: 1; height: 3px; }
-.hero-vow span:first-child { background: linear-gradient(90deg, rgba(196, 40, 59, 0) 0%, #c4283b 100%); clip-path: polygon(0 40%, 100% 0, 100% 100%, 0 60%); }
-.hero-vow span:last-child { background: linear-gradient(270deg, rgba(196, 40, 59, 0) 0%, #c4283b 100%); clip-path: polygon(0 0, 100% 40%, 100% 60%, 0 100%); }
-.hero-vow i { width: 1.1rem; height: 1.1rem; margin: 0 0.55rem; transform: rotate(45deg); border: 3px solid #c4283b; box-shadow: inset 0 0 0 3px #07060a, inset 0 0 0 6px #c4283b; flex-shrink: 0; }
-@media (max-width: 640px) { .hero-vow i { width: 0.85rem; height: 0.85rem; border-width: 2px; box-shadow: inset 0 0 0 2px #07060a, inset 0 0 0 4px #c4283b; } }

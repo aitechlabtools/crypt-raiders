@@ -1,4 +1,5 @@
 import { Diorama } from './Diorama';
+import { GravevowLogo } from '../shared/GravevowLogo';
 import { heroUrl } from '../shared/art';
 import { SHOWCASE_GEAR } from '../shared/gearLook';
 import { CLASSES } from '../core/data/classes';
@@ -53,9 +54,8 @@ export function App() {
         <div className="absolute inset-0 hero-fade pointer-events-none" />
         <div className="relative z-10 min-h-[100svh] max-w-6xl mx-auto px-4 pt-20 pb-16 md:pb-24 flex flex-col justify-end">
           <div>
-            <h1 className="hero-title font-display font-extrabold text-parchment">GRAVEVOW</h1>
-            <div className="hero-vow" aria-hidden="true"><span /><i /><span /></div>
-            <p className="font-display text-xl md:text-3xl text-gold mt-3 tracking-wide">{HERO.tagline}</p>
+            <GravevowLogo className="hero-logo" />
+            <p className="hero-tagline font-display text-gold mt-3 tracking-wide">{HERO.tagline}</p>
             <div className="mt-6"><PlayButton big /></div>
             <p className="font-body text-stone-300 mt-3 text-base">Gratis en el navegador, en ordenador o móvil. Sin registro ni descargas.</p>
             <p className="alpha-note mt-3" data-testid="alpha-note"><span className="alpha-tag">ALPHA</span> {ALPHA_NOTE}{DONATE_URL && <> <a href="#apoyar" className="underline decoration-dotted hover:text-parchment">Si quieres que avance más rápido, puedes apoyarlo.</a></>}</p>

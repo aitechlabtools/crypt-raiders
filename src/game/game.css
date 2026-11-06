@@ -391,7 +391,7 @@ html.is-touch .tut-guide { top: auto; bottom: max(8px, env(safe-area-inset-botto
   .title-menu{gap:6px;margin-top:12px}
   .title-menu .btn{min-height:44px;padding-top:0;padding-bottom:0;font-size:14px}
   .title-foot{margin-top:10px}
-  .title-wrap h1{font-size:52px}
+  .title-wrap .title-logo{font-size:44px}
   .title-wrap .title-tag{font-size:15px;margin-top:4px}
 }
 
@@ -421,3 +421,6 @@ html.is-touch .tut-guide { top: auto; bottom: max(8px, env(safe-area-inset-botto
 
 /* Margen para que el contorno de la casilla elegida no se corte en los bordes del panel */
 .slot-grid { padding: 6px; width: max-content; }
+
+/* Logo del menú principal (el mismo que la landing) */
+.title-logo { font-size: clamp(2.6rem, calc((100vw - 2rem) / 6.75), 6.5rem); }

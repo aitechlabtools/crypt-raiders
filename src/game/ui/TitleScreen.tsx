@@ -5,13 +5,10 @@ import { sfx, startMusic } from '../audio';
 import { isTouch } from '../../shared/device';
 import { canFullscreen, enterFullscreen, isFullscreen } from '../../shared/fullscreen';
 import { FullscreenButton } from './FullscreenButton';
+import { GravevowLogo } from '../../shared/GravevowLogo';
 
-export function Logo({ size = 'text-6xl md:text-8xl' }: { size?: string }) {
-  return (
-    <h1 className={`font-display font-extrabold ${size} tracking-[0.12em] text-parchment title-glow leading-none`}>
-      CRYPT <span className="text-blood">RAIDERS</span>
-    </h1>
-  );
+export function Logo() {
+  return <GravevowLogo className="title-logo" />;
 }
 
 export function SettingsModal({ onClose, onExit }: { onClose: () => void; onExit?: () => void }) {

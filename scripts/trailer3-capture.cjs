@@ -16,7 +16,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
   const cdp = await page.context().newCDPSession(page);
   const wait = (ms) => page.waitForTimeout(ms);
   const ev = (fn, arg) => page.evaluate(fn, arg);
-  const tp = (x, y) => ev(([x, y]) => window.__CRYPTRAIDERS__.scene().debugTeleport(x, y), [x, y]);
+  const tp = (x, y) => ev(([x, y]) => window.__GRAVEVOW__.scene().debugTeleport(x, y), [x, y]);
 
   const mk = (name) => { const dir = `${OUT}/${name}`; fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true }); return dir; };
 
@@ -41,7 +41,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
     const dir = mk(name); const frames = [];
     for (let i = 0; i < n; i++) {
       await ev(([src, i, arg]) => {
-        const c = window.__cine; const sc = window.__CRYPTRAIDERS__.scene();
+        const c = window.__cine; const sc = window.__GRAVEVOW__.scene();
         if (src) new Function('i', 'sc', 'cam', 'arg', 'c', src)(i, sc, sc.cameras.main, arg, c);
         c.t += 1000 / 30; sc.lightTimer = 1000; c.game.step(c.t, 1000 / 30);
       }, [perFrame || '', i, arg]);
@@ -52,7 +52,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
     fs.writeFileSync(`${dir}/frames.json`, JSON.stringify(frames));
     console.log(name, n, 'fotogramas (paso a paso)');
   }
-  const freeze = () => ev(() => { const g = window.__CRYPTRAIDERS__.game; g.loop.sleep(); window.__cine = { game: g, t: performance.now() }; });
+  const freeze = () => ev(() => { const g = window.__GRAVEVOW__.game; g.loop.sleep(); window.__cine = { game: g, t: performance.now() }; });
   const unfreeze = () => ev(() => { const c = window.__cine; if (c) c.game.loop.wake(); });
 
   const cinematic = (on) => ev((on) => {
@@ -62,7 +62,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
   }, on);
   // Camino a una casilla (BFS sobre las casillas transitables) para pasear a cámara
   const walkTo = (x, y) => ev(([tx, ty]) => {
-    const sc = window.__CRYPTRAIDERS__.scene(); const W = sc.dungeon.def.width, H = sc.dungeon.def.height;
+    const sc = window.__GRAVEVOW__.scene(); const W = sc.dungeon.def.width, H = sc.dungeon.def.height;
     const sx = Math.floor(sc.player.x), sy = Math.floor(sc.player.y);
     const prev = new Map(); const q = [[sx, sy]]; prev.set(sx + ',' + sy, null);
     let far = null, fd = 0; const dist = new Map([[sx + ',' + sy, 0]]);
@@ -74,7 +74,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
     while (cur && !(cur[0] === sx && cur[1] === sy)) { path.unshift(cur); cur = prev.get(cur[0] + ',' + cur[1]); }
     sc.path = path; return path.length;
   }, [x, y]);
-  const clearEnemies = (keep = []) => ev((keep) => { for (const e of window.__CRYPTRAIDERS__.scene().enemies) if (!keep.includes(e.id) && !e.dead) { e.dead = true; e.sprite.destroy(); e.shadow.destroy(); e.marker?.destroy(); } }, keep);
+  const clearEnemies = (keep = []) => ev((keep) => { for (const e of window.__GRAVEVOW__.scene().enemies) if (!keep.includes(e.id) && !e.dead) { e.dead = true; e.sprite.destroy(); e.shadow.destroy(); e.marker?.destroy(); } }, keep);
   async function waitFor(sel, ms = 4000) { for (let k = 0; k < ms / 100; k++) { if (await page.$(sel)) return true; await wait(100); } return false; }
   async function useSkill(id) {
     if (!(await waitFor('[data-testid=act-attack]:not([disabled])'))) return;
@@ -84,9 +84,9 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
     if (btn) await btn.click(); else { await page.keyboard.press('Escape'); await page.click('[data-testid=act-attack]:not([disabled])'); }
   }
   async function finishCombat(id) {
-    await ev((id) => { const s = window.__CRYPTRAIDERS__.getState(); const c = s.combat?.state.combatants.find((c) => c.id === id); if (c) c.hp = 1; }, id);
+    await ev((id) => { const s = window.__GRAVEVOW__.getState(); const c = s.combat?.state.combatants.find((c) => c.id === id); if (c) c.hp = 1; }, id);
     for (let i = 0; i < 25; i++) {
-      const s = await ev(() => { const s = window.__CRYPTRAIDERS__.getState(); return { c: !!s.combat, o: s.combat?.state.outcome }; });
+      const s = await ev(() => { const s = window.__GRAVEVOW__.getState(); return { c: !!s.combat, o: s.combat?.state.outcome }; });
       if (!s.c || s.o) break;
       if (await page.$('[data-testid=act-attack]:not([disabled])')) await page.click('[data-testid=act-attack]:not([disabled])');
       await wait(400);
@@ -96,19 +96,19 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
   }
   const want = (n) => !ONLY || ONLY.includes(n);
 
-  const patch = (fn, arg) => ev(([src, arg]) => { const D = window.__CRYPTRAIDERS__; const p = D.getState().profile; D.setState({ profile: new Function('p', 'arg', src)(p, arg) }); }, [fn, arg]);
+  const patch = (fn, arg) => ev(([src, arg]) => { const D = window.__GRAVEVOW__; const p = D.getState().profile; D.setState({ profile: new Function('p', 'arg', src)(p, arg) }); }, [fn, arg]);
   const toLobby = async () => {
-    await ev(async () => { const D = window.__CRYPTRAIDERS__; if (D.getState().screen === 'dungeon') await D.actions.finishExpedition('extracted'); });
+    await ev(async () => { const D = window.__GRAVEVOW__; if (D.getState().screen === 'dungeon') await D.actions.finishExpedition('extracted'); });
     await wait(500);
-    await ev(() => window.__CRYPTRAIDERS__.actions.backToLobby()); await wait(500);
+    await ev(() => window.__GRAVEVOW__.actions.backToLobby()); await wait(500);
   };
   const enter = async (zone, wantCaptive = false) => {
     for (let k = 0; k < 30; k++) {
-      await ev((z) => window.__CRYPTRAIDERS__.actions.enterDungeon(z), zone);
+      await ev((z) => window.__GRAVEVOW__.actions.enterDungeon(z), zone);
       await wait(400);
-      const ok = await ev(() => window.__CRYPTRAIDERS__.getState().dungeon.entities.some((e) => e.kind === 'captive'));
+      const ok = await ev(() => window.__GRAVEVOW__.getState().dungeon.entities.some((e) => e.kind === 'captive'));
       if (!wantCaptive || ok) break;
-      await ev(() => window.__CRYPTRAIDERS__.setState({ expedition: null, screen: 'lobby', dungeon: null, merc: null }));
+      await ev(() => window.__GRAVEVOW__.setState({ expedition: null, screen: 'lobby', dungeon: null, merc: null }));
       await wait(300);
     }
     await wait(1200);
@@ -116,7 +116,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
 
   // ═══ Guerrero de nivel alto ═══
   await page.goto(BASE + '?debug&noclass');
-  await ev(() => indexedDB.deleteDatabase('cryptraiders'));
+  await ev(() => indexedDB.deleteDatabase('gravevow'));
   await page.reload();
   await page.click('[data-testid=btn-play]');
   await page.fill('[data-testid=name-input]', 'Aldric');
@@ -179,7 +179,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
       }
       await page.evaluate(() => document.querySelector('main')?.scrollTo(0, 0)); await wait(800);
     });
-    for (const s of ['helmet', 'armor', 'mainHand', 'boots', 'offHand']) await ev((s) => window.__CRYPTRAIDERS__.actions.wearCosmetic(s, null), s);
+    for (const s of ['helmet', 'armor', 'mainHand', 'boots', 'offHand']) await ev((s) => window.__GRAVEVOW__.actions.wearCosmetic(s, null), s);
   }
 
   // ═══ Cripta: paseo y minería ═══
@@ -192,10 +192,10 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
     await stepRecord('z-cripta', 70, 'cam.setZoom(3.4)');
   }
   if (want('x-mina')) {
-    const v = await ev(() => { const sc = window.__CRYPTRAIDERS__.scene(); const v = sc.veins.find((x) => x.vein === 'silver') ?? sc.veins[0]; return [v.x, v.y]; });
-    await ev(([x, y]) => { const sc = window.__CRYPTRAIDERS__.scene(); const north = sc.dungeon.tiles[y - 1]?.[x] === 'wall'; sc.debugTeleport(north ? x : x + 1, north ? y + 1 : y); sc.path = []; }, v);
+    const v = await ev(() => { const sc = window.__GRAVEVOW__.scene(); const v = sc.veins.find((x) => x.vein === 'silver') ?? sc.veins[0]; return [v.x, v.y]; });
+    await ev(([x, y]) => { const sc = window.__GRAVEVOW__.scene(); const north = sc.dungeon.tiles[y - 1]?.[x] === 'wall'; sc.debugTeleport(north ? x : x + 1, north ? y + 1 : y); sc.path = []; }, v);
     await stepRecord('x-mina0', 6, 'cam.setZoom(3.8)');
-    await ev(() => { const sc = window.__CRYPTRAIDERS__.scene(); const it = sc.interactables().find((i) => i.label.startsWith('Picar')); it?.run(); });
+    await ev(() => { const sc = window.__GRAVEVOW__.scene(); const it = sc.interactables().find((i) => i.label.startsWith('Picar')); it?.run(); });
     await cinematic(false);
     await ev(() => { let st = document.getElementById('cine2'); if (!st) { st = document.createElement('style'); st.id = 'cine2'; document.head.appendChild(st); } st.textContent = '[data-testid=hud-player], .absolute.right-3.top-3, .absolute.left-3.bottom-3, [data-testid=hud-timer], [data-testid=hud-room], [data-testid=hud-dungeon] { display:none !important }'; });
     await stepRecord('x-mina', 75, 'cam.setZoom(3.8 + i*0.004)');
@@ -219,7 +219,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
   await unfreeze();
   await cinematic(false);
   if (want('x-merc')) await record('x-merc', async () => {
-    await ev(() => window.__CRYPTRAIDERS__.actions.startCombat('pve', 'e_x', 'abyss_hound'));
+    await ev(() => window.__GRAVEVOW__.actions.startCombat('pve', 'e_x', 'abyss_hound'));
     await wait(700);
     await useSkill('dread_cut'); await wait(1700);
     await useSkill('shield_bash'); await wait(1700);
@@ -231,7 +231,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
   await patch(`return { ...p, contract: null, character: { ...p.character, level: 20 } };`);
   await enter('mazmorra', true);
   if (want('x-preso')) {
-    const c = await ev(() => { const c = window.__CRYPTRAIDERS__.getState().dungeon.entities.find((e) => e.kind === 'captive'); return c ? [c.x, c.y] : null; });
+    const c = await ev(() => { const c = window.__GRAVEVOW__.getState().dungeon.entities.find((e) => e.kind === 'captive'); return c ? [c.x, c.y] : null; });
     if (c) {
       await clearEnemies();
       await tp(c[0] + 1, c[1] + 1);
@@ -242,7 +242,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
       await cinematic(false);
       await record('x-preso', async () => {
         await wait(200);
-        await ev((id) => window.__CRYPTRAIDERS__.actions.interactCaptive(id), await ev(() => window.__CRYPTRAIDERS__.getState().dungeon.entities.find((e) => e.kind === 'captive').mercId));
+        await ev((id) => window.__GRAVEVOW__.actions.interactCaptive(id), await ev(() => window.__GRAVEVOW__.getState().dungeon.entities.find((e) => e.kind === 'captive').mercId));
         await wait(1600);
         await page.click('[data-testid=captive-free]'); await wait(1400);
       });

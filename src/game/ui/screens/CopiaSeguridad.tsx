@@ -44,7 +44,7 @@ export function CopiaSeguridad() {
     if (!r) return;
     const file = new File([r.json], r.fileName, { type: 'application/json' });
     setInfo(null);
-    try { await navigator.share({ files: [file], title: 'Copia de Crypt Raiders' }); }
+    try { await navigator.share({ files: [file], title: 'Copia de Gravevow' }); }
     catch (e) {
       // Cancelar no es un error. Cualquier otro fallo (p. ej. Windows rechaza los .json aunque el navegador diga que puede
       // compartirlos) se resuelve descargando el archivo, para que el jugador no se quede sin copia.

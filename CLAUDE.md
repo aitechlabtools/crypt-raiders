@@ -1,4 +1,4 @@
-# Crypt Raiders · Notas para trabajar en el proyecto
+# Gravevow · Notas para trabajar en el proyecto
 
 ## Regla permanente: pensar siempre en móvil y tableta
 Cada cambio de interfaz o de mecánica debe funcionar en las tres formas de jugar:

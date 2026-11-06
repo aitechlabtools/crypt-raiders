@@ -3,9 +3,9 @@ import type { Profile } from '../../core/types';
 import { sanitizeProfile } from '../../core/profile';
 import { migrateProfileToSave, sanitizeSave, type SaveData } from '../../core/save';
 
-const DB_NAME = 'cryptraiders';
-const LS_PREFIX = 'cryptraiders.';
-/** El juego se llamaba DREADBOUND: las partidas guardadas con ese nombre se copian al nuevo la primera vez. */
+const DB_NAME = 'gravevow';
+const LS_PREFIX = 'gravevow.';
+/** El juego se llamó DREADBOUND y luego Crypt Raiders (en otro dominio: sus partidas no llegan a gravevow.com). Se conserva la copia desde DREADBOUND por si alguien juega en local. */
 const OLD_DB_NAME = 'dreadbound';
 const OLD_LS_PREFIX = 'dreadbound.';
 const STORE = 'save';

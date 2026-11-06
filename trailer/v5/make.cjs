@@ -22,7 +22,7 @@ const cards = {
   movil: '<div class="c" style="justify-content:flex-start;padding-top:56px"><div class="big2 gold" style="font-size:52px">TAMBIÉN EN EL MÓVIL</div><div class="sub" style="margin-top:8px">a pantalla completa, con controles táctiles</div></div>'
     + '<div style="position:absolute;left:182px;top:214px;width:916px;height:442px;border-radius:40px;border:3px solid #3a3741;box-shadow:inset 0 0 0 15px #15131a, inset 0 0 0 18px #07060a, 0 0 60px rgba(196,40,59,.25)"></div>',
   sal: low('SAL CON VIDA', 'Si escapas, te lo quedas todo. Si caes, lo pierdes todo.'),
-  final: '<div class="c"><div class="logo" style="font-size:96px">CRYPT RAIDERS</div><div class="mid gold" style="font-size:34px;margin-top:18px">Confía en tu espada. En nadie más.</div><div class="sub" style="margin-top:34px">Juega gratis la alpha en cryptraiders.es</div></div>',
+  final: '<div class="c"><div class="logo" style="font-size:96px">GRAVEVOW</div><div style="display:flex;align-items:center;width:560px;margin-top:14px;filter:drop-shadow(0 0 8px rgba(196,40,59,.6))"><span style="flex:1;height:3px;background:linear-gradient(90deg,transparent,#c4283b)"></span><i style="width:18px;height:18px;margin:0 9px;transform:rotate(45deg);border:3px solid #c4283b;box-shadow:inset 0 0 0 3px #07060a,inset 0 0 0 6px #c4283b"></i><span style="flex:1;height:3px;background:linear-gradient(270deg,transparent,#c4283b)"></span></div><div class="mid gold" style="font-size:34px;margin-top:18px">Confía en tu espada. En nadie más.</div><div class="sub" style="margin-top:34px">Juega gratis la alpha en gravevow.com</div></div>',
 };
 (async () => {
   const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1280, height: 720 } });

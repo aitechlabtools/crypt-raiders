@@ -18,11 +18,11 @@ const FORMATS = [
     const touch = !!f.ctx.hasTouch;
     const act = async (id) => { const s = `[data-testid=${id}]`; await p.waitForSelector(s, { timeout: 8000 }); touch ? await p.tap(s) : await p.click(s); await p.waitForTimeout(200); };
     await p.goto(BASE + '?debug');
-    await p.evaluate(() => indexedDB.deleteDatabase('cryptraiders')); await p.reload();
+    await p.evaluate(() => indexedDB.deleteDatabase('gravevow')); await p.reload();
     await act('btn-play');
     await p.evaluate(() => document.fullscreenElement && document.exitFullscreen());
     await p.fill('[data-testid=name-input]', 'Saqueador'); await act('btn-create'); await act('btn-tutorial-ok');
-    await p.evaluate(() => { const d = window.__CRYPTRAIDERS__; const pr = d.getState().profile; d.setState({ profile: { ...pr, character: { ...pr.character, level: 45 }, bossesDefeated: ['ossuary_lord'], stats: { ...pr.stats, expeditions: 4 } } }); });
+    await p.evaluate(() => { const d = window.__GRAVEVOW__; const pr = d.getState().profile; d.setState({ profile: { ...pr, character: { ...pr.character, level: 45 }, bossesDefeated: ['ossuary_lord'], stats: { ...pr.stats, expeditions: 4 } } }); });
     // Con nivel 45 sale el aviso de desbloqueo de clase: se deja para más tarde
     await p.waitForTimeout(200); { const later = await p.$('[data-testid=btn-class-unlock-later]'); if (later) await later.click(); }
     await act('tab-character'); await act('tab-play');

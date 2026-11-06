@@ -1,4 +1,4 @@
-// Tipos compartidos del núcleo de Crypt Raiders.
+// Tipos compartidos del núcleo de Gravevow.
 // El núcleo es TypeScript puro: sin Phaser, sin React, sin DOM.
 // Así se puede probar con tests y reutilizar en un futuro servidor autoritativo.
 

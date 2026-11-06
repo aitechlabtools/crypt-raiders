@@ -19,7 +19,7 @@ async function page(b, opts) {
   p.touchy = !!opts.hasTouch;
   p.act = async (id) => { const sel = `[data-testid=${id}]`; await p.waitForSelector(sel, { timeout: 6000 }); if (p.touchy) await p.tap(sel); else await p.click(sel); await p.waitForTimeout(300); };
   await p.goto(URL + '?debug');
-  await p.evaluate(() => indexedDB.deleteDatabase('cryptraiders'));
+  await p.evaluate(() => indexedDB.deleteDatabase('gravevow'));
   await p.reload(); await p.waitForTimeout(700);
   return p;
 }
@@ -28,12 +28,12 @@ async function newHero(p, name, gold) {
   await p.evaluate(() => document.fullscreenElement && document.exitFullscreen());
   await p.fill('[data-testid=name-input]', name); await p.act('btn-create');
   if (await p.$('[data-testid=btn-tutorial-ok]')) await p.act('btn-tutorial-ok');
-  await p.evaluate((g) => { const G = window.__CRYPTRAIDERS__; const pr = G.getState().profile; G.setState({ profile: { ...pr, gold: g, stats: { ...pr.stats, expeditions: 4 } } }); }, gold);
+  await p.evaluate((g) => { const G = window.__GRAVEVOW__; const pr = G.getState().profile; G.setState({ profile: { ...pr, gold: g, stats: { ...pr.stats, expeditions: 4 } } }); }, gold);
   await p.waitForTimeout(400);
-  await p.evaluate(() => window.__CRYPTRAIDERS__.actions.goto('title')); await p.waitForTimeout(300);
+  await p.evaluate(() => window.__GRAVEVOW__.actions.goto('title')); await p.waitForTimeout(300);
 }
 const small = (p) => p.evaluate(() => [...document.querySelectorAll('button, a.btn')].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && (r.width < 43.5 || r.height < 43.5); }).map((e) => (e.getAttribute('data-testid') || e.textContent || '').trim().slice(0, 30)));
-const st = (p) => p.evaluate(() => { const s = window.__CRYPTRAIDERS__.getState(); return { name: s.profile?.character.name, gold: s.profile?.gold, roster: s.roster.map((r) => r.name), undo: !!s.undoAt }; });
+const st = (p) => p.evaluate(() => { const s = window.__GRAVEVOW__.getState(); return { name: s.profile?.character.name, gold: s.profile?.gold, roster: s.roster.map((r) => r.name), undo: !!s.undoAt }; });
 
 (async () => {
   const b = await chromium.launch();
@@ -46,14 +46,14 @@ const st = (p) => p.evaluate(() => { const s = window.__CRYPTRAIDERS__.getState(
     await pc.act('btn-backup');
     await pc.screenshot({ path: `${OUT}/escritorio-copia.png` });
     const [dl] = await Promise.all([pc.waitForEvent('download'), pc.act('btn-export-file')]);
-    if (!/^crypt-raiders-copia-\d{4}-\d{2}-\d{2}\.json$/.test(dl.suggestedFilename())) fail('nombre del archivo: ' + dl.suggestedFilename());
+    if (!/^gravevow-copia-\d{4}-\d{2}-\d{2}\.json$/.test(dl.suggestedFilename())) fail('nombre del archivo: ' + dl.suggestedFilename());
     const file = `${OUT}/${dl.suggestedFilename()}`;
     await dl.saveAs(file);
     const last = await pc.textContent('[data-testid=backup-last]');
     if (!/hoy/.test(last)) fail('tras exportar debe decir «Última copia: hoy»: ' + last);
     await pc.act('btn-copy-code'); await pc.act('btn-copy-now');
     const code = await pc.inputValue('[data-testid=code-text]');
-    if (!code.startsWith('CR1.')) fail('el código no empieza por CR1.');
+    if (!code.startsWith('GV1.')) fail('el código no empieza por GV1.');
     await pc.screenshot({ path: `${OUT}/escritorio-codigo.png` });
     console.log(`ordenador: ok (archivo ${fs.statSync(file).size} bytes, código ${code.length} caracteres)`);
 

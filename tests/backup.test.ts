@@ -30,7 +30,7 @@ describe('Copia de seguridad', () => {
   it('código de texto: comprimido, sin espacios y se puede pegar partido en líneas', () => {
     const s = twoHeroes();
     const code = backupToCode(buildBackup(s));
-    expect(code.startsWith('CR1.')).toBe(true);
+    expect(code.startsWith('GV1.')).toBe(true);
     expect(code).not.toMatch(/\s/);
     expect(code.length).toBeLessThan(backupToJson(buildBackup(s)).length / 3);
     const pasted = code.match(/.{1,60}/g)!.join('\n ');
@@ -73,7 +73,7 @@ describe('Copia de seguridad', () => {
   });
 
   it('nombre del archivo con la fecha', () => {
-    expect(backupFileName(new Date(2026, 10, 5).getTime())).toBe('crypt-raiders-copia-2026-11-05.json');
+    expect(backupFileName(new Date(2026, 10, 5).getTime())).toBe('gravevow-copia-2026-11-05.json');
   });
 
   it('recordatorio: a los 7 días o a las 10 expediciones desde la última copia', () => {
@@ -85,5 +85,13 @@ describe('Copia de seguridad', () => {
     expect(backupStatus(s, now + 6 * 86400000).remind).toBe(true);
     s.characters[0].stats.expeditions += 10;
     expect(backupStatus(s, now).remind).toBe(true);
+  });
+});
+
+describe('Copias con el nombre anterior (Crypt Raiders)', () => {
+  it('se siguen aceptando', async () => {
+        const { emptySave } = await import('../src/core/save');
+    const code = backupToCode(buildBackup(emptySave(0)));
+    expect(parseBackup('CR1.' + code.slice(4)).ok).toBe(true);
   });
 });

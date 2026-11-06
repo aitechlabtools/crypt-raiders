@@ -1,6 +1,6 @@
 # Guía de interfaz de los menús
 
-Cómo se monta una pantalla de los menús de Crypt Raiders (refugio, crear personaje…) para que funcione igual
+Cómo se monta una pantalla de los menús de Gravevow (refugio, crear personaje…) para que funcione igual
 en ordenador, tableta y móvil en horizontal. La estructura viene de la opción D de las maquetas
 (`mockups/menu-structure/opcion-d.html`): barra superior con pestañas en píldora y paneles en columnas.
 Solo se copia la estructura: los gráficos son siempre los del juego.

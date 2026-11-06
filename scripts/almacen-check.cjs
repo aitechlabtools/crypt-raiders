@@ -23,22 +23,22 @@ async function run(s) {
   p.on('console', (m) => m.type() === 'error' && !/favicon|DevTools/.test(m.text()) && errs.push(m.text()));
   const act = async (id) => { const sel = `[data-testid=${id}]`; await p.waitForSelector(sel, { timeout: 5000 }); if (s.touch) await p.tap(sel); else await p.click(sel); await p.waitForTimeout(250); };
   const fail = (m) => { throw new Error(`${s.n}: ${m}`); };
-  const prof = () => p.evaluate(() => { const st = window.__CRYPTRAIDERS__.getState(); return { gold: st.profile?.gold, len: st.profile?.stash.length, shared: st.profile?.shared?.filter(Boolean).length ?? null, page: st.stashPage, stash: st.profile?.stash.map((x) => x && x.uid), name: st.profile?.character.name }; });
+  const prof = () => p.evaluate(() => { const st = window.__GRAVEVOW__.getState(); return { gold: st.profile?.gold, len: st.profile?.stash.length, shared: st.profile?.shared?.filter(Boolean).length ?? null, page: st.stashPage, stash: st.profile?.stash.map((x) => x && x.uid), name: st.profile?.character.name }; });
   const small = async () => s.touch ? p.evaluate(() => [...document.querySelectorAll('button, a.btn')].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && (r.width < 43.5 || r.height < 43.5); }).map((e) => (e.getAttribute('data-testid') || e.textContent || '').trim().slice(0, 30))) : [];
   const openStash = async () => { await act('tab-stash'); if (await p.$('[data-testid=seg-storage]')) await act('seg-storage'); };
 
   // 1 · Partida antigua: un solo perfil con el almacén ampliado 2 veces (56 casillas) y 50 objetos
   await p.goto(URL + '?debug');
-  await p.evaluate(() => indexedDB.deleteDatabase('cryptraiders'));
+  await p.evaluate(() => indexedDB.deleteDatabase('gravevow'));
   await p.reload(); await p.waitForTimeout(600);
   await act('btn-play'); await p.evaluate(() => document.fullscreenElement && document.exitFullscreen());
   await p.fill('[data-testid=name-input]', 'Aldric'); await act('btn-create'); await act('btn-tutorial-ok');
   await p.waitForTimeout(300);
   await p.evaluate(async () => {
-    const pr = { ...window.__CRYPTRAIDERS__.getState().profile, gold: 1000 };
+    const pr = { ...window.__GRAVEVOW__.getState().profile, gold: 1000 };
     pr.stash = Array.from({ length: 56 }, (_, i) => (i < 50 ? { uid: `s${i}`, itemId: i % 3 ? 'health_potion' : 'iron_sword', qty: 1 } : null));
     delete pr.shared; delete pr.goldPhysical; // partida de antes del oro físico
-    const db = await new Promise((r) => { const q = indexedDB.open('cryptraiders', 1); q.onsuccess = () => r(q.result); });
+    const db = await new Promise((r) => { const q = indexedDB.open('gravevow', 1); q.onsuccess = () => r(q.result); });
     await new Promise((r) => { const tx = db.transaction('save', 'readwrite'); const st = tx.objectStore('save'); st.delete('save'); st.put(JSON.parse(JSON.stringify(pr)), 'profile'); tx.oncomplete = r; });
   });
   await p.reload(); await p.waitForTimeout(800);
@@ -47,7 +47,7 @@ async function run(s) {
   await p.screenshot({ path: `${OUT}/${s.n}-aviso.png` });
   await p.click('text=Entendido');
   let x = await prof();
-  const items = await p.evaluate(() => window.__CRYPTRAIDERS__.getState().profile.stash.filter((y) => y && /sword|potion/.test(y.itemId)).length);
+  const items = await p.evaluate(() => window.__GRAVEVOW__.getState().profile.stash.filter((y) => y && /sword|potion/.test(y.itemId)).length);
   if (x.gold !== 300 || x.len !== 120 || items !== 50) fail('migración: (1000 + 2000 devueltos) ÷ 10 = 300 monedas: ' + JSON.stringify({ gold: x.gold, len: x.len, items }));
   await act('btn-play');
   await openStash();
@@ -57,7 +57,7 @@ async function run(s) {
     if (!fits.fits) fail('en escritorio la página debe verse entera sin desplazar: ' + JSON.stringify(fits));
   }
   // 1b · Saco de 2×2: de la mochila a la página 1 tocándolo y tocando una casilla libre; ocupa 4 casillas
-  await p.evaluate(() => { const G = window.__CRYPTRAIDERS__; const pr = G.getState().profile; const bp = pr.backpack.map(() => null);
+  await p.evaluate(() => { const G = window.__GRAVEVOW__; const pr = G.getState().profile; const bp = pr.backpack.map(() => null);
     bp[0] = { uid: 'SACO', itemId: 'gold_sack', qty: 1 }; for (const k of [1, 6, 7]) bp[k] = { uid: 'cover:SACO', itemId: 'cover', qty: 1 };
     G.setState({ profile: { ...pr, backpack: bp } }); });
   await p.waitForTimeout(200);
@@ -67,7 +67,7 @@ async function run(s) {
   // (en el móvil la ficha del objeto tapa la parte de abajo de la pantalla: el toque se manda directamente a la casilla)
   if (s.n === 'movil') { await p.$eval('[data-testid=slot-stash-60]', (e) => e.click()); await p.waitForTimeout(250); } else await act('slot-stash-60');
   x = await prof();
-  const st60 = await p.evaluate(() => { const s = window.__CRYPTRAIDERS__.getState().profile.stash; return [60, 61, 68, 69].map((i) => s[i]?.itemId).join(); });
+  const st60 = await p.evaluate(() => { const s = window.__GRAVEVOW__.getState().profile.stash; return [60, 61, 68, 69].map((i) => s[i]?.itemId).join(); });
   if (st60 !== 'gold_sack,cover,cover,cover') fail('el saco debe ocupar 2×2 en el almacén: ' + st60);
   const box = await p.$eval('[data-testid=slot-stash-60]', (e) => { const r = e.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; });
   const one = await p.$eval('[data-testid=slot-stash-62]', (e) => Math.round(e.getBoundingClientRect().width));
@@ -75,7 +75,7 @@ async function run(s) {
   await p.screenshot({ path: `${OUT}/${s.n}-saco.png` });
   if (await p.evaluate(() => document.documentElement.scrollWidth > innerWidth)) fail('el Alijo se sale en horizontal (8 columnas)');
   // 1c · Oro físico: sacar monedas de un saquito con el selector y «Agrupar oro»
-  await p.evaluate(() => { const G = window.__CRYPTRAIDERS__; const pr = G.getState().profile; const bp = pr.backpack.map(() => null);
+  await p.evaluate(() => { const G = window.__GRAVEVOW__; const pr = G.getState().profile; const bp = pr.backpack.map(() => null);
     bp[0] = { uid: 'P1', itemId: 'gold_pouch', qty: 1, gold: 37 }; bp[1] = { uid: 'C1', itemId: 'gold_coins', qty: 7 };
     G.setState({ profile: { ...pr, backpack: bp } }); });
   await p.waitForTimeout(200);
@@ -86,15 +86,15 @@ async function run(s) {
   await act('amt-mas10');
   await p.screenshot({ path: `${OUT}/${s.n}-sacar.png` });
   await act('amt-confirm');
-  let gold = await p.evaluate(() => window.__CRYPTRAIDERS__.getState().profile.backpack.map((x) => x ? `${x.itemId}:${x.qty}:${x.gold ?? ''}` : '-').slice(0, 5).join());
+  let gold = await p.evaluate(() => window.__GRAVEVOW__.getState().profile.backpack.map((x) => x ? `${x.itemId}:${x.qty}:${x.gold ?? ''}` : '-').slice(0, 5).join());
   if (!gold.startsWith('gold_pouch:1:17,gold_coins:10:,gold_coins:10:,gold_coins:7:')) fail('sacar 20 monedas: ' + gold);
   await act('group-gold-backpack');
-  gold = await p.evaluate(() => window.__CRYPTRAIDERS__.getState().profile.backpack.filter(Boolean).map((x) => `${x.itemId}:${x.gold ?? x.qty}`).join());
+  gold = await p.evaluate(() => window.__GRAVEVOW__.getState().profile.backpack.filter(Boolean).map((x) => `${x.itemId}:${x.gold ?? x.qty}`).join());
   if (gold !== 'gold_pouch:44') fail('agrupar oro: ' + gold);
-  await p.evaluate(() => { const G = window.__CRYPTRAIDERS__; const pr = G.getState().profile; G.setState({ profile: { ...pr, backpack: pr.backpack.map(() => null) } }); });
+  await p.evaluate(() => { const G = window.__GRAVEVOW__; const pr = G.getState().profile; G.setState({ profile: { ...pr, backpack: pr.backpack.map(() => null) } }); });
   await act('slot-backpack-5'); // suelta la elección
   // 2 · Comprar la página 2 (oro suficiente) y la «Compartido» (con más oro)
-  await p.evaluate(() => { const G = window.__CRYPTRAIDERS__; const pr = G.getState().profile; G.setState({ profile: { ...pr, gold: 4000 } }); });
+  await p.evaluate(() => { const G = window.__GRAVEVOW__; const pr = G.getState().profile; G.setState({ profile: { ...pr, gold: 4000 } }); });
   await act('stash-page-1');
   await p.screenshot({ path: `${OUT}/${s.n}-comprar.png` });
   await act('btn-buy-page');
@@ -122,7 +122,7 @@ async function run(s) {
   const sm = await small();
   if (await p.evaluate(() => document.documentElement.scrollWidth > innerWidth)) fail('el Alijo se sale en horizontal');
   await p.waitForTimeout(400);
-  await p.evaluate(() => window.__CRYPTRAIDERS__.actions.openSelect()); await p.waitForTimeout(300);
+  await p.evaluate(() => window.__GRAVEVOW__.actions.openSelect()); await p.waitForTimeout(300);
   await act('btn-new-char-1');
   await p.fill('[data-testid=name-input]', 'Mireva'); await act('btn-create');
   if (await p.$('[data-testid=btn-tutorial-ok]')) await act('btn-tutorial-ok');

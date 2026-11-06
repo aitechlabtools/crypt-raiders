@@ -1830,7 +1830,7 @@ export const dev: {
 };
 
 /** En este navegador ya se completó alguna vez el tutorial: los personajes nuevos pueden saltarlo. */
-const TUTORIAL_FLAG = 'cryptraiders.tutorialDone';
+const TUTORIAL_FLAG = 'gravevow.tutorialDone';
 export function tutorialDoneOnDevice(): boolean {
   try { return localStorage.getItem(TUTORIAL_FLAG) === '1'; } catch { return false; }
 }
@@ -1846,6 +1846,6 @@ export function exposeDebug(extra: Record<string, unknown> = {}) {
       if (pr && pr.gold !== gridGold(pr.stash)) patch = { ...patch, profile: setGoldExactly(pr, pr.gold) };
       set(patch);
     };
-    (window as unknown as Record<string, unknown>).__CRYPTRAIDERS__ = { getState, getSave, actions, dev, setState: debugSet, ...extra };
+    (window as unknown as Record<string, unknown>).__GRAVEVOW__ = { getState, getSave, actions, dev, setState: debugSet, ...extra };
   }
 }

@@ -1,4 +1,4 @@
-// Paleta de Crypt Raiders: piedra, tierra, musgo, noche, oro, magia y amenaza.
+// Paleta de Gravevow: piedra, tierra, musgo, noche, oro, magia y amenaza.
 export const PAL = {
   outline: '#0b0a0f',
   void: '#07060a',

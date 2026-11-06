@@ -29,14 +29,14 @@ const FORMATS = [
     await p.fill('[data-testid=name-input]', 'Aldric');
     await tap('[data-testid=btn-create]');
     await tap('[data-testid=btn-tutorial-ok]');
-    await p.evaluate(() => { const s = window.__CRYPTRAIDERS__.getState(); s.profile.tutorialSeen.dungeon = true; s.profile.reputation.vesper = 50; s.profile.reputation.orvel = 70; });
+    await p.evaluate(() => { const s = window.__GRAVEVOW__.getState(); s.profile.tutorialSeen.dungeon = true; s.profile.reputation.vesper = 50; s.profile.reputation.orvel = 70; });
     await shot('01-jugar');
     for (const [tab, n] of [['character', '02-personaje'], ['stash', '03-alijo'], ['merchants', '04-mercaderes'], ['quests', '05-misiones'], ['bestiary', '06-bestiario'], ['shop', '07-atuendos']]) {
       await tap(`[data-testid=tab-${tab}]`); await shot(n);
     }
     await tap('[data-testid=tab-merchants]'); await tap('[data-testid=vendor-orvel]'); await shot('08-tienda');
     await tap('[data-testid=tab-play]'); await tap('[data-testid=btn-enter-dungeon]'); await p.waitForTimeout(1500); await shot('09-mazmorra');
-    await p.evaluate(() => window.__CRYPTRAIDERS__.actions.startCombat('pve', 'e_x', 'skeleton'));
+    await p.evaluate(() => window.__GRAVEVOW__.actions.startCombat('pve', 'e_x', 'skeleton'));
     for (let i = 0; i < 40 && !(await p.$('[data-testid=act-attack]:not([disabled])')); i++) await p.waitForTimeout(150);
     await shot('10-combate');
     await ctx.close();

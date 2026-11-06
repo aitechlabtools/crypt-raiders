@@ -17,7 +17,7 @@ export const VARKHOLLOW = {
     'Debajo, la Cripta Carmesí: la piedra suda sangre y huele a azufre. Su puerta lleva al Infierno: las Puertas del Abismo, los Ríos de Fuego y el Trono de las Cadenas, donde espera Belzar.',
     'Los saqueadores bajan por oro, por armas y por gloria. Arriba los esperan Orvel, Vesper, Garra Roja y Maese Brand. Abajo, mercenarios errantes que ofrecen su espada. Algunos cumplen. Kael el Errante, casi siempre. Los demás, mientras les convenga.',
   ],
-  steam: 'En Steam se llamará Crypt Raiders: VarkHollow.',
+  steam: 'En Steam se llamará Gravevow.',
 };
 
 interface Sub { name: string; levels: string; text: string }
@@ -207,7 +207,7 @@ export function RoadmapSection() {
     <section id="hoja-de-ruta" className="border-t border-stone-800 scroll-mt-14">
       <div className="max-w-6xl mx-auto px-4 py-24">
         <h2 className="font-display text-3xl md:text-5xl text-parchment">El camino hacia las profundidades</h2>
-        <p className="font-body text-xl text-stone-300 mt-3 max-w-2xl">Hacia dónde va Crypt Raiders.</p>
+        <p className="font-body text-xl text-stone-300 mt-3 max-w-2xl">Hacia dónde va Gravevow.</p>
         <ol className="roadmap mt-12">
           {ROADMAP.map((c, k) => (
             <li key={c.id} className="rm-col" style={{ ['--rm' as string]: RM_COLOR[c.id] }}>

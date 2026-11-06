@@ -9,17 +9,17 @@ async function setup(b, vp, touch) {
   const ctx = await b.newContext({ viewport: vp, hasTouch: touch, isMobile: touch && vp.height < 500, deviceScaleFactor: 1 });
   const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
   const act = async (id) => { const s = `[data-testid=${id}]`; await p.waitForSelector(s, { timeout: 6000 }); touch ? await p.tap(s) : await p.click(s); await p.waitForTimeout(250); };
-  await p.goto('' + URL + '?debug&noclass'); await p.evaluate(() => indexedDB.deleteDatabase('cryptraiders')); await p.reload(); await p.waitForTimeout(700);
+  await p.goto('' + URL + '?debug&noclass'); await p.evaluate(() => indexedDB.deleteDatabase('gravevow')); await p.reload(); await p.waitForTimeout(700);
   await act('btn-play'); await p.evaluate(() => document.fullscreenElement && document.exitFullscreen());
   await p.fill('[data-testid=name-input]', 'Beohtord'); await act('btn-create'); await act('btn-tutorial-ok');
-  await p.evaluate((LOOT) => { const G = window.__CRYPTRAIDERS__; const pr = G.getState().profile; const bp = [...pr.backpack];
+  await p.evaluate((LOOT) => { const G = window.__GRAVEVOW__; const pr = G.getState().profile; const bp = [...pr.backpack];
     LOOT.forEach(([id, rarity, qty], i) => { bp[i] = { uid: 'bp' + i, itemId: id, qty: qty ?? 1, ...(rarity ? { rarity } : {}) }; });
     G.setState({ profile: { ...pr, backpack: bp, character: { ...pr.character, level: 14 }, tutorialSeen: { ...pr.tutorialSeen, lobby: true, stash: true } } }); }, LOOT);
   await act('tab-stash'); await p.waitForTimeout(400);
   return { ctx, p, errs, act };
 }
 const center = async (p, sel) => { const r = await (await p.$(sel)).boundingBox(); return { x: r.x + r.width / 2, y: r.y + r.height / 2 }; };
-const st = (p) => p.evaluate(() => { const pr = window.__CRYPTRAIDERS__.getState().profile; return { main: pr.equipment.mainHand?.itemId, bp: pr.backpack.slice(0, 8).map((x) => x?.itemId ?? '·').join(' '), stash: pr.stash.slice(0, 4).map((x) => x?.itemId ?? '·').join(' ') }; });
+const st = (p) => p.evaluate(() => { const pr = window.__GRAVEVOW__.getState().profile; return { main: pr.equipment.mainHand?.itemId, bp: pr.backpack.slice(0, 8).map((x) => x?.itemId ?? '·').join(' '), stash: pr.stash.slice(0, 4).map((x) => x?.itemId ?? '·').join(' ') }; });
 
 async function touchDrag(p, cdp, a, b, hold = 320, steps = 10, shot) {
   const pt = (x, y) => [{ x, y, id: 1 }];

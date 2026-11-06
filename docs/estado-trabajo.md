@@ -178,11 +178,12 @@ Léelo junto con CLAUDE.md (reglas permanentes del proyecto).
   (nombre, nivel y XP) a la izquierda y las pestañas pegadas a la derecha; en móviles de menos de ~800 px de ancho las pestañas se desplazan.
 
 ## Cómo trabajamos
-- Nombre del juego: **Crypt Raiders** (antes DREADBOUND; cambiado el 3/11). Dominio nuevo: cryptraiders.es.
-  Estrategia de marca del usuario: en la web y redes, «Crypt Raiders»; en Steam, «Crypt Raiders: VarkHollow».
-  VarkHollow es la región/atmósfera (el lore), no el nombre de la web. Aún no se ha metido VarkHollow en el juego ni en la web.
-  Las partidas guardadas con el nombre antiguo se copian solas al nuevo (persistence/db.ts); borrar el personaje borra ambas.
-- Repositorio: aitechlabtools/crypt-raiders (antes dreadbound; GitHub redirige el enlace viejo). Web publicada con GitHub Pages en cryptraiders.es.
+- Nombre del juego: **Gravevow** (definitivo desde el 6/11; antes DREADBOUND y luego Crypt Raiders). Dominio: gravevow.com.
+  En Steam también se llamará solo «Gravevow». VarkHollow es la región (el lore), no el nombre.
+  cryptraiders.es solo redirige (301) a gravevow.com: las partidas de ese dominio se pierden (decisión del usuario; es una alpha).
+  Guardado: IndexedDB «gravevow» y localStorage «gravevow.*». Copias: formato «gravevow-backup», código «GV1.»; se siguen
+  aceptando las copias antiguas («cryptraiders-backup» y «CR1.»). Correo de contacto: solo en imagen (d4/d5) y en MailButton.
+- Repositorio: aitechlabtools/crypt-raiders (antes dreadbound; GitHub redirige el enlace viejo). Web publicada con GitHub Pages en gravevow.com (el dominio se configura en Ajustes › Pages del repositorio).
   OJO: cada push a `main` publica la web (workflow .github/workflows/deploy.yml).
 - Carpeta de trabajo en el ordenador: `Documents\GitHub\crypt-raiders`.
 - Claude edita los archivos directamente en esa carpeta. El usuario hace el commit y el push con GitHub Desktop
@@ -460,3 +461,8 @@ sin sección ni botón de Windows, tráiler de 60 s.
 - Hoguera: fila de pinchos de pared a pared; el paso de la poción empieza al herirte y no te mueves hasta curarte.
 - Al vencer a Osric cae un solo saco («Pertenencias de Osric») con todo su botín.
 - Arreglado: las flechas del teclado no movían al personaje en la mazmorra (App.tsx cancelaba la tecla y Phaser la ignoraba).
+
+Cambio de nombre a Gravevow (6/11): HECHO. Juego, app instalable, landing (logo con filete rojo y rombo), textos legales
+(dominio, tabla de almacenamiento, fecha), imágenes del correo d4/d5, botón de correo, tráiler v5 renderizado de nuevo
+(gravevow-trailer.mp4/.webm y póster) y scripts de prueba. Pendiente del usuario: dominio en Hostinger y GitHub Pages,
+redirección de cryptraiders.es, nombre en Stripe, buzón de correo nuevo, y renombrar el repositorio si quiere.

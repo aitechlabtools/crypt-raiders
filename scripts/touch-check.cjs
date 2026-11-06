@@ -34,7 +34,7 @@ async function run(c) {
   const check = (ok, msg) => { if (!ok) fails.push(msg); };
 
   await page.goto(URL + '?debug');
-  await D(() => indexedDB.deleteDatabase('cryptraiders'));
+  await D(() => indexedDB.deleteDatabase('gravevow'));
   await page.reload({ waitUntil: 'load' });
   await page.waitForTimeout(800);
   const initial = await D(() => document.documentElement.classList.contains('is-touch'));
@@ -53,7 +53,7 @@ async function run(c) {
 
   // Joystick visible desde el principio y mueve al personaje
   check(!!(await page.$('[data-testid=touch-stick-base]')), 'no se ve la base del joystick');
-  const pos = () => D(() => { const p = window.__CRYPTRAIDERS__.scene().player; return [p.x, p.y]; });
+  const pos = () => D(() => { const p = window.__GRAVEVOW__.scene().player; return [p.x, p.y]; });
   const before = await pos();
   const zone = await (await page.$('[data-testid=touch-stick-zone]')).boundingBox();
   const sx = zone.x + 110, sy = zone.y + zone.height - 110;
@@ -62,7 +62,7 @@ async function run(c) {
   await page.waitForTimeout(700);
   check(!!(await page.$('[data-testid=touch-stick]')), 'el joystick no aparece bajo el pulgar');
   // Segundo dedo en la poción mientras el primero sigue en el joystick (multitáctil)
-  await D(() => { const G = window.__CRYPTRAIDERS__; G.setState({ expedition: { ...G.getState().expedition, hp: 10 } }); });
+  await D(() => { const G = window.__GRAVEVOW__; G.setState({ expedition: { ...G.getState().expedition, hp: 10 } }); });
   const [px, py] = await center('[data-testid=touch-potion]');
   await touch('touchMove', [[sx + 60, sy], [px, py]]);
   await page.waitForTimeout(80);
@@ -73,7 +73,7 @@ async function run(c) {
   const after = await pos();
   check(Math.hypot(after[0] - before[0], after[1] - before[1]) > 0.5, `el joystick no mueve (${before} → ${after})`);
   check(!(await page.$('[data-testid=touch-stick]')), 'el joystick no se suelta al levantar el dedo');
-  check(await D(() => window.__CRYPTRAIDERS__.getState().expedition.hp > 10), 'la poción no se bebe con un segundo dedo');
+  check(await D(() => window.__GRAVEVOW__.getState().expedition.hp > 10), 'la poción no se bebe con un segundo dedo');
   // Al quedar parado no debe seguir andando
   const p1 = await pos(); await page.waitForTimeout(400); const p2 = await pos();
   check(Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) < 0.05, 'el personaje sigue andando sin tocar nada');
@@ -111,19 +111,19 @@ async function run(c) {
     await page.setViewportSize({ width: vp.height, height: vp.width });
     await page.waitForTimeout(400);
     check(!!(await page.$('[data-testid=rotate-notice]')), 'no sale el aviso de girar en vertical');
-    check(await D(() => window.__CRYPTRAIDERS__.getState().suspended === true), 'la partida no se pausa en vertical');
+    check(await D(() => window.__GRAVEVOW__.getState().suspended === true), 'la partida no se pausa en vertical');
     check(!(await page.$('[data-testid=touch-stick-zone]')), 'el joystick sigue activo en vertical');
     await page.screenshot({ path: `${OUT}/${c.name.replace(/\W+/g, '_')}-vertical.png` });
     await page.setViewportSize(vp);
     await page.waitForTimeout(400);
     check(!(await page.$('[data-testid=rotate-notice]')), 'el aviso de girar no se quita al volver a horizontal');
-    check(await D(() => window.__CRYPTRAIDERS__.getState().suspended === false), 'la partida no se reanuda al girar');
+    check(await D(() => window.__GRAVEVOW__.getState().suspended === false), 'la partida no se reanuda al girar');
     check(!!(await page.$('[data-testid=touch-stick-zone]')), 'el joystick no vuelve tras girar');
   }
 
   // Combate: un toque ejecuta, mantener pulsado enseña la ficha
-  const ep = await D(() => { const e = window.__CRYPTRAIDERS__.scene().enemies[0]; return [e.x, e.y]; });
-  await D(([x, y]) => window.__CRYPTRAIDERS__.scene().debugTeleport(x, y), [Math.floor(ep[0]), Math.floor(ep[1]) - 1]);
+  const ep = await D(() => { const e = window.__GRAVEVOW__.scene().enemies[0]; return [e.x, e.y]; });
+  await D(([x, y]) => window.__GRAVEVOW__.scene().debugTeleport(x, y), [Math.floor(ep[0]), Math.floor(ep[1]) - 1]);
   await page.waitForSelector('[data-testid=combat]', { timeout: 8000 });
   await page.waitForSelector('[data-testid=act-attack]:not([disabled])', { timeout: 8000 }).catch(() => null);
   check(!(await page.$('[data-testid=touch-stick-zone]')), 'el joystick sigue en pantalla durante el combate');
@@ -134,18 +134,18 @@ async function run(c) {
   await tapSel('[data-testid=act-special]');
   check(await D(() => !!document.querySelector('[data-testid=special-menu]')), 'un toque en Habilidades no abre el menú');
   // Mantener pulsado una habilidad: enseña su ficha y NO la usa
-  const log0 = await D(() => window.__CRYPTRAIDERS__.getState().combat.state.log.length);
+  const log0 = await D(() => window.__GRAVEVOW__.getState().combat.state.log.length);
   const skillSel = await D(() => { const b = document.querySelector('[data-testid=special-menu] [data-testid^=skill-]:not([disabled])'); return b ? `[data-testid=${b.dataset.testid}]` : null; });
   if (skillSel) {
     await tapSel(skillSel, 650);
     await page.waitForTimeout(300);
-    check(await D(() => window.__CRYPTRAIDERS__.getState().combat.state.log.length) === log0, 'mantener pulsado ejecutó la habilidad');
+    check(await D(() => window.__GRAVEVOW__.getState().combat.state.log.length) === log0, 'mantener pulsado ejecutó la habilidad');
     check(!!(await page.$('[data-testid=entry-info]')), 'mantener pulsado no enseña la ficha');
     await page.screenshot({ path: `${OUT}/${c.name.replace(/\W+/g, '_')}-ficha.png` });
     // Un toque la usa
     await tapSel(skillSel);
     await page.waitForTimeout(500);
-    check(await D(() => (window.__CRYPTRAIDERS__.getState().combat?.state.log.length ?? 999)) > log0, 'un toque en la habilidad no la usa');
+    check(await D(() => (window.__GRAVEVOW__.getState().combat?.state.log.length ?? 999)) > log0, 'un toque en la habilidad no la usa');
   } else fails.push('no hay habilidades disponibles para probar');
   await page.screenshot({ path: `${OUT}/${c.name.replace(/\W+/g, '_')}-combate.png` });
 

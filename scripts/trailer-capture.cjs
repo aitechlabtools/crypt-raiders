@@ -11,8 +11,8 @@ const W = 1280, H = 720;
   const page = await b.newPage({ viewport: { width: W, height: H } });
   const cdp = await page.context().newCDPSession(page);
   const wait = (ms) => page.waitForTimeout(ms);
-  const S = () => page.evaluate(() => window.__CRYPTRAIDERS__.getState());
-  const tp = (x, y) => page.evaluate(([x, y]) => window.__CRYPTRAIDERS__.scene().debugTeleport(x, y), [x, y]);
+  const S = () => page.evaluate(() => window.__GRAVEVOW__.getState());
+  const tp = (x, y) => page.evaluate(([x, y]) => window.__GRAVEVOW__.scene().debugTeleport(x, y), [x, y]);
 
   // Graba mientras se ejecuta fn()
   async function record(name, fn) {
@@ -44,7 +44,7 @@ const W = 1280, H = 720;
   }, on);
 
   await page.goto(BASE + '?debug');
-  await page.evaluate(() => indexedDB.deleteDatabase('cryptraiders'));
+  await page.evaluate(() => indexedDB.deleteDatabase('gravevow'));
   await page.reload();
   await page.click('[data-testid=btn-play]');
   await page.fill('[data-testid=name-input]', 'Aldric');
@@ -52,7 +52,7 @@ const W = 1280, H = 720;
   await page.click('[data-testid=btn-tutorial-ok]');
   // Guerrero de nivel 5 con equipo épico, para que luzca
   await page.evaluate(() => {
-    const s = window.__CRYPTRAIDERS__.getState();
+    const s = window.__GRAVEVOW__.getState();
     s.profile.character.level = 5;
     s.profile.tutorialSeen.dungeon = true;
     const set = (slot, id) => (s.profile.equipment[slot] = { uid: 'tr-' + id, itemId: id, qty: 1 });
@@ -75,7 +75,7 @@ const W = 1280, H = 720;
 
   // 2 · Explorar: pasillo con antorchas y cofre
   await record('02-explorar', async () => {
-    await page.evaluate(() => { for (const e of window.__CRYPTRAIDERS__.scene().enemies) if (['e_skel1', 'e_skel2'].includes(e.id)) { e.dead = true; e.sprite.destroy(); e.shadow.destroy(); } });
+    await page.evaluate(() => { for (const e of window.__GRAVEVOW__.scene().enemies) if (['e_skel1', 'e_skel2'].includes(e.id)) { e.dead = true; e.sprite.destroy(); e.shadow.destroy(); } });
     await tp(15, 13);
     await wait(500);
     await page.keyboard.down('s'); await wait(1300); await page.keyboard.up('s');
@@ -86,7 +86,7 @@ const W = 1280, H = 720;
 
   // 3 · Combate contra el jefe
   await record('03-combate', async () => {
-    await page.evaluate(() => window.__CRYPTRAIDERS__.actions.startCombat('pve', 'e_boss', 'ossuary_lord'));
+    await page.evaluate(() => window.__GRAVEVOW__.actions.startCombat('pve', 'e_boss', 'ossuary_lord'));
     for (let i = 0; i < 4; i++) {
       for (let k = 0; k < 15 && !(await page.$('[data-testid=act-special]')); k++) await wait(200);
       if (await page.$('[data-testid=act-special]')) {
@@ -99,7 +99,7 @@ const W = 1280, H = 720;
     }
   });
   // Termina el combate del jefe sin grabar (gana el jugador)
-  await page.evaluate(() => { const s = window.__CRYPTRAIDERS__.getState(); s.combat.state.combatants.find((c) => c.id === 'e_boss').hp = 1; });
+  await page.evaluate(() => { const s = window.__GRAVEVOW__.getState(); s.combat.state.combatants.find((c) => c.id === 'e_boss').hp = 1; });
   for (let i = 0; i < 20; i++) {
     const s = await S();
     if (s.combat?.state.outcome) break;
@@ -111,12 +111,12 @@ const W = 1280, H = 720;
 
   // 4 · Otro aventurero: Kael
   await record('04-kael', async () => {
-    await page.evaluate(() => { for (const e of window.__CRYPTRAIDERS__.scene().enemies) if (e.id === 'e_skel3' && !e.dead) { e.dead = true; e.sprite.destroy(); e.shadow.destroy(); } });
-    const r = await page.evaluate(() => { const r = window.__CRYPTRAIDERS__.scene().rival; return [r.x, r.y]; });
+    await page.evaluate(() => { for (const e of window.__GRAVEVOW__.scene().enemies) if (e.id === 'e_skel3' && !e.dead) { e.dead = true; e.sprite.destroy(); e.shadow.destroy(); } });
+    const r = await page.evaluate(() => { const r = window.__GRAVEVOW__.scene().rival; return [r.x, r.y]; });
     await tp(Math.floor(r[0]) + 2, Math.floor(r[1]) + 1);
     await wait(600);
     await page.keyboard.down('w'); await wait(500); await page.keyboard.up('w');
-    await page.evaluate(() => window.__CRYPTRAIDERS__.actions.interactRival());
+    await page.evaluate(() => window.__GRAVEVOW__.actions.interactRival());
     await wait(500);
     await page.click('[data-testid=rival-talk]'); await wait(900);
     await page.click('[data-testid=rival-ally]'); await wait(1400);
@@ -126,15 +126,15 @@ const W = 1280, H = 720;
 
   // 5 · La traición
   await record('05-traicion', async () => {
-    await page.evaluate(() => { const s = window.__CRYPTRAIDERS__.getState(); s.rival.greed = 100; s.rival.trust = 0; });
-    await page.evaluate(() => window.__CRYPTRAIDERS__.actions.checkBetrayal(true));
+    await page.evaluate(() => { const s = window.__GRAVEVOW__.getState(); s.rival.greed = 100; s.rival.trust = 0; });
+    await page.evaluate(() => window.__GRAVEVOW__.actions.checkBetrayal(true));
     for (let i = 0; i < 3; i++) {
       for (let k = 0; k < 15 && !(await page.$('[data-testid=act-attack]')); k++) await wait(200);
       if (await page.$('[data-testid=act-attack]')) await page.click('[data-testid=act-attack]');
       await wait(1000);
     }
   });
-  await page.evaluate(() => { const s = window.__CRYPTRAIDERS__.getState(); const r = s.combat?.state.combatants.find((c) => c.id === 'rival'); if (r) r.hp = 1; });
+  await page.evaluate(() => { const s = window.__GRAVEVOW__.getState(); const r = s.combat?.state.combatants.find((c) => c.id === 'rival'); if (r) r.hp = 1; });
   for (let i = 0; i < 20; i++) {
     const s = await S();
     if (!s.combat || s.combat.state.outcome) break;

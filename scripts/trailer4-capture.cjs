@@ -32,7 +32,7 @@ async function session(b, vp, touch) {
       cdp.send('Page.screencastFrameAck', { sessionId }).catch(() => {});
     };
     cdp.on('Page.screencastFrame', onFrame);
-    await ev(() => window.__CRYPTRAIDERS__?.setState({ toasts: [] }));
+    await ev(() => window.__GRAVEVOW__?.setState({ toasts: [] }));
     await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, maxWidth: Math.min(vp.width, 1280), maxHeight: Math.min(vp.height, 720), everyNthFrame: 1 });
     await fn();
     await cdp.send('Page.stopScreencast'); cdp.off('Page.screencastFrame', onFrame);
@@ -43,9 +43,9 @@ async function session(b, vp, touch) {
   async function stepRecord(name, n, perFrame) {
     if (!want(name)) return;
     const dir = mk(name); const frames = [];
-    await ev(() => { const g = window.__CRYPTRAIDERS__.game; g.loop.sleep(); window.__cine = { game: g, t: performance.now() }; });
+    await ev(() => { const g = window.__GRAVEVOW__.game; g.loop.sleep(); window.__cine = { game: g, t: performance.now() }; });
     for (let i = 0; i < n; i++) {
-      await ev(([src, i]) => { const c = window.__cine; const sc = window.__CRYPTRAIDERS__.scene();
+      await ev(([src, i]) => { const c = window.__cine; const sc = window.__GRAVEVOW__.scene();
         if (src) new Function('i', 'sc', 'cam', src)(i, sc, sc.cameras.main);
         c.t += 1000 / 30; sc.lightTimer = 1000; c.game.step(c.t, 1000 / 30); }, [perFrame || '', i]);
       const { data } = await cdp.send('Page.captureScreenshot', { format: 'jpeg', quality: 92, clip: { x: 0, y: 0, width: vp.width, height: vp.height, scale: Math.min(1, 1280 / vp.width) } });
@@ -57,13 +57,13 @@ async function session(b, vp, touch) {
   }
   const start = async () => {
     await page.goto(BASE + '?debug&noclass');
-    await ev(() => indexedDB.deleteDatabase('cryptraiders'));
+    await ev(() => indexedDB.deleteDatabase('gravevow'));
     await page.reload(); await wait(700);
     await act('btn-play');
     await ev(() => document.fullscreenElement && document.exitFullscreen());
   };
   const advanced = () => ev(([GEAR, LOOT]) => {
-    const G = window.__CRYPTRAIDERS__; const pr = G.getState().profile;
+    const G = window.__GRAVEVOW__; const pr = G.getState().profile;
     const bp = [...pr.backpack]; LOOT.forEach((id, i) => { bp[i] = { uid: 'bp-' + id, itemId: id, qty: 1 }; });
     bp[LOOT.length] = { uid: 'bp-pot', itemId: 'health_potion', qty: 5 };
     const eq = { ...pr.equipment }; for (const [slot, id] of Object.entries(GEAR)) eq[slot] = { uid: 'eq-' + id, itemId: id, qty: 1 };
@@ -139,11 +139,11 @@ async function session(b, vp, touch) {
   });
   // El atuendo también se ve en la mazmorra: paseo por el Infierno, paso a paso
   if (want('n-atuendo')) {
-    await ev(async () => { await window.__CRYPTRAIDERS__.actions.enterDungeon('infierno'); });
+    await ev(async () => { await window.__GRAVEVOW__.actions.enterDungeon('infierno'); });
     await wait(1500);
     if (await page.$('[data-testid=btn-dungeon-tutorial-ok]')) await act('btn-dungeon-tutorial-ok');
     await ev(() => {
-      const sc = window.__CRYPTRAIDERS__.scene();
+      const sc = window.__GRAVEVOW__.scene();
       for (const e of sc.enemies) { e.dead = true; e.sprite.destroy(); e.shadow?.destroy(); e.marker?.destroy(); }
       // Camino largo desde la posición actual (BFS sobre casillas transitables)
       const sx = Math.floor(sc.player.x), sy = Math.floor(sc.player.y); const prev = new Map([[sx + ',' + sy, null]]); const q = [[sx, sy]]; const dist = new Map([[sx + ',' + sy, 0]]); let far = [sx, sy], fd = 0;
@@ -164,10 +164,10 @@ async function session(b, vp, touch) {
     await m.start();
     await m.page.fill('[data-testid=name-input]', 'Aldric'); await m.act('btn-create'); await m.act('btn-tutorial-ok');
     await m.advanced();
-    await m.ev(async () => { await window.__CRYPTRAIDERS__.actions.enterDungeon('cripta'); });
+    await m.ev(async () => { await window.__GRAVEVOW__.actions.enterDungeon('cripta'); });
     await m.wait(1500);
     if (await m.page.$('[data-testid=btn-dungeon-tutorial-ok]')) await m.act('btn-dungeon-tutorial-ok');
-    await m.ev(() => { const sc = window.__CRYPTRAIDERS__.scene(); sc.enemies.forEach((e) => { e.aggro = 0; }); });
+    await m.ev(() => { const sc = window.__GRAVEVOW__.scene(); sc.enemies.forEach((e) => { e.aggro = 0; }); });
     const touch = (type, pts) => m.cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map(([x, y], i) => ({ x, y, id: i })) });
     const zone = await (await m.page.$('[data-testid=touch-stick-zone]')).boundingBox();
     const sx = zone.x + 110, sy = zone.y + zone.height - 100;

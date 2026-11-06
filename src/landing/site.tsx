@@ -20,7 +20,7 @@ export function DonateButton({ className = '' }: { className?: string }) {
   if (!DONATE_URL) return null;
   return (
     <a href={DONATE_URL} target="_blank" rel="noopener" className={`btn-donate ${className}`} data-testid="cta-donate"
-      aria-label="Apoyar el desarrollo de Crypt Raiders con una aportación (se abre la página de pago de Stripe)">
+      aria-label="Apoyar el desarrollo de Gravevow con una aportación (se abre la página de pago de Stripe)">
       <span aria-hidden>♥</span> Apoyar
     </a>
   );
@@ -57,7 +57,7 @@ export function SiteHeader({ home = '' }: { home?: string }) {
   return (
     <header className="fixed top-0 inset-x-0 z-30 site-nav">
       <nav className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-4 sm:gap-6" aria-label="Principal">
-        <a href={home ? home : '#top'} className="font-display font-extrabold whitespace-nowrap text-sm sm:text-base tracking-[0.08em] sm:tracking-[0.14em] text-parchment py-3" aria-label="Crypt Raiders, ir al inicio">CRYPT RAIDERS</a>
+        <a href={home ? home : '#top'} className="font-display font-extrabold whitespace-nowrap text-sm sm:text-base tracking-[0.08em] sm:tracking-[0.14em] text-parchment py-3" aria-label="Gravevow, ir al inicio">GRAVEVOW</a>
         <div className="nav-links gap-6 font-body text-lg">
           {NAV.map(([id, label]) => <a key={id} href={`${home}#${id}`} className={`nav-link ${active === id ? 'is-on' : ''}`} aria-current={active === id ? 'location' : undefined}>{label}</a>)}
         </div>
@@ -83,9 +83,9 @@ export function SiteFooter({ home = '' }: { home?: string }) {
     <footer className="site-footer border-t border-stone-800" data-testid="site-footer">
       <div className="max-w-6xl mx-auto px-4 py-12 grid gap-8 md:grid-cols-[1.3fr_1fr_1fr] font-body text-base text-stone-400">
         <div>
-          <a href={home ? home : '#top'} className="font-display tracking-[0.14em] text-stone-300 hover:text-parchment">CRYPT RAIDERS</a>
+          <a href={home ? home : '#top'} className="font-display tracking-[0.14em] text-stone-300 hover:text-parchment">GRAVEVOW</a>
           <p className="mt-2 max-w-sm">Juego independiente en desarrollo, en fase alpha: el arte y el sonido actuales son provisionales.</p>
-          <p className="mt-3 text-stone-500">© {year} Crypt Raiders. Todos los derechos reservados.</p>
+          <p className="mt-3 text-stone-500">© {year} Gravevow. Todos los derechos reservados.</p>
         </div>
         <nav aria-label="El juego">
           <h2 className="font-display text-sm tracking-[0.2em] uppercase text-stone-300 mb-3">El juego</h2>

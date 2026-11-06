@@ -14,23 +14,23 @@ const ALL = ['afueras', 'castillo', 'calabozos', 'osario', 'catacumbas', 'panteo
     const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
     p.on('pageerror', (e) => errs.push(e.message)); p.on('console', (m) => m.type() === 'error' && errs.push(m.text()));
     await p.goto(BASE + '?debug');
-    await p.evaluate(() => indexedDB.deleteDatabase('cryptraiders')); await p.reload();
+    await p.evaluate(() => indexedDB.deleteDatabase('gravevow')); await p.reload();
     await p.click('[data-testid=btn-play]'); await p.evaluate(() => document.fullscreenElement && document.exitFullscreen());
     await p.fill('[data-testid=name-input]', 'Saqueador'); await p.click('[data-testid=btn-create]'); await p.click('[data-testid=btn-tutorial-ok]');
     const lv = { afueras: 6, castillo: 15, calabozos: 25, osario: 35, catacumbas: 45, panteon: 55, carmesi: 65, puertas: 75, rios: 85, trono: 95 }[id];
     await p.evaluate(async ([id, lv]) => {
-      const d = window.__CRYPTRAIDERS__; const pr = d.getState().profile;
+      const d = window.__GRAVEVOW__; const pr = d.getState().profile;
       d.setState({ screen: 'lobby', expedition: null, dungeon: null, combat: null, modal: null, profile: { ...pr, character: { ...pr.character, level: lv }, bossesDefeated: ['ossuary_lord', 'veiled_queen'], stats: { ...pr.stats, expeditions: 5 }, tutorialSeen: { lobby: true, dungeon: true }, tutorialDone: true } });
       await d.actions.enterDungeon(id);
     }, [id, lv]);
     await p.waitForTimeout(1500);
     await p.screenshot({ path: `${OUT}/${id}-mapa.png` });
     // Llevar al héroe junto al jefe para ver el combate
-    const ok = await p.evaluate(() => { const d = window.__CRYPTRAIDERS__; const sc = d.scene(); const boss = sc.enemies.find((e) => e.boss); if (!boss) return false; sc.debugTeleport(Math.floor(boss.x), Math.floor(boss.y) - 1); return true; });
+    const ok = await p.evaluate(() => { const d = window.__GRAVEVOW__; const sc = d.scene(); const boss = sc.enemies.find((e) => e.boss); if (!boss) return false; sc.debugTeleport(Math.floor(boss.x), Math.floor(boss.y) - 1); return true; });
     if (ok) {
       try { await p.waitForSelector('[data-testid=combat]', { timeout: 6000 }); await p.waitForTimeout(900); await p.screenshot({ path: `${OUT}/${id}-jefe.png` }); } catch { console.log(id, 'sin combate'); }
     }
-    const st = await p.evaluate(() => { const s = window.__CRYPTRAIDERS__.getState(); return { sub: s.dungeon?.subzone, name: s.dungeon?.name, foe: s.combat?.state?.combatants?.find((c) => c.side === 'B')?.name, hp: s.combat?.state?.combatants?.find((c) => c.side === 'B')?.stats?.maxHp }; });
+    const st = await p.evaluate(() => { const s = window.__GRAVEVOW__.getState(); return { sub: s.dungeon?.subzone, name: s.dungeon?.name, foe: s.combat?.state?.combatants?.find((c) => c.side === 'B')?.name, hp: s.combat?.state?.combatants?.find((c) => c.side === 'B')?.stats?.maxHp }; });
     console.log(id, JSON.stringify(st));
     await p.close();
   }

@@ -24,7 +24,7 @@ const SLOT_HINT_ICON: Record<EquipSlot, string> = {
 
 export type InvMode = 'lobby' | 'merchant' | 'dungeon';
 
-export const DRAG_MIME = 'application/x-cryptraiders';
+export const DRAG_MIME = 'application/x-gravevow';
 
 export function ItemIcon({ itemId, size = 36 }: { itemId: string; size?: number }) {
   const def = getItem(itemId);

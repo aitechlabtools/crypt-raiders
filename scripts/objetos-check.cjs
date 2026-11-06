@@ -10,13 +10,13 @@ const LOOT = [['knight_sword', 'rare'], ['war_mace', 'common'], ['iron_shield', 
     const ctx = await b.newContext({ viewport: vp, hasTouch: touch, isMobile: n === 'movil', deviceScaleFactor: dsf });
     const p = await ctx.newPage(); const errs = []; p.on('pageerror', (e) => errs.push(e.message));
     const act = async (id) => { const s = `[data-testid=${id}]`; await p.waitForSelector(s, { timeout: 6000 }); touch ? await p.tap(s) : await p.click(s); await p.waitForTimeout(300); };
-    await p.goto(URL + '?debug&noclass'); await p.evaluate(() => indexedDB.deleteDatabase('cryptraiders')); await p.reload(); await p.waitForTimeout(700);
+    await p.goto(URL + '?debug&noclass'); await p.evaluate(() => indexedDB.deleteDatabase('gravevow')); await p.reload(); await p.waitForTimeout(700);
     await act('btn-play'); await p.evaluate(() => document.fullscreenElement && document.exitFullscreen());
     await p.fill('[data-testid=name-input]', 'Beohtord'); await act('btn-create'); await act('btn-tutorial-ok');
-    await p.evaluate((LOOT) => { const G = window.__CRYPTRAIDERS__; const pr = G.getState().profile; const bp = [...pr.backpack];
+    await p.evaluate((LOOT) => { const G = window.__GRAVEVOW__; const pr = G.getState().profile; const bp = [...pr.backpack];
       LOOT.forEach(([id, rarity, qty], i) => { bp[i] = { uid: 'bp' + i, itemId: id, qty: qty ?? 1, ...(rarity ? { rarity } : {}) }; });
       G.setState({ profile: { ...pr, backpack: bp, character: { ...pr.character, level: 14 }, tutorialSeen: { ...pr.tutorialSeen, lobby: true, stash: true, vendors: true } } }); }, LOOT);
-    const st = () => p.evaluate(() => { const pr = window.__CRYPTRAIDERS__.getState().profile; return { gold: pr.gold, bp: pr.backpack.filter(Boolean).map((x) => x.itemId).join(','), stash: pr.stash.filter(Boolean).map((x) => x.itemId).join(',') }; });
+    const st = () => p.evaluate(() => { const pr = window.__GRAVEVOW__.getState().profile; return { gold: pr.gold, bp: pr.backpack.filter(Boolean).map((x) => x.itemId).join(','), stash: pr.stash.filter(Boolean).map((x) => x.itemId).join(',') }; });
     await act('tab-stash');
     const ups = await p.$$eval('[data-testid=slot-upgrade]', (e) => e.length);
     await act('slot-backpack-0'); if (!touch) await p.mouse.move(5, 600); await p.waitForTimeout(300);
@@ -29,7 +29,7 @@ const LOOT = [['knight_sword', 'rare'], ['war_mace', 'common'], ['iron_shield', 
     const conf = await p.$('[data-testid=confirm-empty]'); if (conf) { await p.screenshot({ path: `${OUT}/${n}-2-confirmar-vaciar.png` }); await act('btn-confirm-empty'); }
     console.log('  vaciar mochila (confirmó:', !!conf, ') →', await st());
     // venta: devolver cosas a la mochila y marcar
-    await p.evaluate((LOOT) => { const G = window.__CRYPTRAIDERS__; const pr = G.getState().profile; const bp = [...pr.backpack];
+    await p.evaluate((LOOT) => { const G = window.__GRAVEVOW__; const pr = G.getState().profile; const bp = [...pr.backpack];
       LOOT.forEach(([id, rarity, qty], i) => { bp[i] = { uid: 'v' + i, itemId: id, qty: qty ?? 1, ...(rarity ? { rarity } : {}) }; });
       G.setState({ profile: { ...pr, backpack: bp } }); }, LOOT);
     await act('tab-merchants'); await act('vendor-orvel'); await act('vendor-view-sell');

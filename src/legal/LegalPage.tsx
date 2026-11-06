@@ -16,7 +16,7 @@ export function Dato({ id, alt }: { id: 'd1' | 'd2' | 'd3' | 'd4' | 'd5'; alt: s
 export function MailButton() {
   const open = () => {
     const u = 'otcatnoc'.split('').reverse().join('');
-    const d = 'se.sredniatpyrc'.split('').reverse().join('');
+    const d = 'moc.wovevarg'.split('').reverse().join('');
     window.location.href = `mailto:${u}@${d}`;
   };
   return <button type="button" onClick={open} className="btn-ghost px-5 py-2.5 text-base" data-testid="mail-button">✉ Escribir un correo</button>;

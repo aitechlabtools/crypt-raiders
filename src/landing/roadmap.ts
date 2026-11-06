@@ -42,7 +42,7 @@ export const ROADMAP: RoadmapColumn[] = [
       'Más atuendos, siempre solo estéticos',
       'Arte y música definitivos',
       'Guardado en la nube para jugar en varios dispositivos',
-      'Crypt Raiders: VarkHollow en Steam (Windows)',
+      'Gravevow en Steam (Windows)',
     ],
   },
   {

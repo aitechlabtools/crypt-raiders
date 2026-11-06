@@ -16,7 +16,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
   const cdp = await page.context().newCDPSession(page);
   const wait = (ms) => page.waitForTimeout(ms);
   const ev = (fn, arg) => page.evaluate(fn, arg);
-  const tp = (x, y) => ev(([x, y]) => window.__CRYPTRAIDERS__.scene().debugTeleport(x, y), [x, y]);
+  const tp = (x, y) => ev(([x, y]) => window.__GRAVEVOW__.scene().debugTeleport(x, y), [x, y]);
 
   const mk = (name) => { const dir = `${OUT}/${name}`; fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true }); return dir; };
 
@@ -41,7 +41,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
     const dir = mk(name); const frames = [];
     for (let i = 0; i < n; i++) {
       await ev(([src, i, arg]) => {
-        const c = window.__cine; const sc = window.__CRYPTRAIDERS__.scene();
+        const c = window.__cine; const sc = window.__GRAVEVOW__.scene();
         if (src) new Function('i', 'sc', 'cam', 'arg', 'c', src)(i, sc, sc.cameras.main, arg, c);
         c.t += 1000 / 30; sc.lightTimer = 1000; c.game.step(c.t, 1000 / 30);
       }, [perFrame || '', i, arg]);
@@ -52,7 +52,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
     fs.writeFileSync(`${dir}/frames.json`, JSON.stringify(frames));
     console.log(name, n, 'fotogramas (paso a paso)');
   }
-  const freeze = () => ev(() => { const g = window.__CRYPTRAIDERS__.game; g.loop.sleep(); window.__cine = { game: g, t: performance.now() }; });
+  const freeze = () => ev(() => { const g = window.__GRAVEVOW__.game; g.loop.sleep(); window.__cine = { game: g, t: performance.now() }; });
   const unfreeze = () => ev(() => { const c = window.__cine; if (c) c.game.loop.wake(); });
 
   const cinematic = (on) => ev((on) => {
@@ -62,7 +62,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
   }, on);
   // Camino a una casilla (BFS sobre las casillas transitables) para pasear a cámara
   const walkTo = (x, y) => ev(([tx, ty]) => {
-    const sc = window.__CRYPTRAIDERS__.scene(); const W = sc.dungeon.def.width, H = sc.dungeon.def.height;
+    const sc = window.__GRAVEVOW__.scene(); const W = sc.dungeon.def.width, H = sc.dungeon.def.height;
     const sx = Math.floor(sc.player.x), sy = Math.floor(sc.player.y);
     const prev = new Map(); const q = [[sx, sy]]; prev.set(sx + ',' + sy, null);
     let far = null, fd = 0; const dist = new Map([[sx + ',' + sy, 0]]);
@@ -74,7 +74,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
     while (cur && !(cur[0] === sx && cur[1] === sy)) { path.unshift(cur); cur = prev.get(cur[0] + ',' + cur[1]); }
     sc.path = path; return path.length;
   }, [x, y]);
-  const clearEnemies = (keep = []) => ev((keep) => { for (const e of window.__CRYPTRAIDERS__.scene().enemies) if (!keep.includes(e.id) && !e.dead) { e.dead = true; e.sprite.destroy(); e.shadow.destroy(); e.marker?.destroy(); } }, keep);
+  const clearEnemies = (keep = []) => ev((keep) => { for (const e of window.__GRAVEVOW__.scene().enemies) if (!keep.includes(e.id) && !e.dead) { e.dead = true; e.sprite.destroy(); e.shadow.destroy(); e.marker?.destroy(); } }, keep);
   async function waitFor(sel, ms = 4000) { for (let k = 0; k < ms / 100; k++) { if (await page.$(sel)) return true; await wait(100); } return false; }
   async function useSkill(id) {
     if (!(await waitFor('[data-testid=act-attack]:not([disabled])'))) return;
@@ -84,9 +84,9 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
     if (btn) await btn.click(); else { await page.keyboard.press('Escape'); await page.click('[data-testid=act-attack]:not([disabled])'); }
   }
   async function finishCombat(id) {
-    await ev((id) => { const s = window.__CRYPTRAIDERS__.getState(); const c = s.combat?.state.combatants.find((c) => c.id === id); if (c) c.hp = 1; }, id);
+    await ev((id) => { const s = window.__GRAVEVOW__.getState(); const c = s.combat?.state.combatants.find((c) => c.id === id); if (c) c.hp = 1; }, id);
     for (let i = 0; i < 25; i++) {
-      const s = await ev(() => { const s = window.__CRYPTRAIDERS__.getState(); return { c: !!s.combat, o: s.combat?.state.outcome }; });
+      const s = await ev(() => { const s = window.__GRAVEVOW__.getState(); return { c: !!s.combat, o: s.combat?.state.outcome }; });
       if (!s.c || s.o) break;
       if (await page.$('[data-testid=act-attack]:not([disabled])')) await page.click('[data-testid=act-attack]:not([disabled])');
       await wait(400);
@@ -98,7 +98,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
 
   // ═══ PASADA A · Creación (mago) y combates de mago ═══
   await page.goto(BASE + '?debug');
-  await ev(() => indexedDB.deleteDatabase('cryptraiders'));
+  await ev(() => indexedDB.deleteDatabase('gravevow'));
   await page.reload();
   await page.click('[data-testid=btn-play]');
   await wait(400);
@@ -114,7 +114,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
   await page.click('[data-testid=btn-create]');
   await page.click('[data-testid=btn-tutorial-ok]');
   await ev(() => {
-    const s = window.__CRYPTRAIDERS__.getState();
+    const s = window.__GRAVEVOW__.getState();
     s.profile.character.level = 8; s.profile.tutorialSeen.dungeon = true;
     const set = (slot, id) => (s.profile.equipment[slot] = { uid: 'tm-' + id, itemId: id, qty: 1 });
     set('mainHand', 'runic_staff'); set('offHand', 'eclipse_grimoire'); set('armor', 'archmage_robe'); set('amulet', 'heart_of_umbravel');
@@ -122,27 +122,27 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
   await page.click('[data-testid=tab-character]'); await page.click('[data-testid=tab-play]'); await wait(300);
   await page.click('[data-testid=btn-enter-dungeon]'); await wait(1200);
   if (want('m-murcielago')) await record('m-murcielago', async () => {
-    await ev(() => window.__CRYPTRAIDERS__.actions.startCombat('pve', 'e_bat_tr', 'bat'));
+    await ev(() => window.__GRAVEVOW__.actions.startCombat('pve', 'e_bat_tr', 'bat'));
     await useSkill('fireball'); await wait(1500);
     await useSkill('blizzard'); await wait(1500);
   });
   await finishCombat('e_bat_tr');
   if (want('m-jefe')) await record('m-jefe', async () => {
-    await ev(() => window.__CRYPTRAIDERS__.actions.startCombat('pve', 'e_boss', 'ossuary_lord'));
+    await ev(() => window.__GRAVEVOW__.actions.startCombat('pve', 'e_boss', 'ossuary_lord'));
     await useSkill('dark_nova'); await wait(1600);
     await useSkill('blizzard'); await wait(1500);
   });
 
   // ═══ PASADA B · Guerrero: equipo, cripta, Kael, traición, portal, mapas ═══
   await page.goto(BASE + '?debug');
-  await ev(() => indexedDB.deleteDatabase('cryptraiders'));
+  await ev(() => indexedDB.deleteDatabase('gravevow'));
   await page.reload();
   await page.click('[data-testid=btn-play]');
   await page.fill('[data-testid=name-input]', 'Aldric');
   await page.click('[data-testid=btn-create]');
   await page.click('[data-testid=btn-tutorial-ok]');
   await ev(() => {
-    const s = window.__CRYPTRAIDERS__.getState();
+    const s = window.__GRAVEVOW__.getState();
     s.profile.character.level = 8; s.profile.tutorialSeen.dungeon = true;
     const ids = ['knight_helm', 'bastion_plate', 'gauntlets', 'swift_boots', 'bastion_shield', 'dread_blade', 'heart_of_umbravel', 'health_potion', 'blood_gem'];
     ids.forEach((id, i) => (s.profile.backpack[i] = { uid: 'tb-' + id, itemId: id, qty: id === 'health_potion' ? 5 : 1 }));
@@ -175,21 +175,21 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
   }
   // Kael (en tiempo real: diálogo de interfaz)
   await clearEnemies(['e_boss']);
-  const r = await ev(() => { const r = window.__CRYPTRAIDERS__.scene().rival; return [r.x, r.y]; });
+  const r = await ev(() => { const r = window.__GRAVEVOW__.scene().rival; return [r.x, r.y]; });
   await tp(Math.floor(r[0]) + 2, Math.floor(r[1]) + 1);
   await ev(() => window.__cine.game.scene.getScenes(true)[0].cameras.main.setZoom(3));
   await stepRecord('d-kael-cam', 20, 'cam.setZoom(3)');
   await unfreeze();
   if (want('k-kael')) await record('k-kael', async () => {
     await wait(300);
-    await ev(() => window.__CRYPTRAIDERS__.actions.interactRival()); await wait(500);
+    await ev(() => window.__GRAVEVOW__.actions.interactRival()); await wait(500);
     await page.click('[data-testid=rival-talk]'); await wait(1000);
     await page.click('[data-testid=rival-ally]'); await wait(1300);
   });
   await page.keyboard.press('Escape'); await wait(300);
   // El jefe con Kael de aliado
   if (want('w-jefe')) await record('w-jefe', async () => {
-    await ev(() => window.__CRYPTRAIDERS__.actions.startCombat('pve', 'e_boss', 'ossuary_lord'));
+    await ev(() => window.__GRAVEVOW__.actions.startCombat('pve', 'e_boss', 'ossuary_lord'));
     await useSkill('war_cry'); await wait(1300);
     await useSkill('dread_cut'); await wait(1500);
     await useSkill('shield_bash'); await wait(1300);
@@ -197,8 +197,8 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
   await finishCombat('e_boss');
   // Traición a muerte
   if (want('t-traicion')) await record('t-traicion', async () => {
-    await ev(() => { const s = window.__CRYPTRAIDERS__.getState(); s.rival.greed = 100; s.rival.trust = 0; });
-    await ev(() => window.__CRYPTRAIDERS__.actions.checkBetrayal(true));
+    await ev(() => { const s = window.__GRAVEVOW__.getState(); s.rival.greed = 100; s.rival.trust = 0; });
+    await ev(() => window.__GRAVEVOW__.actions.checkBetrayal(true));
     await wait(900);
     await useSkill('rending_slash'); await wait(1400);
     if (await waitFor('[data-testid=act-attack]:not([disabled])')) await page.click('[data-testid=act-attack]:not([disabled])');
@@ -206,16 +206,16 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
   });
   await finishCombat('rival');
   await wait(500);
-  for (let k = 0; k < 3; k++) { const m = await ev(() => window.__CRYPTRAIDERS__.getState().modal?.type ?? null); if (!m) break; await page.keyboard.press('Escape'); await wait(300); }
+  for (let k = 0; k < 3; k++) { const m = await ev(() => window.__GRAVEVOW__.getState().modal?.type ?? null); if (!m) break; await page.keyboard.press('Escape'); await wait(300); }
   await cinematic(true);
   // Huida por el portal, fotograma a fotograma
   await freeze();
   if (want('d-portal')) {
-    const pp = await ev(() => { const p = window.__CRYPTRAIDERS__.scene().portal; return [p.x, p.y]; });
+    const pp = await ev(() => { const p = window.__GRAVEVOW__.scene().portal; return [p.x, p.y]; });
     await tp(pp[0] - 3, pp[1]);
     await walkTo(pp[0], pp[1]);
     await stepRecord('d-portal', 40, 'cam.setZoom(3.2 + i*0.01)');
-    await ev(() => { window.__CRYPTRAIDERS__.actions.closeModal(); });
+    await ev(() => { window.__GRAVEVOW__.actions.closeModal(); });
     await page.keyboard.press('e');
     await stepRecord('d-portal2', 86, 'cam.setZoom(3.6 + i*0.012)');
     await unfreeze();
@@ -224,12 +224,12 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
 
   // Mapas procedurales: tres expediciones, tres mapas
   for (let m = 0; m < 3 && want('p-mapas'); m++) {
-    await ev(async () => { const D = window.__CRYPTRAIDERS__; if (D.getState().screen === 'dungeon' && !D.getState().summary) await D.actions.finishExpedition('extracted'); });
+    await ev(async () => { const D = window.__GRAVEVOW__; if (D.getState().screen === 'dungeon' && !D.getState().summary) await D.actions.finishExpedition('extracted'); });
     await wait(600);
-    await ev(() => window.__CRYPTRAIDERS__.actions.backToLobby());
+    await ev(() => window.__GRAVEVOW__.actions.backToLobby());
     await wait(500);
     if (await page.$('[data-testid=btn-back-lobby]')) { await page.click('[data-testid=btn-back-lobby]'); await wait(500); }
-    await ev(() => { const s = window.__CRYPTRAIDERS__.getState(); s.profile.stats.expeditions = Math.max(1, s.profile.stats.expeditions); });
+    await ev(() => { const s = window.__GRAVEVOW__.getState(); s.profile.stats.expeditions = Math.max(1, s.profile.stats.expeditions); });
     if (await page.$('[data-testid=tab-play]')) await page.click('[data-testid=tab-play]');
     await wait(300);
     await page.click('[data-testid=btn-enter-dungeon]'); await wait(1500);
@@ -238,7 +238,7 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
     await freeze();
     // Plano general: el mapa entero iluminado tenuemente (las salas se revelan), cámara que se aleja
     await ev(() => {
-      const sc = window.__CRYPTRAIDERS__.scene(); const cam = sc.cameras.main;
+      const sc = window.__GRAVEVOW__.scene(); const cam = sc.cameras.main;
       sc.cineReveal = 0.55;
       cam.stopFollow();
       let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
@@ -250,8 +250,8 @@ const ONLY = process.argv[4] ? process.argv[4].split(',') : null;
     await stepRecord(`p-mapa${m}`, 50, `cam.setZoom(c.fit*(1.12-i*0.0024));`);
     // Paseo cercano en ese mapa
     if (m === 0) {
-      await ev(() => { const sc = window.__CRYPTRAIDERS__.scene(); sc.cineReveal = 0; for (const tv of sc.tiles) tv.explored = false; sc.cameras.main.startFollow(sc.player.sprite, true, 0.15, 0.15, 0, 10); });
-      const ok = await ev(() => { const sc = window.__CRYPTRAIDERS__.scene(); const rs = sc.dungeon.def.rooms; let r = rs[0], best = -1; for (const q of rs) { const d = Math.hypot(q.x - sc.player.x, q.y - sc.player.y); if (d > 6 && (best < 0 || d < best)) { best = d; r = q; } } return [r.x + Math.floor(r.w / 2), r.y + Math.floor(r.h / 2)]; });
+      await ev(() => { const sc = window.__GRAVEVOW__.scene(); sc.cineReveal = 0; for (const tv of sc.tiles) tv.explored = false; sc.cameras.main.startFollow(sc.player.sprite, true, 0.15, 0.15, 0, 10); });
+      const ok = await ev(() => { const sc = window.__GRAVEVOW__.scene(); const rs = sc.dungeon.def.rooms; let r = rs[0], best = -1; for (const q of rs) { const d = Math.hypot(q.x - sc.player.x, q.y - sc.player.y); if (d > 6 && (best < 0 || d < best)) { best = d; r = q; } } return [r.x + Math.floor(r.w / 2), r.y + Math.floor(r.h / 2)]; });
       await clearEnemies();
       console.log('paseo', await walkTo(-1, -1));
       await stepRecord('p-paseo', 90, `cam.setZoom(3.4)`);

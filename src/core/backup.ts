@@ -5,12 +5,15 @@ import { strFromU8, strToU8, deflateSync, inflateSync } from 'fflate';
 import { sanitizeSave, type SaveData } from './save';
 import { CLASSES } from './data/classes';
 
-export const BACKUP_FORMAT = 'cryptraiders-backup';
+export const BACKUP_FORMAT = 'gravevow-backup';
+/** Copias hechas cuando el juego se llamaba Gravevow: se siguen aceptando. */
+const OLD_BACKUP_FORMAT = 'cryptraiders-backup';
 export const BACKUP_VERSION = 1;
 /** Versión del juego que hizo la copia (informativa). */
 export const GAME_VERSION = 'alpha-0.3';
-/** Prefijo del código de texto (CR = Crypt Raiders, 1 = formato del código). */
-export const CODE_PREFIX = 'CR1.';
+/** Prefijo del código de texto (GV = Gravevow, 1 = formato del código). */
+export const CODE_PREFIX = 'GV1.';
+const OLD_CODE_PREFIX = 'CR1.';
 const SALT = 'Vark·Hollow·ceniza·7f3a';
 
 export interface BackupSummaryEntry { name: string; classId: string; className: string; level: number; gold: number }
@@ -66,12 +69,12 @@ export function backupToCode(b: BackupFile): string {
 export function backupFileName(now = Date.now()): string {
   const d = new Date(now);
   const p = (n: number) => String(n).padStart(2, '0');
-  return `crypt-raiders-copia-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.json`;
+  return `gravevow-copia-${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.json`;
 }
 
 export type ParsedBackup = { ok: true; backup: BackupFile; save: SaveData } | { ok: false; error: string };
 
-export const ERR_NOT_BACKUP = 'Esto no parece una copia de Crypt Raiders. Comprueba que has elegido el archivo o pegado el código completo.';
+export const ERR_NOT_BACKUP = 'Esto no parece una copia de Gravevow. Comprueba que has elegido el archivo o pegado el código completo.';
 export const ERR_TAMPERED = 'La copia está dañada o se ha modificado a mano, así que no se puede cargar.';
 export const ERR_NEWER = 'Esta copia es de una versión más nueva del juego. Recarga la página para tener la última versión y vuelve a probar.';
 
@@ -79,7 +82,8 @@ export const ERR_NEWER = 'Esta copia es de una versión más nueva del juego. Re
 export function parseBackup(text: string): ParsedBackup {
   const trimmed = (text ?? '').trim();
   // Un código pegado puede llegar partido en líneas o con espacios: se quitan. Un archivo .json se lee tal cual.
-  const t = trimmed.startsWith('{') ? trimmed : trimmed.replace(/\s+/g, '');
+  const t0 = trimmed.startsWith('{') ? trimmed : trimmed.replace(/\s+/g, '');
+  const t = t0.startsWith(OLD_CODE_PREFIX) ? CODE_PREFIX + t0.slice(OLD_CODE_PREFIX.length) : t0;
   let raw: unknown;
   try {
     if (t.startsWith(CODE_PREFIX)) raw = JSON.parse(strFromU8(inflateSync(fromBase64Url(t.slice(CODE_PREFIX.length)))));
@@ -89,7 +93,7 @@ export function parseBackup(text: string): ParsedBackup {
     return { ok: false, error: t.startsWith(CODE_PREFIX) ? ERR_TAMPERED + ' (¿Falta algún trozo del código?)' : ERR_NOT_BACKUP };
   }
   const b = raw as Partial<BackupFile>;
-  if (!b || typeof b !== 'object' || b.format !== BACKUP_FORMAT || typeof b.v !== 'number') return { ok: false, error: ERR_NOT_BACKUP };
+  if (!b || typeof b !== 'object' || (b.format !== BACKUP_FORMAT && b.format !== OLD_BACKUP_FORMAT) || typeof b.v !== 'number') return { ok: false, error: ERR_NOT_BACKUP };
   if (b.v > BACKUP_VERSION) return { ok: false, error: ERR_NEWER };
   const { sig, ...rest } = b as BackupFile;
   if (typeof sig !== 'string' || sig !== signature(rest)) return { ok: false, error: ERR_TAMPERED };

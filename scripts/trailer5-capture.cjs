@@ -34,7 +34,7 @@ async function session(b, vp, touch) {
       cdp.send('Page.screencastFrameAck', { sessionId }).catch(() => {});
     };
     cdp.on('Page.screencastFrame', onFrame);
-    await ev(() => window.__CRYPTRAIDERS__?.setState({ toasts: [] }));
+    await ev(() => window.__GRAVEVOW__?.setState({ toasts: [] }));
     await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, maxWidth: Math.min(vp.width, 1280), maxHeight: Math.min(vp.height, 720), everyNthFrame: 1 });
     await fn();
     await cdp.send('Page.stopScreencast'); cdp.off('Page.screencastFrame', onFrame);
@@ -45,9 +45,9 @@ async function session(b, vp, touch) {
   async function stepRecord(name, n, perFrame) {
     if (!want(name)) return;
     const dir = mk(name); const frames = [];
-    await ev(() => { const g = window.__CRYPTRAIDERS__.game; g.loop.sleep(); window.__cine = { game: g, t: performance.now() }; });
+    await ev(() => { const g = window.__GRAVEVOW__.game; g.loop.sleep(); window.__cine = { game: g, t: performance.now() }; });
     for (let i = 0; i < n; i++) {
-      await ev(([src, i]) => { const c = window.__cine; const sc = window.__CRYPTRAIDERS__.scene();
+      await ev(([src, i]) => { const c = window.__cine; const sc = window.__GRAVEVOW__.scene();
         if (!sc) return;
         if (src) new Function('i', 'sc', 'cam', src)(i, sc, sc.cameras.main);
         c.t += 1000 / 30; sc.lightTimer = 1000; c.game.step(c.t, 1000 / 30); }, [perFrame || '', i]);
@@ -60,13 +60,13 @@ async function session(b, vp, touch) {
   }
   const start = async () => {
     await page.goto(BASE + '?debug&noclass');
-    await ev(() => indexedDB.deleteDatabase('cryptraiders'));
+    await ev(() => indexedDB.deleteDatabase('gravevow'));
     await page.reload(); await wait(700);
     await act('btn-play');
     await ev(() => document.fullscreenElement && document.exitFullscreen());
   };
   const advanced = () => ev(([GEAR, LOOT]) => {
-    const G = window.__CRYPTRAIDERS__; const pr = G.getState().profile;
+    const G = window.__GRAVEVOW__; const pr = G.getState().profile;
     const bp = [...pr.backpack]; LOOT.forEach(([id, rarity, affixes], i) => { bp[i] = { uid: 'bp-' + id, itemId: id, qty: 1, rarity, ...(affixes ? { affixes } : {}) }; });
     bp[LOOT.length] = { uid: 'bp-pot', itemId: 'health_potion', qty: 5 };
     const eq = { ...pr.equipment }; for (const [slot, id] of Object.entries(GEAR)) eq[slot] = { uid: 'eq-' + id, itemId: id, qty: 1 };
@@ -81,16 +81,16 @@ async function session(b, vp, touch) {
   const cinematic = (on) => ev((on) => { let st = document.getElementById('cine'); if (!st) { st = document.createElement('style'); st.id = 'cine'; document.head.appendChild(st); }
     st.textContent = on ? '[data-testid^=hud-], [data-testid=tutorial-guide], .absolute.right-3.top-3, .absolute.left-3.bottom-3, [aria-live=polite].absolute, .absolute.top-3, .absolute.bottom-3 { display: none !important; }' : ''; }, on);
   const enter = async (sub) => {
-    await ev(() => { const D = window.__CRYPTRAIDERS__; if (D.getState().screen === 'dungeon') D.setState({ expedition: null, screen: 'lobby', dungeon: null, merc: null, combat: null }); });
+    await ev(() => { const D = window.__GRAVEVOW__; if (D.getState().screen === 'dungeon') D.setState({ expedition: null, screen: 'lobby', dungeon: null, merc: null, combat: null }); });
     await wait(300);
-    await ev(async (z) => { await window.__CRYPTRAIDERS__.actions.enterDungeon(z); }, sub);
+    await ev(async (z) => { await window.__GRAVEVOW__.actions.enterDungeon(z); }, sub);
     await wait(1500);
     if (await page.$('[data-testid=btn-dungeon-tutorial-ok]')) await act('btn-dungeon-tutorial-ok');
-    await ev(() => window.__CRYPTRAIDERS__.scene().enemies.forEach((e) => { e.aggro = 0; }));
+    await ev(() => window.__GRAVEVOW__.scene().enemies.forEach((e) => { e.aggro = 0; }));
   };
   // Paseo a cámara: camino largo desde donde estás (BFS), enemigos quietos
   const walk = () => ev(() => {
-    const sc = window.__CRYPTRAIDERS__.scene();
+    const sc = window.__GRAVEVOW__.scene();
     const sx = Math.floor(sc.player.x), sy = Math.floor(sc.player.y); const prev = new Map([[sx + ',' + sy, null]]); const q = [[sx, sy]]; const dist = new Map([[sx + ',' + sy, 0]]); let far = [sx, sy], fd = 0;
     while (q.length) { const [x, y] = q.shift(); const d = dist.get(x + ',' + y); if (d <= 12 && d > fd) { fd = d; far = [x, y]; }
       for (const [dx, dy] of [[1, 0], [0, 1], [-1, 0], [0, -1]]) { const nx = x + dx, ny = y + dy, k = nx + ',' + ny; if (prev.has(k) || !sc.walkableTile(nx, ny)) continue; prev.set(k, [x, y]); dist.set(k, d + 1); q.push([nx, ny]); } }
@@ -145,7 +145,7 @@ async function session(b, vp, touch) {
     await wait(600);
     await act('shop-buy-skin_ash_lord', 900); await act('skin-confirm-ok', 1000); await act('skin-bought-equip', 1100);
   });
-  await ev(() => { const D = window.__CRYPTRAIDERS__; const p = D.getState().profile; D.setState({ profile: { ...p, skins: { ...p.skins, equipped: null } } }); });
+  await ev(() => { const D = window.__GRAVEVOW__; const p = D.getState().profile; D.setState({ profile: { ...p, skins: { ...p.skins, equipped: null } } }); });
 
   // ── Las 10 subzonas, paso a paso (2,5 s cada una) ──
   const SUBS = ['afueras', 'castillo', 'calabozos', 'osario', 'catacumbas', 'panteon', 'carmesi', 'puertas', 'rios', 'trono'];
@@ -162,9 +162,9 @@ async function session(b, vp, touch) {
   const fightShot = async (name, enemy, script) => {
     if (!want(name)) return;
     await s.enter(name === 'j-jefe' ? 'puertas' : 'rios');
-    await ev((e) => window.__CRYPTRAIDERS__.actions.startCombat('pve', 'e_' + e, e), enemy);
+    await ev((e) => window.__GRAVEVOW__.actions.startCombat('pve', 'e_' + e, e), enemy);
     await page.waitForSelector('[data-testid=act-attack]:not([disabled])', { timeout: 10000 }).catch(() => {});
-    await ev(() => window.__CRYPTRAIDERS__.setState({ toasts: [] }));
+    await ev(() => window.__GRAVEVOW__.setState({ toasts: [] }));
     await record(name, script);
   };
   const myTurn = async () => { for (let k = 0; k < 60; k++) { if (await page.$('[data-testid=act-attack]:not([disabled])')) return true; await wait(100); } return false; };
@@ -177,15 +177,15 @@ async function session(b, vp, touch) {
     await act('act-class', 1700); await myTurn(); await wait(300);
   });
   await fightShot('j-jefe', 'ignaroth', async () => { await wait(800); await act('act-attack', 1600); await myTurn(); await wait(600); });
-  await ev(() => window.__CRYPTRAIDERS__.setState({ combat: null }));
+  await ev(() => window.__GRAVEVOW__.setState({ combat: null }));
   // ── Combates rápidos contra criaturas distintas: un golpe tuyo y la respuesta del enemigo ──
   const VARIOS = [['c-varios1', 'catacumbas', 'water_lady'], ['c-varios2', 'carmesi', 'umbral_priest'], ['c-varios3', 'osario', 'bone_colossus'], ['c-varios4', 'puertas', 'abyss_hound']];
   for (const [name, sub, enemy] of VARIOS) {
     if (!want(name)) continue;
     await s.enter(sub);
-    await ev((e) => window.__CRYPTRAIDERS__.actions.startCombat('pve', 'v_' + e, e), enemy);
+    await ev((e) => window.__GRAVEVOW__.actions.startCombat('pve', 'v_' + e, e), enemy);
     await page.waitForSelector('[data-testid=act-attack]:not([disabled])', { timeout: 10000 }).catch(() => {});
-    await ev(() => { const s = window.__CRYPTRAIDERS__.getState(); const pl = s.combat.state.combatants.find((c) => c.id === 'player'); pl.stats.maxHp = 9999; pl.hp = 9999; window.__CRYPTRAIDERS__.setState({ toasts: [] }); });
+    await ev(() => { const s = window.__GRAVEVOW__.getState(); const pl = s.combat.state.combatants.find((c) => c.id === 'player'); pl.stats.maxHp = 9999; pl.hp = 9999; window.__GRAVEVOW__.setState({ toasts: [] }); });
     await record(name, async () => {
       await wait(300);
       const sp = await page.$('[data-testid=act-special]:not([disabled])');
@@ -193,15 +193,15 @@ async function session(b, vp, touch) {
       else await act('act-attack');
       await wait(1500); await myTurn(); await wait(200);
     });
-    await ev(() => window.__CRYPTRAIDERS__.setState({ combat: null }));
+    await ev(() => window.__GRAVEVOW__.setState({ combat: null }));
   }
   // ── Duelo continuo: golpe tuyo, golpe suyo, sin pausas. Se apunta cuándo cae cada golpe (para el sonido) ──
   if (want('c-duelo')) {
     await s.enter('rios');
-    await ev(() => window.__CRYPTRAIDERS__.actions.startCombat('pve', 'd_hell_knight', 'hell_knight'));
+    await ev(() => window.__GRAVEVOW__.actions.startCombat('pve', 'd_hell_knight', 'hell_knight'));
     await page.waitForSelector('[data-testid=act-attack]:not([disabled])', { timeout: 10000 }).catch(() => {});
     await ev(() => {
-      const G = window.__CRYPTRAIDERS__; G.setState({ toasts: [] });
+      const G = window.__GRAVEVOW__; G.setState({ toasts: [] });
       const st = G.getState().combat.state; for (const c of st.combatants) c.stats.eva = 0;
       window.__hits = []; let last = st.step;
       window.__hitTimer = setInterval(() => {
@@ -227,13 +227,13 @@ async function session(b, vp, touch) {
     const hits = await ev(() => { clearInterval(window.__hitTimer); return window.__hits; });
     fs.writeFileSync(`${OUT}/c-duelo/hits.json`, JSON.stringify(hits));
     console.log('golpes', hits.map((h) => h.who).join(' '));
-    await ev(() => window.__CRYPTRAIDERS__.setState({ combat: null }));
+    await ev(() => window.__GRAVEVOW__.setState({ combat: null }));
   }
   // ── Sal con vida: el personaje llega al portal y lo activa ──
   if (want('d-portal')) {
     await s.enter('puertas');
     await ev(() => {
-      const sc = window.__CRYPTRAIDERS__.scene();
+      const sc = window.__GRAVEVOW__.scene();
       for (const e of sc.enemies) { e.dead = true; e.sprite.destroy(); e.shadow?.destroy(); e.marker?.destroy(); }
       const px = sc.portal.x, py = sc.portal.y;
       const near = [[4, 0], [0, 4], [-4, 0], [0, -4], [3, 1], [1, 3], [3, 0], [0, 3], [2, 0], [0, 2]].map(([dx, dy]) => [px + dx, py + dy]).find(([x, y]) => sc.walkableTile(x, y));
@@ -249,23 +249,23 @@ async function session(b, vp, touch) {
 
   // ── Kael en las Afueras: trato y traición ──
   if (want('k-kael') || want('t-traicion')) {
-    await ev(() => { window.__CRYPTRAIDERS__.dev.forceKael = true; });
+    await ev(() => { window.__GRAVEVOW__.dev.forceKael = true; });
     await s.enter('afueras');
-    const r = await ev(() => { const r = window.__CRYPTRAIDERS__.scene().rival; return r ? [Math.floor(r.x), Math.floor(r.y)] : null; });
+    const r = await ev(() => { const r = window.__GRAVEVOW__.scene().rival; return r ? [Math.floor(r.x), Math.floor(r.y)] : null; });
     if (r) {
-      await ev(([x, y]) => window.__CRYPTRAIDERS__.scene().debugTeleport(x + 1, y), r); await wait(500);
+      await ev(([x, y]) => window.__GRAVEVOW__.scene().debugTeleport(x + 1, y), r); await wait(500);
       await record('k-kael', async () => {
-        await ev(() => window.__CRYPTRAIDERS__.actions.interactRival()); await wait(1200);
+        await ev(() => window.__GRAVEVOW__.actions.interactRival()); await wait(1200);
         if (await page.$('[data-testid=rival-talk]')) await act('rival-talk', 900);
         if (await page.$('[data-testid=rival-ally]')) await act('rival-ally', 900);
       });
-      await ev(() => window.__CRYPTRAIDERS__.actions.closeModal()); await wait(300);
-      await ev(() => window.__CRYPTRAIDERS__.actions.startCombat('betrayal-by-rival', null));
+      await ev(() => window.__GRAVEVOW__.actions.closeModal()); await wait(300);
+      await ev(() => window.__GRAVEVOW__.actions.startCombat('betrayal-by-rival', null));
       await page.waitForSelector('[data-testid=combat]', { timeout: 8000 }).catch(() => {});
       await record('t-traicion', async () => { await wait(1600); if (await myTurn()) await act('act-attack', 1500); await wait(600); });
-      await ev(() => window.__CRYPTRAIDERS__.setState({ combat: null }));
+      await ev(() => window.__GRAVEVOW__.setState({ combat: null }));
     }
-    await ev(() => { window.__CRYPTRAIDERS__.dev.forceKael = false; });
+    await ev(() => { window.__GRAVEVOW__.dev.forceKael = false; });
   }
   await s.ctx.close();
 

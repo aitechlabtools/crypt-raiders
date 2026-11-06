@@ -20,21 +20,21 @@ async function run(s) {
   p.on('pageerror', (e) => errs.push(e.message));
   p.on('console', (m) => m.type() === 'error' && !/favicon|DevTools/.test(m.text()) && errs.push(m.text()));
   const act = async (id) => { const sel = `[data-testid=${id}]`; await p.waitForSelector(sel, { timeout: 5000 }); if (s.touch) await p.tap(sel); else await p.click(sel); await p.waitForTimeout(300); };
-  const st = () => p.evaluate(() => { const G = window.__CRYPTRAIDERS__; const s = G.getState(); return { screen: s.screen, name: s.profile?.character.name, gold: s.profile?.gold, roster: s.roster.map((r) => `${r.slot}:${r.name}`), tut: s.profile?.tutorialDone }; });
+  const st = () => p.evaluate(() => { const G = window.__GRAVEVOW__; const s = G.getState(); return { screen: s.screen, name: s.profile?.character.name, gold: s.profile?.gold, roster: s.roster.map((r) => `${r.slot}:${r.name}`), tut: s.profile?.tutorialDone }; });
   const fail = (m) => { throw new Error(`${s.n}: ${m}`); };
   const small = async () => s.touch ? p.evaluate(() => [...document.querySelectorAll('button, a.btn')].filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && (r.width < 43.5 || r.height < 43.5); }).map((e) => (e.getAttribute('data-testid') || e.textContent || '').trim().slice(0, 30))) : [];
 
   await p.goto(URL + '?debug');
-  await p.evaluate(() => indexedDB.deleteDatabase('cryptraiders'));
+  await p.evaluate(() => indexedDB.deleteDatabase('gravevow'));
   await p.reload(); await p.waitForTimeout(700);
   // Primer personaje (con el tutorial ya marcado por ?debug no se juega)
   await act('btn-play');
   await p.evaluate(() => document.fullscreenElement && document.exitFullscreen());
   await p.fill('[data-testid=name-input]', 'Aldric'); await act('btn-create'); await act('btn-tutorial-ok');
-  await p.evaluate(() => { const G = window.__CRYPTRAIDERS__; const pr = G.getState().profile; G.setState({ profile: { ...pr, gold: 4321, tutorialDone: true } }); });
+  await p.evaluate(() => { const G = window.__GRAVEVOW__; const pr = G.getState().profile; G.setState({ profile: { ...pr, gold: 4321, tutorialDone: true } }); });
   await p.waitForTimeout(400);
   // Al menú y a «Elegir personaje»
-  await p.evaluate(() => window.__CRYPTRAIDERS__.actions.goto('title')); await p.waitForTimeout(300);
+  await p.evaluate(() => window.__GRAVEVOW__.actions.goto('title')); await p.waitForTimeout(300);
   await act('btn-choose-char');
   await act('btn-new-char-2');
   const skip = await p.$eval('[data-testid=skip-tutorial]', (e) => e.checked).catch(() => null);

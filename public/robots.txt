@@ -1,4 +1,4 @@
-# Crypt Raiders · cryptraiders.es
+# Gravevow · gravevow.com
 # Las páginas con los datos del titular y sus imágenes no deben aparecer en buscadores.
 User-agent: *
 Disallow: /aviso-legal.html

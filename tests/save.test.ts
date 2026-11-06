@@ -57,14 +57,14 @@ describe('Partida (formato 3): migración desde un solo personaje', () => {
 
   it('sanitizeSave acepta un perfil suelto antiguo (copias de seguridad viejas)', () => {
     const s = sanitizeSave(json(veteran()))!;
-    expect(s.format).toBe('cryptraiders-save');
+    expect(s.format).toBe('gravevow-save');
     expect(s.characters[0].character.name).toBe('Aldric');
   });
 
   it('lo que no se reconoce no carga', () => {
     expect(sanitizeSave(null)).toBeNull();
     expect(sanitizeSave({ hola: 1 })).toBeNull();
-    expect(sanitizeSave({ format: 'cryptraiders-save', version: 99 })).toBeNull();
+    expect(sanitizeSave({ format: 'gravevow-save', version: 99 })).toBeNull();
   });
 });
 

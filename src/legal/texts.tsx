@@ -1,6 +1,6 @@
 /*
  * TEXTOS LEGALES ORIENTATIVOS.
- * Estos textos son una base redactada para Crypt Raiders según la LSSI-CE, el RGPD, la LOPDGDD y la guía de cookies
+ * Estos textos son una base redactada para Gravevow según la LSSI-CE, el RGPD, la LOPDGDD y la guía de cookies
  * de la AEPD, a partir de lo que la web hace realmente (auditoría del 3/11/2026). No son asesoramiento jurídico:
  * conviene que los revise un profesional antes de darlos por definitivos, y actualizarlos cuando cambie la web
  * (analítica, cuentas, guardado en la nube, multijugador, compras…).
@@ -13,7 +13,7 @@ import type { ReactNode } from 'react';
 import { DONATE_URL } from '../landing/site';
 import { Dato, EmailInline, MailButton, StorageTable, revealData, useRevealed, type LegalSection } from './LegalPage';
 
-export const UPDATED = '5 de noviembre de 2026';
+export const UPDATED = '6 de noviembre de 2026';
 
 function Titular() {
   const shown = useRevealed();
@@ -30,7 +30,7 @@ function Titular() {
         <dt>NIF</dt><dd><Dato id="d2" alt="NIF del titular (en imagen)" /></dd>
         <dt>Domicilio</dt><dd><Dato id="d3" alt="Ciudad del domicilio del titular (en imagen)" /></dd>
         <dt>Correo electrónico</dt><dd><Dato id="d4" alt="Correo electrónico de contacto (en imagen)" /></dd>
-        <dt>Sitio web</dt><dd>cryptraiders.es</dd>
+        <dt>Sitio web</dt><dd>gravevow.com</dd>
       </dl>
       <div className="flex flex-wrap items-center gap-4">
         <MailButton />
@@ -48,14 +48,14 @@ export interface PageDef { title: string; intro: ReactNode; sections: LegalSecti
 // ─────────────────────────────────────────────────────────────────────────────
 export const AVISO: PageDef = {
   title: 'Aviso legal',
-  intro: <p>Aquí tienes quién está detrás de Crypt Raiders y las condiciones para usar esta web y la alpha del juego.</p>,
+  intro: <p>Aquí tienes quién está detrás de Gravevow y las condiciones para usar esta web y la alpha del juego.</p>,
   sections: [
     { id: 'titular', title: 'Datos del titular', body: <>
       <p>En cumplimiento del artículo 10 de la Ley 34/2002, de servicios de la sociedad de la información y de comercio electrónico (LSSI-CE), estos son los datos del titular de esta web:</p>
       <Titular />
     </> },
     { id: 'objeto', title: 'Objeto de la web', body: <>
-      <p>Esta web presenta <strong>Crypt Raiders</strong>, un videojuego independiente en desarrollo, y da acceso gratuito a una versión alpha jugable en el navegador, en ordenador y en el móvil.</p>
+      <p>Esta web presenta <strong>Gravevow</strong>, un videojuego independiente en desarrollo, y da acceso gratuito a una versión alpha jugable en el navegador, en ordenador y en el móvil.</p>
       <p>La web no vende nada. Dentro de la alpha, la Tienda de atuendos solo usa el oro que se consigue jugando: no hay pagos con dinero real, y los atuendos son solo estéticos, no dan ventajas.</p>
       {DONATE_URL && <p>Si quieres, puedes apoyar el desarrollo con una aportación voluntaria desde el botón «Apoyar», que lleva a la página de pago de Stripe. Es una aportación libre: no compra nada ni da ninguna ventaja en el juego. Las condiciones del pago son las que indica Stripe en esa página.</p>}
     </> },
@@ -64,7 +64,7 @@ export const AVISO: PageDef = {
       <p>El titular puede cambiar, ampliar o retirar en cualquier momento los contenidos de la web y de la alpha, y también estas condiciones. La versión vigente es siempre la publicada en esta página.</p>
     </> },
     { id: 'alpha', title: 'La alpha y tu progreso', body: <>
-      <p>Crypt Raiders es una <strong>alpha en desarrollo</strong>: puede tener errores, y su contenido, su equilibrio y sus reglas pueden cambiar entre versiones.</p>
+      <p>Gravevow es una <strong>alpha en desarrollo</strong>: puede tener errores, y su contenido, su equilibrio y sus reglas pueden cambiar entre versiones.</p>
       <p>Tu progreso (tus personajes, su equipo, su oro y tus ajustes) se guarda <strong>solo en tu navegador</strong>, en tu dispositivo. No se guarda en ningún servidor y el titular no tiene copia. Por eso puede perderse si:</p>
       <ul>
         <li>borras los datos de navegación o los datos de este sitio;</li>
@@ -76,7 +76,7 @@ export const AVISO: PageDef = {
       <p>El titular procura conservar las partidas entre versiones, pero no puede garantizarlo mientras el juego esté en desarrollo.</p>
     </> },
     { id: 'propiedad', title: 'Propiedad intelectual e industrial', body: <>
-      <p>El juego Crypt Raiders, su nombre, el mundo de VarkHollow, los logotipos, los gráficos en pixel art, los textos, la música, los sonidos, el tráiler y el código de esta web pertenecen al titular, salvo que se indique lo contrario. Está prohibido reproducirlos, distribuirlos, transformarlos o comunicarlos públicamente sin su autorización, salvo para uso personal y para compartir enlaces o capturas citando la fuente.</p>
+      <p>El juego Gravevow, su nombre, el mundo de VarkHollow, los logotipos, los gráficos en pixel art, los textos, la música, los sonidos, el tráiler y el código de esta web pertenecen al titular, salvo que se indique lo contrario. Está prohibido reproducirlos, distribuirlos, transformarlos o comunicarlos públicamente sin su autorización, salvo para uso personal y para compartir enlaces o capturas citando la fuente.</p>
       <p>Algunos elementos son de terceros y se usan con su licencia: las tipografías Cinzel, Crimson Pro y Grenze (SIL Open Font License) y las bibliotecas de software libre con las que está hecha la web (por ejemplo React y Phaser, con licencia MIT).</p>
     </> },
     { id: 'responsabilidad', title: 'Exclusión de responsabilidad', body: <>
@@ -119,11 +119,11 @@ export const PRIVACIDAD: PageDef = {
         <li><strong>Transferencia internacional:</strong> GitHub está en Estados Unidos, fuera del Espacio Económico Europeo. Según su declaración de privacidad, se acoge al Marco de Privacidad de Datos UE-EE. UU. (EU-U.S. Data Privacy Framework) y utiliza las cláusulas contractuales tipo de la Comisión Europea.</li>
         <li><strong>Más información:</strong> la declaración de privacidad de GitHub (docs.github.com, «GitHub General Privacy Statement»).</li>
       </ul>
-      <p>El dominio cryptraiders.es está registrado en Hostinger. Hostinger no recibe los datos de tu visita a la web; como mucho, recibe las consultas técnicas para encontrar la dirección del sitio (DNS), que normalmente hace tu proveedor de Internet y no tu dispositivo.</p>
+      <p>El dominio gravevow.com está registrado en Hostinger. El dominio anterior, cryptraiders.es, solo redirige a esta web. Hostinger no recibe los datos de tu visita a la web; como mucho, recibe las consultas técnicas para encontrar la dirección del sitio (DNS), que normalmente hace tu proveedor de Internet y no tu dispositivo.</p>
     </> },
     { id: 'contacto', title: 'Si nos escribes', body: <>
       <p>Si escribes a <Email />, el titular tratará tu dirección de correo y lo que cuentes en el mensaje solo para responderte. La base jurídica es tu consentimiento al escribir (artículo 6.1.a del RGPD). Los mensajes se guardan mientras haga falta para atender tu consulta y, después, durante los plazos legales que correspondan. No se ceden a nadie salvo obligación legal. El correo se gestiona con un proveedor de correo electrónico que actúa como encargado del tratamiento.</p>
-      <p>Crypt Raiders no tiene redes sociales por ahora. Si en el futuro las tiene, esta política lo explicará.</p>
+      <p>Gravevow no tiene redes sociales por ahora. Si en el futuro las tiene, esta política lo explicará.</p>
     </> },
     ...(DONATE_URL ? [{ id: 'apoyar', title: 'Si apoyas el proyecto', body: <>
       <p>El botón «Apoyar» te lleva a una página de pago de <strong>Stripe</strong>, fuera de esta web. Esta web no carga nada de Stripe ni ve los datos de tu tarjeta: el pago lo gestiona Stripe (Stripe Payments Europe, Ltd., Irlanda), con su propia política de privacidad (stripe.com/es/privacy).</p>
@@ -154,9 +154,8 @@ export const PRIVACIDAD: PageDef = {
 // POLÍTICA DE COOKIES
 // ─────────────────────────────────────────────────────────────────────────────
 const STORAGE_ROWS = [
-  { name: 'cryptraiders', where: 'IndexedDB (base de datos del navegador)', owner: 'Propia', purpose: 'Guardar tu partida: tus personajes (hasta cuatro), su progreso, equipo y oro, tu almacén y tus ajustes de sonido. Al cargar una copia de seguridad, guarda también la partida anterior para poder deshacerlo.', duration: 'Hasta que borres el personaje o los datos del sitio.', type: 'Técnica, necesaria' },
-  { name: 'cryptraiders.profile', where: 'Almacenamiento local (localStorage)', owner: 'Propia', purpose: 'Lo mismo que la anterior. Solo se usa si tu navegador no admite IndexedDB.', duration: 'Hasta que borres el personaje o los datos del sitio.', type: 'Técnica, necesaria' },
-  { name: 'dreadbound', where: 'IndexedDB (base de datos del navegador)', owner: 'Propia', purpose: 'Partida guardada con el nombre anterior del juego (DREADBOUND). Solo existe si jugaste antes del cambio de nombre; se copia a «cryptraiders».', duration: 'Hasta que borres el personaje o los datos del sitio.', type: 'Técnica, necesaria' },
+  { name: 'gravevow', where: 'IndexedDB (base de datos del navegador)', owner: 'Propia', purpose: 'Guardar tu partida: tus personajes (hasta cuatro), su progreso, equipo y oro, tu almacén y tus ajustes de sonido. Al cargar una copia de seguridad, guarda también la partida anterior para poder deshacerlo.', duration: 'Hasta que borres el personaje o los datos del sitio.', type: 'Técnica, necesaria' },
+  { name: 'gravevow.profile', where: 'Almacenamiento local (localStorage)', owner: 'Propia', purpose: 'Lo mismo que la anterior. Solo se usa si tu navegador no admite IndexedDB.', duration: 'Hasta que borres el personaje o los datos del sitio.', type: 'Técnica, necesaria' },
 ];
 
 export const COOKIES: PageDef = {
@@ -185,12 +184,12 @@ export const COOKIES: PageDef = {
       <p className="legal-warn"><strong>Atención:</strong> si borras los datos de este sitio, <strong>perderás tu partida</strong> (personaje, equipo y progreso), y no se puede recuperar.</p>
       <p>La forma más sencilla es usar «Borrar personaje y empezar de cero» en Ajustes, dentro del juego. También puedes hacerlo desde el navegador:</p>
       <ul>
-        <li><strong>Chrome (ordenador):</strong> Configuración › Privacidad y seguridad › Configuración de sitios › Ver permisos y datos almacenados en los sitios › busca «cryptraiders.es» › Eliminar datos.</li>
+        <li><strong>Chrome (ordenador):</strong> Configuración › Privacidad y seguridad › Configuración de sitios › Ver permisos y datos almacenados en los sitios › busca «gravevow.com» › Eliminar datos.</li>
         <li><strong>Chrome (Android):</strong> toca el icono que hay a la izquierda de la dirección › Configuración del sitio › Eliminar datos y restablecer permisos.</li>
         <li><strong>Firefox:</strong> haz clic en el candado de la barra de direcciones › Limpiar cookies y datos del sitio.</li>
-        <li><strong>Safari (Mac):</strong> Ajustes › Privacidad › Gestionar datos de sitios web › busca «cryptraiders.es» › Eliminar.</li>
-        <li><strong>Safari (iPhone y iPad):</strong> Ajustes › Apps › Safari › Avanzado › Datos de sitios web › busca «cryptraiders.es» y desliza para borrar.</li>
-        <li><strong>Edge:</strong> Configuración › Cookies y permisos del sitio › Administrar y eliminar cookies y datos del sitio › Ver todas las cookies y datos del sitio › busca «cryptraiders.es» › Eliminar.</li>
+        <li><strong>Safari (Mac):</strong> Ajustes › Privacidad › Gestionar datos de sitios web › busca «gravevow.com» › Eliminar.</li>
+        <li><strong>Safari (iPhone y iPad):</strong> Ajustes › Apps › Safari › Avanzado › Datos de sitios web › busca «gravevow.com» y desliza para borrar.</li>
+        <li><strong>Edge:</strong> Configuración › Cookies y permisos del sitio › Administrar y eliminar cookies y datos del sitio › Ver todas las cookies y datos del sitio › busca «gravevow.com» › Eliminar.</li>
       </ul>
       <p>Si bloqueas el almacenamiento de este sitio, el juego se abrirá, pero no podrá guardar tu partida. Si instalaste el juego como app en tu dispositivo, la app tiene su propio guardado: se borra al desinstalarla.</p>
     </> },

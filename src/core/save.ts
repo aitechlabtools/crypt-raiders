@@ -12,7 +12,9 @@ import { addToGrid, emptyGrid, LAYOUTS } from './inventory';
 import { GOLD_SCALE } from '../config/gold';
 import { STASH_PAGE_SIZE } from '../config/stash';
 
-export const SAVE_FORMAT = 'cryptraiders-save';
+export const SAVE_FORMAT = 'gravevow-save';
+/** Formato de partida con el nombre anterior del juego: se sigue aceptando. */
+export const OLD_SAVE_FORMAT = 'cryptraiders-save';
 export const SAVE_VERSION = 3;
 export const MAX_CHARACTERS = 4;
 const DEFAULT_SETTINGS: Settings = { volume: 0.6, music: true };
@@ -185,7 +187,7 @@ export function migrateProfileToSave(raw: unknown, now = Date.now()): SaveData |
 export function sanitizeSave(raw: unknown, now = Date.now()): SaveData | null {
   if (!raw || typeof raw !== 'object') return null;
   const r = raw as Partial<SaveData> & { character?: unknown };
-  if (r.format !== SAVE_FORMAT) return r.character ? migrateProfileToSave(raw, now) : null;
+  if (r.format !== SAVE_FORMAT && r.format !== OLD_SAVE_FORMAT) return r.character ? migrateProfileToSave(raw, now) : null;
   if (typeof r.version !== 'number' || r.version > SAVE_VERSION) return null;
   const base = emptySave(now);
   const a = (r.account ?? {}) as Partial<AccountData>;

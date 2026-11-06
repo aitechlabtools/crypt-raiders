@@ -53,7 +53,8 @@ export function App() {
         <div className="absolute inset-0 hero-fade pointer-events-none" />
         <div className="relative z-10 min-h-[100svh] max-w-6xl mx-auto px-4 pt-20 pb-16 md:pb-24 flex flex-col justify-end">
           <div>
-            <h1 className="hero-title font-display font-extrabold text-parchment">CRYPT RAIDERS</h1>
+            <h1 className="hero-title font-display font-extrabold text-parchment">GRAVEVOW</h1>
+            <div className="hero-vow" aria-hidden="true"><span /><i /><span /></div>
             <p className="font-display text-xl md:text-3xl text-gold mt-3 tracking-wide">{HERO.tagline}</p>
             <div className="mt-6"><PlayButton big /></div>
             <p className="font-body text-stone-300 mt-3 text-base">Gratis en el navegador, en ordenador o móvil. Sin registro ni descargas.</p>
@@ -66,8 +67,8 @@ export function App() {
       <section id="trailer" className="max-w-6xl mx-auto px-4 pt-16 pb-8 scroll-mt-14">
           <div className="panel overflow-hidden border border-stone-800 shadow-2xl">
             <video className="w-full aspect-video block bg-black" poster="./trailer/poster.jpg" controls muted loop playsInline preload="none" data-testid="trailer-video">
-              <source src="./trailer/cryptraiders-trailer.webm" type="video/webm" />
-              <source src="./trailer/cryptraiders-trailer.mp4" type="video/mp4" />
+              <source src="./trailer/gravevow-trailer.webm" type="video/webm" />
+              <source src="./trailer/gravevow-trailer.mp4" type="video/mp4" />
               Tu navegador no puede reproducir el vídeo.
             </video>
           </div>
@@ -126,7 +127,7 @@ export function App() {
               <p className="font-body text-xl text-stone-300 mt-3">En horizontal y a pantalla completa, con controles táctiles. Se puede instalar como una app.</p>
               <div className="mt-6"><PlayButton /></div>
             </div>
-            <PhoneShot src={SHOT_DIR + 'movil-infierno'} alt="Crypt Raiders en un móvil en horizontal: el Infierno con el joystick, la poción y el botón Usar" />
+            <PhoneShot src={SHOT_DIR + 'movil-infierno'} alt="Gravevow en un móvil en horizontal: el Infierno con el joystick, la poción y el botón Usar" />
           </div>
         </div>
       </section>
@@ -142,7 +143,7 @@ export function App() {
           <h2 className="font-display text-4xl md:text-5xl text-parchment">La puerta está abierta</h2>
           <p className="font-body text-xl text-stone-300 mt-4">Crea a tu saqueador y baja. Tu progreso se guarda en este navegador.</p>
           <div className="mt-8"><PlayButton big /></div>
-          {DONATE_URL && <p className="font-body text-stone-400 mt-8">Crypt Raiders lo hace una sola persona. Si te gusta, puedes ayudar a que avance. <DonateButton className="ml-1 px-3 py-1.5 text-sm align-middle" /></p>}
+          {DONATE_URL && <p className="font-body text-stone-400 mt-8">Gravevow lo hace una sola persona. Si te gusta, puedes ayudar a que avance. <DonateButton className="ml-1 px-3 py-1.5 text-sm align-middle" /></p>}
         </div>
       </section>
 

@@ -49,7 +49,7 @@ async function run(s) {
   const act = async (id) => { const sel = `[data-testid=${id}]`; await p.waitForSelector(sel, { timeout: 5000 }); if (s.touch) await p.tap(sel); else await p.click(sel); await p.waitForTimeout(250); };
   const fails = [];
   await p.goto(URL + '?debug');
-  await p.evaluate(() => indexedDB.deleteDatabase('cryptraiders'));
+  await p.evaluate(() => indexedDB.deleteDatabase('gravevow'));
   await p.reload(); await p.waitForTimeout(600);
   await act('btn-play');
   await p.evaluate(() => document.fullscreenElement && document.exitFullscreen());
@@ -58,7 +58,7 @@ async function run(s) {
   await act('btn-create');
   await act('btn-tutorial-ok');
   // Un poco de todo para que las pantallas no salgan vacías
-  await p.evaluate(() => { const G = window.__CRYPTRAIDERS__; const pr = G.getState().profile; pr.gold = 4860; pr.stats.expeditions = 3; G.setState({ profile: { ...pr } }); });
+  await p.evaluate(() => { const G = window.__GRAVEVOW__; const pr = G.getState().profile; pr.gold = 4860; pr.stats.expeditions = 3; G.setState({ profile: { ...pr } }); });
   for (const v of VIEWS) {
     try {
       await act(`tab-${v.tab}`);

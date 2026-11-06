@@ -1,5 +1,5 @@
 # Montaje del tráiler v5 (alpha, 60 s) a partir de las tomas de scripts/trailer5-capture.cjs y del guion (guion.json).
-# Salidas en public/trailer: cryptraiders-trailer.mp4 (H.264) y .webm (VP9), poster.jpg, y clip.mp4/.webm/.jpg (portada, 8 s sin rótulos).
+# Salidas en public/trailer: gravevow-trailer.mp4 (H.264) y .webm (VP9), poster.jpg, y clip.mp4/.webm/.jpg (portada, 8 s sin rótulos).
 # Uso: python3 trailer/v5/render.py [carpeta de tomas]   (por defecto /tmp/claude-0/t5). La música va aparte: music.py y luego este script con --mux.
 import json, subprocess, os, sys
 TX = os.path.dirname(os.path.abspath(__file__))
@@ -85,9 +85,9 @@ else:
     os.makedirs(PUB, exist_ok=True)
     total = json.load(open(f'{OUT}/cuts.json'))['total']
     run(['ffmpeg', '-y', '-loglevel', 'error', '-i', f'{OUT}/video.mp4', '-i', f'{OUT}/music.wav', '-map', '0:v', '-map', '1:a', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '20',
-         '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', '-t', str(total), f'{PUB}/cryptraiders-trailer.mp4'])
+         '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '160k', '-movflags', '+faststart', '-t', str(total), f'{PUB}/gravevow-trailer.mp4'])
     run(['ffmpeg', '-y', '-loglevel', 'error', '-i', f'{OUT}/video.mp4', '-i', f'{OUT}/music.wav', '-map', '0:v', '-map', '1:a', '-c:v', 'libvpx-vp9', '-crf', '34', '-b:v', '0', '-row-mt', '1', '-deadline', 'good', '-cpu-used', '4',
-         '-c:a', 'libopus', '-b:a', '128k', '-t', str(total), f'{PUB}/cryptraiders-trailer.webm'])
+         '-c:a', 'libopus', '-b:a', '128k', '-t', str(total), f'{PUB}/gravevow-trailer.webm'])
     run(['ffmpeg', '-y', '-loglevel', 'error', '-ss', str(total - 3.5), '-i', f'{OUT}/video.mp4', '-frames:v', '1', '-q:v', '3', f'{PUB}/poster.jpg'])
     run(['ffmpeg', '-y', '-loglevel', 'error', '-i', f'{OUT}/clip.mp4', '-an', '-c:v', 'libx264', '-preset', 'veryfast', '-crf', '24', '-pix_fmt', 'yuv420p', '-movflags', '+faststart', f'{PUB}/clip.mp4'])
     run(['ffmpeg', '-y', '-loglevel', 'error', '-i', f'{OUT}/clip.mp4', '-an', '-c:v', 'libvpx-vp9', '-crf', '38', '-b:v', '0', '-row-mt', '1', '-cpu-used', '4', f'{PUB}/clip.webm'])

@@ -58,7 +58,7 @@ export async function shareGameLink(): Promise<string> {
   const url = playUrl();
   try {
     if (navigator.share) {
-      await navigator.share({ title: 'Crypt Raiders · Alpha', text: 'Juega gratis la alpha de Crypt Raiders:', url });
+      await navigator.share({ title: 'Gravevow · Alpha', text: 'Juega gratis la alpha de Gravevow:', url });
       return 'Enlace compartido.';
     }
     await navigator.clipboard.writeText(url);
